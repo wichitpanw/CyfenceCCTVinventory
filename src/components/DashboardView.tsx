@@ -46,6 +46,11 @@ export default function DashboardView({ config, onNavigate, onQuickReturn, refre
   const [allTransactions, setAllTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [dbError, setDbError] = useState<string | null>(null);
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   useEffect(() => {
     async function fetchDashboardData() {
@@ -272,33 +277,35 @@ export default function DashboardView({ config, onNavigate, onQuickReturn, refre
                     <span className="text-2xl font-sans font-extrabold text-[#1D1D1F] leading-none">{totalActiveBorrowedItems}</span>
                     <span className="text-[9px] text-[#86868B] font-sans mt-0.5 font-bold uppercase tracking-wider">พัสดุถูกยืม</span>
                   </div>
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={departmentChartData}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={52}
-                        outerRadius={72}
-                        paddingAngle={3}
-                        dataKey="value"
-                      >
-                        {departmentChartData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={DEPT_COLORS[index % DEPT_COLORS.length]} />
-                        ))}
-                      </Pie>
-                      <Tooltip 
-                        contentStyle={{ 
-                          fontFamily: 'var(--font-sans)', 
-                          borderRadius: '12px', 
-                          border: '1px solid #E8E8ED', 
-                          boxShadow: '0 8px 30px rgba(0,0,0,0.04)',
-                          fontSize: '11px'
-                        }}
-                        formatter={(value: any, name: any) => [`${value} ชิ้น`, name]}
-                      />
-                    </PieChart>
-                  </ResponsiveContainer>
+                  {isMounted && (
+                    <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
+                      <PieChart>
+                        <Pie
+                          data={departmentChartData}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={52}
+                          outerRadius={72}
+                          paddingAngle={3}
+                          dataKey="value"
+                        >
+                          {departmentChartData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={DEPT_COLORS[index % DEPT_COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip 
+                          contentStyle={{ 
+                            fontFamily: 'var(--font-sans)', 
+                            borderRadius: '12px', 
+                            border: '1px solid #E8E8ED', 
+                            boxShadow: '0 8px 30px rgba(0,0,0,0.04)',
+                            fontSize: '11px'
+                          }}
+                          formatter={(value: any, name: any) => [`${value} ชิ้น`, name]}
+                        />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  )}
                 </div>
                 <div className="sm:col-span-5 space-y-1.5 max-h-44 overflow-y-auto pr-1">
                   {departmentChartData.map((item, index) => {
@@ -333,36 +340,38 @@ export default function DashboardView({ config, onNavigate, onQuickReturn, refre
                 <p className="text-xs font-sans font-bold text-[#86868B]">ไม่มีข้อมูลอุปกรณ์เพื่อแสดงสถิติ</p>
               </div>
             ) : (
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart 
-                  layout="vertical" 
-                  data={categoryChartData} 
-                  margin={{ top: 5, right: 20, left: 10, bottom: 5 }}
-                >
-                  <XAxis type="number" stroke="#86868B" fontSize={9} tickLine={false} axisLine={false} allowDecimals={false} />
-                  <YAxis 
-                    dataKey="name" 
-                    type="category" 
-                    stroke="#1D1D1F" 
-                    fontSize={10} 
-                    tickLine={false} 
-                    axisLine={false} 
-                    width={140}
-                  />
-                  <Tooltip 
-                    cursor={{ fill: '#F5F5F7' }}
-                    contentStyle={{ 
-                      fontFamily: 'var(--font-sans)', 
-                      borderRadius: '12px', 
-                      border: '1px solid #E8E8ED', 
-                      boxShadow: '0 8px 30px rgba(0,0,0,0.04)',
-                      fontSize: '11px'
-                    }}
-                    formatter={(value: any) => [`${value} ชิ้น`, 'คงเหลือในคลัง']}
-                  />
-                  <Bar dataKey="value" fill="#0071E3" radius={[0, 8, 8, 0]} barSize={12} name="จำนวนคงเหลือ" />
-                </BarChart>
-              </ResponsiveContainer>
+              isMounted && (
+                <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
+                  <BarChart 
+                    layout="vertical" 
+                    data={categoryChartData} 
+                    margin={{ top: 5, right: 20, left: 10, bottom: 5 }}
+                  >
+                    <XAxis type="number" stroke="#86868B" fontSize={9} tickLine={false} axisLine={false} allowDecimals={false} />
+                    <YAxis 
+                      dataKey="name" 
+                      type="category" 
+                      stroke="#1D1D1F" 
+                      fontSize={10} 
+                      tickLine={false} 
+                      axisLine={false} 
+                      width={140}
+                    />
+                    <Tooltip 
+                      cursor={{ fill: '#F5F5F7' }}
+                      contentStyle={{ 
+                        fontFamily: 'var(--font-sans)', 
+                        borderRadius: '12px', 
+                        border: '1px solid #E8E8ED', 
+                        boxShadow: '0 8px 30px rgba(0,0,0,0.04)',
+                        fontSize: '11px'
+                      }}
+                      formatter={(value: any) => [`${value} ชิ้น`, 'คงเหลือในคลัง']}
+                    />
+                    <Bar dataKey="value" fill="#0071E3" radius={[0, 8, 8, 0]} barSize={12} name="จำนวนคงเหลือ" />
+                  </BarChart>
+                </ResponsiveContainer>
+              )
             )}
           </div>
         </div>
