@@ -838,7 +838,7 @@ export default function BorrowReturnView({ config, refreshTrigger, onRefresh, qu
                         max={equipments.find(x => x.id === selectedEqId)?.available_qty ?? 1}
                         value={borrowQty}
                         onChange={(e) => setBorrowQty(Math.max(1, Math.min(equipments.find(x => x.id === selectedEqId)?.available_qty ?? 1, Number(e.target.value))))}
-                        className="w-10 h-8 border border-apple-border rounded-lg text-xs bg-white text-center font-bold focus:outline-none"
+                        className="qty-input w-10 h-8 border border-apple-border rounded-lg text-xs bg-white text-center font-bold focus:outline-none"
                       />
                       <button
                         type="button"
