@@ -99,21 +99,21 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F4F4F7] text-[#1E293B] font-sans flex flex-col justify-between" id="app-wrapper">
+    <div className="min-h-screen bg-[#F5F5F7] text-[#1D1D1F] font-sans flex flex-col justify-between" id="app-wrapper">
       
       {/* Upper Navigation Header bar */}
-      <header className="bg-white border-b border-slate-200 py-3.5 px-6 md:px-12 sticky top-0 z-40 shadow-xs text-left" id="main-header">
+      <header className="bg-white/80 backdrop-blur-md border-b border-[#E8E8ED]/80 py-3 px-6 md:px-12 sticky top-0 z-40 text-left" id="main-header">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           
           {/* Brand Logo & Name */}
           <div className="flex items-center space-x-3.5" id="brand-logo">
             {customLogo ? (
-              <div className="w-12 h-12 rounded-lg bg-white border border-slate-200 shadow-sm flex items-center justify-center p-1 shrink-0 select-none overflow-hidden">
+              <div className="w-12 h-12 rounded-xl bg-white border border-[#E8E8ED] shadow-xs flex items-center justify-center p-1 shrink-0 select-none overflow-hidden">
                 <img src={customLogo} alt="Logo" className="w-full h-full object-contain" referrerPolicy="no-referrer" />
               </div>
             ) : (
               /* NT Cyfence high-fidelity CSS logo from attached image */
-              <div className="w-12 h-12 bg-[#FCCC04] rounded-lg flex flex-col items-center justify-center p-1.5 shadow-sm shrink-0 select-none border border-yellow-500/20">
+              <div className="w-12 h-12 bg-[#FCCC04] rounded-xl flex flex-col items-center justify-center p-1.5 shadow-xs shrink-0 select-none border border-yellow-500/10">
                 {/* Upper graphic group: connection bars + lowercase 'nt' */}
                 <div className="flex items-center space-x-1">
                   {/* Channel bars and dots */}
@@ -132,23 +132,23 @@ export default function App() {
               </div>
             )}
             <div>
-              <h1 className="text-md font-extrabold tracking-tight font-sans text-slate-800 flex items-center gap-1.5">
-                {systemTitle} <span className="text-blue-600 font-semibold font-sans text-[10px] bg-blue-50 px-2 py-0.5 rounded-sm">{systemVersion}</span>
+              <h1 className="text-md font-extrabold tracking-tight font-sans text-[#1D1D1F] flex items-center gap-2">
+                {systemTitle} <span className="text-[#0071E3] font-bold font-sans text-[10px] bg-[#E8F2FF] px-2 py-0.5 rounded-full">{systemVersion}</span>
               </h1>
-              <p className="text-[9px] text-slate-400 font-mono text-left leading-normal">{systemDesc}</p>
+              <p className="text-[9px] text-[#86868B] font-medium leading-normal">{systemDesc}</p>
             </div>
           </div>
 
           {/* Database Mode status pill indicator */}
           <div className="flex items-center space-x-2 shrink-0 select-none">
             {(!dbConfig.supabaseUrl || !dbConfig.supabaseKey) ? (
-              <div className="flex items-center gap-1.5 bg-rose-50 border border-rose-200 text-rose-800 text-[11px] font-bold font-sans px-3 py-1.5 rounded shadow-3xs cursor-pointer animate-pulse" onClick={() => setActiveTab('settings')}>
-                <AlertCircle className="h-3.5 w-3.5 text-rose-500 shrink-0" />
-                <span>ยังไม่ได้ตั้งค่าเชื่อมต่อ Supabase (คลิกเพื่อตั้งค่า)</span>
+              <div className="badge-apple badge-apple-red cursor-pointer animate-pulse" onClick={() => setActiveTab('settings')}>
+                <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                <span>ยังไม่ได้ตั้งค่าเชื่อมต่อ Supabase</span>
               </div>
             ) : (
-              <div className="flex items-center gap-1.5 bg-emerald-50 border border-emerald-200 text-emerald-800 text-[11px] font-bold font-sans px-3 py-1.5 rounded shadow-3xs">
-                <Database className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
+              <div className="badge-apple badge-apple-green">
+                <Database className="h-3.5 w-3.5 shrink-0" />
                 <span>เชื่อมต่อระบบ Supabase DB เรียบร้อย</span>
               </div>
             )}
@@ -163,13 +163,13 @@ export default function App() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6" id="layout-view-grid">
           
           {/* Main Left-side Sidebar Menu Nav (Desktop) / Top nav (Mobile) */}
-          <nav className="lg:col-span-3 bg-[#1A1C21] text-white border border-slate-800 rounded p-4 h-fit shadow-xs" id="sidebar-navigation">
-            <h4 className="hidden lg:block text-[10px] font-mono text-slate-400 uppercase tracking-widest font-bold mb-4 px-3 text-left">
+          <nav className="lg:col-span-3 bg-white/80 backdrop-blur-md border border-[#E8E8ED] rounded-2xl p-4 h-fit" id="sidebar-navigation">
+            <h4 className="hidden lg:block text-[10px] font-sans text-[#86868B] uppercase tracking-wider font-extrabold mb-4 px-3 text-left">
               เมนูบริหารคลัง
             </h4>
 
             {/* Desktop and Mobile responsive grid/flex layout */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:flex lg:flex-col gap-2 pb-1 lg:pb-0" id="nav-pills-holder">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:flex lg:flex-col gap-1.5 pb-1 lg:pb-0" id="nav-pills-holder">
               {[
                 { id: 'dashboard', name: 'รายงานสรุปภาพรวม', icon: LayoutDashboard },
                 { id: 'inventory', name: 'รายการอุปกรณ์', icon: Package },
@@ -184,13 +184,13 @@ export default function App() {
                   <button
                     key={tab.id}
                     onClick={() => { setActiveTab(tab.id); handleRefresh(); }}
-                    className={`flex items-center space-x-2 px-3.5 py-3 lg:py-2.5 rounded text-xs font-semibold font-sans transition-all cursor-pointer ${
+                    className={`flex items-center space-x-2.5 px-4 py-3 lg:py-2.5 rounded-xl text-xs font-semibold font-sans transition-all cursor-pointer ${
                       isActive 
-                        ? 'bg-blue-600 text-white lg:bg-blue-600/20 lg:text-blue-400 lg:border-l-4 lg:border-blue-500' 
-                        : 'text-slate-350 bg-slate-800/40 lg:bg-transparent hover:bg-slate-800 hover:text-white'
+                        ? 'bg-[#E8F2FF] text-[#0071E3]' 
+                        : 'text-[#1D1D1F] hover:bg-[#F5F5F7]'
                     } ${tab.id === 'settings' ? 'col-span-2 sm:col-span-1' : ''}`}
                   >
-                    <IconComp className="h-4 w-4 shrink-0 text-current" />
+                    <IconComp className={`h-4 w-4 shrink-0 ${isActive ? 'text-[#0071E3]' : 'text-[#86868B]'}`} />
                     <span className="truncate">{tab.name}</span>
                   </button>
                 );
@@ -253,8 +253,8 @@ export default function App() {
       </main>
 
       {/* Humble Footer info */}
-      <footer className="bg-white border-t border-gray-150 py-5 px-6 shrink-0 mt-12 text-center text-4xs font-mono text-gray-400 select-none" id="main-footer">
-        <p>powered by Warapon Wichitpan © 2026</p>
+      <footer className="py-6 px-6 shrink-0 mt-12 text-center text-[10px] font-sans font-medium text-[#86868B] select-none" id="main-footer">
+        <p>Powered by Warapon Wichitpan © 2026 · NT Cyfence CCTV & Network Inventory</p>
       </footer>
     </div>
   );

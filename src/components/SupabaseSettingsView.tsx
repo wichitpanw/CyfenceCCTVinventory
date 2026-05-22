@@ -165,15 +165,15 @@ export default function SupabaseSettingsView({
 
   if (!isUnlocked) {
     return (
-      <div className="max-w-md mx-auto my-12 bg-white p-8 rounded-2xl border border-gray-200 shadow-xl text-center space-y-6" id="settings-lock-screen">
+      <div className="max-w-md mx-auto my-12 bg-white p-8 rounded-3xl border border-[#E8E8ED] shadow-apple-card text-center space-y-6" id="settings-lock-screen">
         <div className="flex justify-center">
-          <div className={`p-4 rounded-full ${pinError ? 'bg-rose-50 text-rose-600 animate-bounce' : 'bg-indigo-50 text-indigo-600'}`}>
-            <Lock className="h-8 w-8" />
+          <div className={`p-4.5 rounded-full transition-all duration-300 ${pinError ? 'bg-rose-50 text-rose-600 animate-bounce' : 'bg-blue-50/50 text-apple-primary'}`}>
+            <Lock className="h-7 w-7" />
           </div>
         </div>
 
         <div className="space-y-1.5 leading-snug">
-          <h3 className="text-sm font-bold font-sans text-slate-800">ยืนยัน PIN ผู้ดูแลระบบ</h3>
+          <h3 className="text-sm font-bold font-sans text-slate-800 uppercase tracking-wider">ยืนยัน PIN ผู้ดูแลระบบ</h3>
           <p className="text-xs text-slate-450 leading-relaxed max-w-xs mx-auto">
             กรุณากรอกรหัส PIN 4 หลัก เพื่อปลดล็อกเข้าสู่หน้าตั้งค่าระบบ (โปรไฟล์โปรแกรมและฐานข้อมูล)
           </p>
@@ -186,12 +186,12 @@ export default function SupabaseSettingsView({
             return (
               <div 
                 key={index} 
-                className={`w-4 h-4 rounded-full border-2 transition-all duration-150 ${
+                className={`w-3.5 h-3.5 rounded-full border-2 transition-all duration-150 ${
                   pinError 
                     ? 'border-rose-500 bg-rose-500 scale-110 shadow-xs' 
                     : hasValue 
-                      ? 'border-indigo-600 bg-indigo-600 scale-110 shadow-xs' 
-                      : 'border-slate-350 bg-transparent'
+                      ? 'border-apple-primary bg-apple-primary scale-110 shadow-xs' 
+                      : 'border-slate-300 bg-transparent'
                 }`}
               />
             );
@@ -200,18 +200,18 @@ export default function SupabaseSettingsView({
 
         {pinError && (
           <p className="text-xs text-rose-600 font-sans font-bold flex items-center justify-center gap-1 animate-pulse">
-            ❌ รหัสผ่านไม่ถูกต้อง โปรดลองอีกครั้ง!
+            รหัสผ่านไม่ถูกต้อง โปรดลองอีกครั้ง!
           </p>
         )}
 
         {/* Numeric Keypad */}
-        <div className="grid grid-cols-3 gap-3 max-w-[240px] mx-auto pt-2" id="keypad">
+        <div className="grid grid-cols-3 gap-4 max-w-[240px] mx-auto pt-2" id="keypad">
           {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map((num) => (
             <button
               key={num}
               type="button"
               onClick={() => handleKeyPress(num)}
-              className="w-14 h-14 bg-slate-50 hover:bg-indigo-50 hover:text-indigo-600 active:bg-indigo-100 rounded-full flex items-center justify-center text-sm font-black shadow-xs border border-slate-100 font-mono transition-all duration-150 cursor-pointer"
+              className="w-14 h-14 bg-[#F5F5F7] hover:bg-[#E8E8ED] hover:text-slate-900 active:scale-95 rounded-full flex items-center justify-center text-sm font-black border border-transparent font-mono transition-all duration-150 cursor-pointer"
             >
               {num}
             </button>
@@ -219,21 +219,21 @@ export default function SupabaseSettingsView({
           <button
             type="button"
             onClick={handleClear}
-            className="w-14 h-14 text-slate-450 hover:text-rose-600 active:scale-95 flex items-center justify-center text-xs font-bold font-sans transition-all cursor-pointer"
+            className="w-14 h-14 text-slate-450 hover:text-rose-605 active:scale-95 flex items-center justify-center text-xs font-bold font-sans transition-all cursor-pointer"
           >
             ล้างรหัส
           </button>
           <button
             type="button"
             onClick={() => handleKeyPress('0')}
-            className="w-14 h-14 bg-slate-50 hover:bg-indigo-50 hover:text-indigo-600 active:bg-indigo-100 rounded-full flex items-center justify-center text-sm font-black shadow-xs border border-slate-100 font-mono transition-all duration-150 cursor-pointer"
+            className="w-14 h-14 bg-[#F5F5F7] hover:bg-[#E8E8ED] hover:text-slate-900 active:scale-95 rounded-full flex items-center justify-center text-sm font-black border border-transparent font-mono transition-all duration-150 cursor-pointer"
           >
             0
           </button>
           <button
             type="button"
             onClick={handleBackspace}
-            className="w-14 h-14 text-slate-450 hover:text-indigo-600 active:scale-95 flex items-center justify-center text-xs font-bold font-sans transition-all cursor-pointer"
+            className="w-14 h-14 text-slate-450 hover:text-apple-primary active:scale-95 flex items-center justify-center text-xs font-bold font-sans transition-all cursor-pointer"
           >
             ลบ
           </button>
@@ -246,25 +246,25 @@ export default function SupabaseSettingsView({
     <div className="max-w-3xl mx-auto space-y-6 text-left w-full animate-fade-in" id="settings-root-container">
       
       {/* System Customization Panel */}
-      <div className="bg-white p-6 rounded-2xl border border-gray-150 shadow-2xs">
-        <h3 className="text-sm font-bold text-gray-900 border-b border-gray-100 pb-3 mb-6 flex items-center gap-2">
-          <Settings2 className="h-4.5 w-4.5 text-indigo-500" /> ตั้งค่าระบบและโปรไฟล์โปรแกรม
+      <div className="bg-white p-6 rounded-2xl border border-[#E8E8ED] shadow-apple-card">
+        <h3 className="text-sm font-bold text-slate-900 border-b border-[#E8E8ED] pb-3 mb-6 flex items-center gap-2">
+          <Settings2 className="h-4.5 w-4.5 text-apple-primary" /> ตั้งค่าระบบและโปรไฟล์โปรแกรม
         </h3>
 
         <div className="space-y-5">
           {/* Logo Customization */}
           <div>
-            <label className="block text-2xs font-sans font-bold text-gray-500 uppercase tracking-wider mb-2">ตราสัญลักษณ์ระบบ (System Logo)</label>
+            <label className="block text-[11px] font-sans font-bold text-slate-500 uppercase tracking-wider mb-2">ตราสัญลักษณ์ระบบ (System Logo)</label>
             
-            <div className="flex flex-col sm:flex-row items-center gap-4 p-4 bg-slate-50/50 rounded-xl border border-slate-150">
+            <div className="flex flex-col sm:flex-row items-center gap-4 p-4 bg-[#F5F5F7]/50 rounded-2xl border border-[#E8E8ED]">
               {/* Logo Preview */}
-              <div className="w-16 h-16 shrink-0 rounded-xl border-2 border-dashed border-slate-300 flex items-center justify-center p-1.5 bg-white overflow-hidden shadow-3xs">
+              <div className="w-16 h-16 shrink-0 rounded-2xl border-2 border-dashed border-[#E8E8ED] flex items-center justify-center p-1.5 bg-white overflow-hidden shadow-3xs">
                 {customLogo ? (
                   <img src={customLogo} alt="Custom Logo Preview" className="w-full h-full object-contain" referrerPolicy="no-referrer" />
                 ) : (
                   <div className="flex flex-col items-center justify-center text-center">
                     <ImageIcon className="h-5 w-5 text-slate-400" />
-                    <span className="text-[8px] text-slate-400 mt-1 leading-none">โลโก้เริ่มต้น</span>
+                    <span className="text-[8px] text-slate-450 mt-1 leading-none font-sans font-semibold">โลโก้เริ่มต้น</span>
                   </div>
                 )}
               </div>
@@ -273,7 +273,7 @@ export default function SupabaseSettingsView({
               <div className="flex-1 space-y-2 text-center sm:text-left">
                 <div className="flex flex-wrap gap-2 justify-center sm:justify-start">
                   {/* Trigger File Input */}
-                  <label className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold font-sans cursor-pointer shadow-3xs transition">
+                  <label className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-apple-primary hover:bg-[#0077ED] text-white rounded-xl text-xs font-semibold font-sans cursor-pointer shadow-md shadow-apple-primary/10 hover:shadow-lg hover:shadow-apple-primary/20 transition active:scale-98">
                     <Upload className="h-3.5 w-3.5" />
                     <span>อัปโหลดภาพ</span>
                     <input 
@@ -302,7 +302,7 @@ export default function SupabaseSettingsView({
                         onCustomLogoChange('');
                         localStorage.removeItem('system_custom_logo');
                       }}
-                      className="inline-flex items-center gap-1 px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-lg text-xs font-bold font-sans transition border border-rose-200"
+                      className="inline-flex items-center gap-1 px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-xl text-xs font-semibold font-sans transition border border-rose-200 active:scale-98 cursor-pointer"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                       <span>กลับไปใช้ค่าเริ่มต้น</span>
@@ -319,23 +319,23 @@ export default function SupabaseSettingsView({
           {/* Title & Version Row */}
           <div className="grid grid-cols-1 sm:grid-cols-12 gap-4">
             <div className="sm:col-span-8">
-              <label className="block text-2xs font-sans font-bold text-gray-500 uppercase tracking-wider mb-1.5">ชื่อโปรแกรมระบบ (System Title)</label>
+              <label className="block text-[11px] font-sans font-bold text-slate-500 uppercase tracking-wider mb-1.5">ชื่อโปรแกรมระบบ (System Title)</label>
               <input
                 type="text"
                 value={localTitle}
                 onChange={(e) => setLocalTitle(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-xl text-xs font-sans focus:outline-hidden focus:ring-1 focus:ring-indigo-500"
+                className="w-full px-3.5 py-2 border border-[#E8E8ED] rounded-xl text-xs font-semibold text-slate-800 font-sans focus:outline-hidden focus:border-apple-primary focus:ring-1 focus:ring-apple-primary/20 bg-[#F5F5F7]/50 focus:bg-white transition-all"
                 placeholder="NT Cyfence Inventory"
               />
             </div>
 
             <div className="sm:col-span-4">
-              <label className="block text-2xs font-sans font-bold text-gray-500 uppercase tracking-wider mb-1.5">เวอร์ชั่นโปรแกรม</label>
+              <label className="block text-[11px] font-sans font-bold text-slate-500 uppercase tracking-wider mb-1.5">เวอร์ชั่นโปรแกรม</label>
               <input
                 type="text"
                 value={localVersion}
                 onChange={(e) => setLocalVersion(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-xl text-xs font-sans focus:outline-hidden focus:ring-1 focus:ring-indigo-500"
+                className="w-full px-3.5 py-2 border border-[#E8E8ED] rounded-xl text-xs font-semibold text-slate-800 font-sans focus:outline-hidden focus:border-apple-primary focus:ring-1 focus:ring-apple-primary/20 bg-[#F5F5F7]/50 focus:bg-white transition-all"
                 placeholder="v1.0"
               />
             </div>
@@ -343,17 +343,17 @@ export default function SupabaseSettingsView({
 
           {/* Description */}
           <div>
-            <label className="block text-2xs font-sans font-bold text-gray-500 uppercase tracking-wider mb-1.5">คำอธิบายระบบ (System Description)</label>
+            <label className="block text-[11px] font-sans font-bold text-slate-500 uppercase tracking-wider mb-1.5">คำอธิบายระบบ (System Description)</label>
             <textarea
               value={localDesc}
               onChange={(e) => setLocalDesc(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-xl text-xs font-sans focus:outline-hidden focus:ring-1 focus:ring-indigo-500 h-16 resize-none"
+              className="w-full px-3.5 py-2 border border-[#E8E8ED] rounded-xl text-xs font-semibold text-slate-800 font-sans focus:outline-hidden focus:border-apple-primary focus:ring-1 focus:ring-apple-primary/20 bg-[#F5F5F7]/50 focus:bg-white transition-all h-16 resize-none"
               placeholder="ระบบจัดการและเบิก-คืนคลังอุปกรณ์อัจฉริยะ"
             />
           </div>
 
           {/* Save Profile Button */}
-          <div className="flex justify-end pt-2 border-t border-gray-100">
+          <div className="flex justify-end pt-3.5 border-t border-[#E8E8ED]">
             <button
               type="button"
               onClick={async () => {
@@ -382,7 +382,7 @@ export default function SupabaseSettingsView({
                 setProfileSaveSuccess(true);
                 setTimeout(() => setProfileSaveSuccess(false), 2500);
               }}
-              className="flex items-center space-x-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-sans font-bold text-xs py-2 px-4 rounded-xl shadow-xs transition cursor-pointer"
+              className="flex items-center space-x-1.5 bg-apple-primary hover:bg-[#0077ED] text-white font-sans font-bold text-xs py-2 px-4 rounded-xl shadow-md shadow-apple-primary/10 hover:shadow-lg hover:shadow-apple-primary/20 transition active:scale-98 cursor-pointer"
             >
               {profileSaveSuccess ? (
                 <>
@@ -401,82 +401,82 @@ export default function SupabaseSettingsView({
       </div>
 
       {/* Connection Setup Container */}
-      <div className="bg-white p-6 rounded-2xl border border-gray-150 shadow-2xs">
-        <h3 className="text-sm font-bold text-gray-900 border-b border-gray-100 pb-3 mb-6 flex items-center gap-2">
-          <Server className="h-4.5 w-4.5 text-indigo-500" /> การตั้งค่าฐานข้อมูลเซิร์ฟเวอร์ Supabase
+      <div className="bg-white p-6 rounded-2xl border border-[#E8E8ED] shadow-apple-card">
+        <h3 className="text-sm font-bold text-slate-900 border-b border-[#E8E8ED] pb-3 mb-6 flex items-center gap-2">
+          <Server className="h-4.5 w-4.5 text-apple-primary" /> การตั้งค่าฐานข้อมูลเซิร์ฟเวอร์ Supabase
         </h3>
 
         <div className="space-y-6">
           <div className="space-y-4">
             {/* Supabase API URL input */}
             <div>
-              <label className="block text-2xs font-mono text-gray-400 uppercase tracking-wider mb-1.5">Supabase Project URL *</label>
+              <label className="block text-[11px] font-mono text-slate-450 uppercase tracking-wider mb-1.5">Supabase Project URL *</label>
               <input
                 type="url"
                 value={supabaseUrl}
                 onChange={(e) => setSupabaseUrl(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-xl text-xs font-sans focus:outline-hidden focus:ring-1 focus:ring-indigo-500"
+                className="w-full px-3.5 py-2 border border-[#E8E8ED] rounded-xl text-xs font-semibold text-slate-800 font-sans focus:outline-hidden focus:border-apple-primary focus:ring-1 focus:ring-apple-primary/20 bg-[#F5F5F7]/50 focus:bg-white transition-all"
                 placeholder="https://your-project-id.supabase.co"
                 required
               />
-              <p className="text-4xs text-gray-400 mt-1">คัดลอกได้จากเมนู Settings &rarr; API &rarr; Project URL ของสตรีม Supabase</p>
+              <p className="text-[10px] text-slate-400 mt-1 font-sans">คัดลอกได้จากเมนู Settings &rarr; API &rarr; Project URL ของสตรีม Supabase</p>
             </div>
 
             {/* Supabase Anon Key input */}
             <div>
-              <label className="block text-2xs font-mono text-gray-400 uppercase tracking-wider mb-1.5">Supabase Anon Key (API Key) *</label>
+              <label className="block text-[11px] font-mono text-slate-450 uppercase tracking-wider mb-1.5">Supabase Anon Key (API Key) *</label>
               <div className="relative">
                 <input
                   type={showKey ? 'text' : 'password'}
                   value={supabaseKey}
                   onChange={(e) => setSupabaseKey(e.target.value)}
-                  className="w-full pl-3 pr-10 py-2 border border-gray-300 rounded-xl text-xs font-sans focus:outline-hidden focus:ring-1 focus:ring-indigo-500 font-mono"
+                  className="w-full pl-3.5 pr-10 py-2 border border-[#E8E8ED] rounded-xl text-xs font-semibold text-slate-800 font-sans focus:outline-hidden focus:border-apple-primary focus:ring-1 focus:ring-apple-primary/20 bg-[#F5F5F7]/50 focus:bg-white transition-all font-mono"
                   placeholder="eyJhbGciOiJIUzI1NiIsIn..."
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowKey(!showKey)}
-                  className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600"
+                  className="absolute right-3 top-2 text-slate-400 hover:text-slate-650 p-1"
                 >
                   {showKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
-              <p className="text-4xs text-gray-400 mt-1">คัดลอกได้จากเมนู Settings &rarr; API &rarr; Service keys / anon public ของ Supabase</p>
+              <p className="text-[10px] text-slate-400 mt-1 font-sans">คัดลอกได้จากเมนู Settings &rarr; API &rarr; Service keys / anon public ของ Supabase</p>
             </div>
           </div>
 
           {/* Display Test Results */}
           {testResult && (
-            <div className={`p-4 rounded-xl border text-xs flex items-start gap-2 font-sans ${
+            <div className={`p-4 rounded-2xl border text-xs flex items-start gap-2.5 font-sans ${
               testResult.success 
                 ? 'bg-emerald-50 border-emerald-150 text-emerald-800' 
-                : 'bg-red-50 border-red-150 text-red-800'
+                : 'bg-rose-50 border-rose-100 text-rose-800'
             }`}>
               {testResult.success ? (
-                <CheckCircle className="h-5 w-5 text-emerald-500 shrink-0 mt-0.5" />
+                <CheckCircle className="h-5 w-5 text-[#34C759] shrink-0 mt-0.5" />
               ) : (
-                <AlertCircle className="h-5 w-5 text-red-500 shrink-0 mt-0.5" />
+                <AlertCircle className="h-5 w-5 text-rose-500 shrink-0 mt-0.5" />
               )}
               <div className="text-left">
-                <h5 className="font-bold">{testResult.success ? 'ตรวจสอบสำเร็จ!' : 'พบขัดข้อง'}</h5>
-                <p className="text-3xs text-slate-650 leading-relaxed mt-0.5">{testResult.message}</p>
+                <h5 className="font-bold">{testResult.success ? 'ตรวจสอบสำเร็จ!' : 'พบข้อขัดข้อง'}</h5>
+                <p className="text-[10.5px] text-slate-550 leading-relaxed mt-0.5">{testResult.message}</p>
               </div>
             </div>
           )}
 
           {/* Configuration operation buttons */}
-          <div className="pt-2 border-t border-gray-100 flex items-center justify-between">
+          <div className="pt-3.5 border-t border-[#E8E8ED] flex items-center justify-between">
             <button
               type="button"
               disabled={testing || !supabaseUrl || !supabaseKey}
               onClick={handleTestConnection}
-              className="flex items-center space-x-1.5 px-3 py-1.5 border border-indigo-200 hover:bg-indigo-50 text-indigo-700 rounded-xl font-sans font-bold text-xs disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center space-x-1.5 px-3.5 py-1.5 border border-[#E8E8ED] hover:bg-slate-50 text-slate-700 rounded-xl font-sans font-bold text-xs disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition active:scale-98"
             >
               {testing ? (
-                <RefreshCw className="h-3 w-3 animate-spin" />
+                <RefreshCw className="h-3 w-3 animate-spin text-slate-500" />
               ) : (
-                <Play className="h-3 w-3 fill-indigo-700" />
+                <Play className="h-3 w-3 fill-slate-700 text-slate-700" />
               )}
               <span>{testing ? 'กำลังตรวจสอบ...' : 'ทดสอบสัญญาณเชื่อม'}</span>
             </button>
@@ -485,11 +485,11 @@ export default function SupabaseSettingsView({
             <button
               type="button"
               onClick={handleSaveSettings}
-              className="flex items-center space-x-1 bg-indigo-600 hover:bg-indigo-700 text-white font-sans font-bold text-xs py-2 px-4 rounded-xl shadow-xs cursor-pointer"
+              className="flex items-center space-x-1 bg-apple-primary hover:bg-[#0077ED] text-white font-sans font-bold text-xs py-2 px-4 rounded-xl shadow-md shadow-apple-primary/10 hover:shadow-lg hover:shadow-apple-primary/20 transition active:scale-98 cursor-pointer"
             >
               {saveSuccess ? (
                 <>
-                  <Check className="h-3.5 w-3.5" /> <span>บันทึกตั้งค่าแล้ว!</span>
+                  <Check className="h-3.5 w-3.5 text-emerald-300" /> <span>บันทึกตั้งค่าแล้ว!</span>
                 </>
               ) : (
                 <span>บันทึกและเชื่อมฐานข้อมูล</span>

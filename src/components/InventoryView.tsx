@@ -19,7 +19,8 @@ import {
   AlertTriangle,
   Wrench,
   HelpCircle,
-  FileImage
+  FileImage,
+  SlidersHorizontal
 } from 'lucide-react';
 import { Equipment, SupabaseConfig } from '../types';
 import { getEquipments, addEquipment, updateEquipment, deleteEquipment } from '../services/db';
@@ -392,17 +393,17 @@ export default function InventoryView({ config, refreshTrigger, onRefresh }: Inv
   });
 
   return (
-    <div className="space-y-4 text-left" id="inventory-view-root">
+    <div className="space-y-6 text-left animate-fade-in" id="inventory-view-root">
       {/* Top Header Controls */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4" id="inventory-controls">
         <div>
-          <h2 className="text-lg font-bold font-sans text-slate-800">ผังรายการอุปกรณ์ในคลัง</h2>
-          <p className="text-xs text-slate-400 font-sans">จัดการคลัง ค้นหา ตรวจสอบ ซ่อมบำรุง และลงทะเบียนชิ้นใหม่พัสดุ</p>
+          <h2 className="text-xl font-bold font-sans text-[#1D1D1F] tracking-tight">ผังรายการอุปกรณ์ในคลัง</h2>
+          <p className="text-xs text-[#86868B] font-sans mt-0.5">จัดการคลัง ค้นหา ตรวจสอบ ซ่อมบำรุง และลงทะเบียนชิ้นใหม่พัสดุ</p>
         </div>
         
         <button
           onClick={handleOpenCreateForm}
-          className="flex items-center justify-center space-x-1.5 bg-blue-600 hover:bg-blue-700 text-white font-sans font-bold text-xs py-1.5 px-3 rounded transition-all self-start md:self-auto cursor-pointer"
+          className="flex items-center justify-center space-x-1.5 bg-[#0071E3] hover:bg-[#0077ED] active:scale-95 text-white font-sans font-semibold text-xs py-2.5 px-4 rounded-full transition-all duration-200 self-start md:self-auto cursor-pointer shadow-sm hover:shadow-md"
           id="btn-add-item"
         >
           <Plus className="h-4 w-4" />
@@ -411,28 +412,35 @@ export default function InventoryView({ config, refreshTrigger, onRefresh }: Inv
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="bg-white p-3 rounded border border-slate-250 shadow-3xs grid grid-cols-1 md:grid-cols-12 gap-3" id="search-filter-grid">
+      <div className="bg-white p-3 rounded-2xl border border-[#E8E8ED] shadow-[0_8px_30px_rgba(0,0,0,0.04)] flex items-center gap-2" id="search-filter-grid">
         {/* Search */}
-        <div className="relative md:col-span-5" id="search-box">
-          <Search className="absolute left-3 top-3.5 h-4 w-4 text-slate-400" />
+        <div className="relative flex-1" id="search-box">
+          <Search className="absolute left-3.5 top-3.5 h-4 w-4 text-[#86868B]" />
           <input
             type="text"
             placeholder="ค้นหาตามรหัส, ชื่อสิ่งของ หรือตำแหน่ง..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 rounded border border-slate-200 text-xs font-sans focus:outline-hidden focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+            className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-[#F5F5F7] border border-transparent text-xs font-sans text-[#1D1D1F] placeholder-[#86868B] focus:outline-hidden focus:bg-white focus:border-[#0071E3] focus:ring-4 focus:ring-[#0071E3]/10 transition-all duration-200"
           />
         </div>
 
         {/* Category Pick */}
-        <div className="relative md:col-span-3" id="cat-filter-box">
-          <div className="absolute left-3 top-3.5 text-slate-400">
+        <div className="relative shrink-0" id="cat-filter-box">
+          <div 
+            className={`flex items-center justify-center w-10 h-10 rounded-full border transition-all duration-200 cursor-pointer ${
+              selectedCategory !== 'all'
+                ? 'bg-[#E8F2FF] border-[#0071E3] text-[#0071E3]'
+                : 'bg-[#F5F5F7] border-[#E8E8ED] text-[#86868B] hover:bg-[#E8E8ED] hover:text-[#1D1D1F]'
+            }`}
+            title={`หมวดหมู่พัสดุ: ${selectedCategory === 'all' ? 'ทั้งหมด' : selectedCategory}`}
+          >
             <Filter className="h-4 w-4" />
           </div>
           <select
             value={selectedCategory}
             onChange={(e) => setSelectedCategory(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 rounded border border-slate-200 text-xs font-sans focus:outline-hidden focus:ring-1 focus:ring-blue-500 bg-white"
+            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
           >
             <option value="all">หมวดหมู่ทั้งหมด</option>
             {CATEGORIES.map(c => (
@@ -442,11 +450,26 @@ export default function InventoryView({ config, refreshTrigger, onRefresh }: Inv
         </div>
 
         {/* Status Pick */}
-        <div className="relative md:col-span-4" id="status-filter-box">
+        <div className="relative shrink-0" id="status-filter-box">
+          <div 
+            className={`flex items-center justify-center w-10 h-10 rounded-full border transition-all duration-200 cursor-pointer ${
+              selectedStatus !== 'all'
+                ? 'bg-[#E8F2FF] border-[#0071E3] text-[#0071E3]'
+                : 'bg-[#F5F5F7] border-[#E8E8ED] text-[#86868B] hover:bg-[#E8E8ED] hover:text-[#1D1D1F]'
+            }`}
+            title={`สถานะพัสดุ: ${
+              selectedStatus === 'all' ? 'ทั้งหมด' :
+              selectedStatus === 'available' ? 'พร้อมใช้งาน' :
+              selectedStatus === 'borrowed' ? 'ถูกยืมอยู่' :
+              selectedStatus === 'maintenance' ? 'กำลังซ่อมตรวจ' : 'ชำรุดเสียหาย'
+            }`}
+          >
+            <SlidersHorizontal className="h-4 w-4" />
+          </div>
           <select
             value={selectedStatus}
             onChange={(e) => setSelectedStatus(e.target.value)}
-            className="w-full pl-3 pr-4 py-2 rounded border border-slate-200 text-xs font-sans focus:outline-hidden focus:ring-1 focus:ring-blue-500 bg-white"
+            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
           >
             <option value="all">สถานะพัสดุ: ทั้งหมด</option>
             <option value="available">พร้อมใช้งาน (Available)</option>
@@ -458,48 +481,48 @@ export default function InventoryView({ config, refreshTrigger, onRefresh }: Inv
       </div>
 
       {loading ? (
-        <div className="flex flex-col items-center justify-center py-16" id="inventory-loading">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mb-3"></div>
-          <p className="text-slate-500 font-sans text-xs">กำลังสแกนวิเคราะห์รายการพัสดุ...</p>
+        <div className="flex flex-col items-center justify-center py-20" id="inventory-loading">
+          <div className="animate-spin rounded-full h-8 w-8 border-2 border-[#E8E8ED] border-t-[#0071E3] mb-3"></div>
+          <p className="text-[#86868B] font-sans text-xs">กำลังสแกนวิเคราะห์รายการพัสดุ...</p>
         </div>
       ) : filteredItems.length === 0 ? (
-        <div className="bg-white rounded p-8 text-center border border-slate-250 shadow-3xs" id="inventory-empty">
-          <AlertCircle className="h-8 w-8 text-slate-300 mx-auto mb-2" />
-          <h4 className="text-xs font-bold font-sans text-slate-600 uppercase tracking-widest">ไม่พบรายการพัสดุที่ตรงกับเงื่อนไข</h4>
-          <p className="text-[11px] text-slate-400 font-sans mt-0.5">กรุณาลองปรับเปลี่ยนขอบเขตคำค้นหา หรือกด "ลงทะเบียนสิ่งของใหม่"</p>
+        <div className="bg-white rounded-2xl p-12 text-center border border-[#E8E8ED] shadow-[0_8px_30px_rgba(0,0,0,0.04)]" id="inventory-empty">
+          <AlertCircle className="h-10 w-10 text-[#86868B] mx-auto mb-3 opacity-60" />
+          <h4 className="text-sm font-bold font-sans text-[#1D1D1F] tracking-tight">ไม่พบรายการพัสดุที่ตรงกับเงื่อนไข</h4>
+          <p className="text-xs text-[#86868B] font-sans mt-1">กรุณาลองปรับเปลี่ยนขอบเขตคำค้นหา หรือกด "ลงทะเบียนสิ่งของใหม่"</p>
         </div>
       ) : (
         /* Equipment Grid */
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="inventory-grid">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5" id="inventory-grid">
           {filteredItems.map(item => (
             <div 
               key={item.id} 
-              className="bg-white border border-slate-200 overflow-hidden shadow-3xs transition-all duration-300 flex flex-col group rounded hover:border-blue-500"
+              className="bg-white border border-[#E8E8ED] overflow-hidden shadow-[0_8px_30px_rgba(0,0,0,0.02)] hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] hover:border-[#0071E3]/30 transition-all duration-300 flex flex-col group rounded-2xl"
               id={`item-card-${item.id}`}
             >
               {/* Card Image Area */}
-              <div className="relative h-36 bg-slate-100/50 shrink-0 overflow-hidden">
+              <div className="relative h-40 bg-[#F5F5F7] shrink-0 overflow-hidden flex items-center justify-center border-b border-[#E8E8ED]/30">
                 <img 
                   src={item.image_url} 
                   alt={item.name}
                   referrerPolicy="no-referrer"
-                  className="w-full h-full object-contain p-2 group-hover:scale-105 transition-transform duration-500"
+                  className="w-full h-full object-contain p-3 group-hover:scale-105 transition-transform duration-500 ease-out"
                 />
                 
                 {/* Badge Status */}
-                <span className={`absolute top-2 right-2 inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold font-sans border shadow-3xs z-10 ${
+                <span className={`absolute top-3 right-3 inline-flex items-center px-2.5 py-1 rounded-full text-[9px] font-bold font-sans shadow-3xs z-10 ${
                   item.status === 'available'
-                    ? 'bg-emerald-50 text-emerald-700 border-emerald-100'
+                    ? 'bg-[#E5F9E0] text-[#1E7F28]'
                     : item.status === 'borrowed'
-                      ? 'bg-blue-50 text-blue-700 border-blue-100'
+                      ? 'bg-[#E8F2FF] text-[#0071E3]'
                       : item.status === 'maintenance'
-                        ? 'bg-amber-50 text-amber-700 border-amber-100'
-                        : 'bg-rose-55 text-rose-700 border-rose-100'
+                        ? 'bg-[#FEF3D6] text-[#B76E00]'
+                        : 'bg-[#FEEBEB] text-[#D12B2B]'
                 }`}>
-                  <span className={`w-1 h-1 rounded-full mr-1.5 ${
-                    item.status === 'available' ? 'bg-emerald-500' :
-                    item.status === 'borrowed' ? 'bg-blue-500' :
-                    item.status === 'maintenance' ? 'bg-amber-500' : 'bg-rose-500'
+                  <span className={`w-1.5 h-1.5 rounded-full mr-1.5 ${
+                    item.status === 'available' ? 'bg-[#1E7F28]' :
+                    item.status === 'borrowed' ? 'bg-[#0071E3]' :
+                    item.status === 'maintenance' ? 'bg-[#B76E00]' : 'bg-[#D12B2B]'
                   }`}></span>
                   {
                     item.status === 'available' ? 'พร้อมใช้งาน' :
@@ -509,64 +532,64 @@ export default function InventoryView({ config, refreshTrigger, onRefresh }: Inv
                 </span>
 
                 {/* Code on bottom left */}
-                <div className="absolute bottom-2 left-2 bg-slate-900/80 backdrop-blur-xs text-white px-1.5 py-0.5 rounded-sm text-[9px] font-mono select-all">
+                <div className="absolute bottom-3 left-3 bg-[#1D1D1F]/80 backdrop-blur-xs text-white px-2 py-0.5 rounded-md text-[9px] font-mono select-all">
                   {item.code}
                 </div>
               </div>
 
               {/* Card Contents */}
-              <div className="p-3.5 flex-1 flex flex-col justify-between">
-                <div className="space-y-1.5">
-                  <div className="flex items-center gap-1.5 text-[9px] font-bold text-blue-600 font-sans tracking-wide">
+              <div className="p-4 flex-1 flex flex-col justify-between">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-1.5 text-[9px] font-bold text-[#0071E3] font-sans tracking-wider uppercase">
                     <Tag className="h-3 w-3" />
                     <span>{item.category}</span>
                   </div>
                   
-                  <h3 className="text-xs font-bold font-sans text-slate-800 leading-snug line-clamp-2 min-h-[32px] text-left">
+                  <h3 className="text-xs font-bold font-sans text-[#1D1D1F] leading-snug line-clamp-2 min-h-[32px] text-left">
                     {item.name}
                   </h3>
 
                   <div className="flex items-start gap-1 pb-1">
-                    <MapPin className="h-3 w-3 text-slate-400 shrink-0 mt-0.5" />
-                    <span className="text-[11px] text-slate-500 line-clamp-1">{item.location}</span>
+                    <MapPin className="h-3.5 w-3.5 text-[#86868B] shrink-0 mt-0.5" />
+                    <span className="text-[11px] text-[#86868B] line-clamp-1">{item.location}</span>
                   </div>
 
                   {item.description && (
-                    <div className="bg-slate-50 p-2 rounded border border-slate-100 text-[10px] text-slate-500 min-h-[44px] line-clamp-2 leading-relaxed">
+                    <div className="bg-[#F5F5F7] p-2.5 rounded-xl text-[10px] text-[#86868B] min-h-[44px] line-clamp-2 leading-relaxed">
                       {item.description}
                     </div>
                   )}
 
                   {/* Stock Quantities Badges */}
-                  <div className="grid grid-cols-2 gap-1.5 pt-1.5 border-t border-slate-50">
-                    <div className="bg-emerald-50 text-emerald-800 border border-emerald-100 rounded-lg p-1.5 text-[10px] flex items-center justify-between font-sans">
-                      <span className="font-medium text-slate-500">พร้อมเบิก:</span>
-                      <span className="font-black text-xs text-emerald-700">{item.available_qty ?? 0} <span className="text-[9px] font-normal text-slate-400">/{item.total_qty ?? 1}</span></span>
+                  <div className="grid grid-cols-2 gap-2 pt-2 border-t border-[#E8E8ED]/40">
+                    <div className="bg-[#E5F9E0]/50 text-[#1E7F28] rounded-xl p-2 text-[10px] flex items-center justify-between font-sans">
+                      <span className="font-medium text-[#86868B]">พร้อมเบิก:</span>
+                      <span className="font-extrabold text-xs text-[#1E7F28]">{item.available_qty ?? 0} <span className="text-[9px] font-normal text-[#86868B]">/{item.total_qty ?? 1}</span></span>
                     </div>
                     {((item.maintenance_qty ?? 0) > 0 || (item.broken_qty ?? 0) > 0) ? (
-                      <div className="bg-rose-50 text-rose-800 border border-rose-100 rounded-lg p-1.5 text-[10px] flex items-center justify-between font-sans">
-                        <span className="font-medium text-slate-500">ส่งซ่อม/ชำรุด:</span>
-                        <span className="font-black text-xs text-rose-600">{(item.maintenance_qty ?? 0) + (item.broken_qty ?? 0)}</span>
+                      <div className="bg-[#FEEBEB]/50 text-[#D12B2B] rounded-xl p-2 text-[10px] flex items-center justify-between font-sans">
+                        <span className="font-medium text-[#86868B]">ส่งซ่อม/ชำรุด:</span>
+                        <span className="font-extrabold text-xs text-[#D12B2B]">{(item.maintenance_qty ?? 0) + (item.broken_qty ?? 0)}</span>
                       </div>
                     ) : (
-                      <div className="bg-slate-50 text-slate-400 border border-slate-100 rounded-lg p-1.5 text-[10px] flex items-center justify-between font-sans">
-                        <span className="font-medium text-slate-500 text-[9px]">สภาพสมบูรณ์:</span>
-                        <span className="font-bold text-xs text-slate-400">✓</span>
+                      <div className="bg-[#E5F9E0]/20 text-[#1E7F28] rounded-xl p-2 text-[10px] flex items-center justify-between font-sans border border-[#E5F9E0]/40">
+                        <span className="font-medium text-[#86868B] text-[9px]">สภาพสมบูรณ์:</span>
+                        <span className="font-bold text-xs text-[#1E7F28]">✓</span>
                       </div>
                     )}
                   </div>
                 </div>
 
                 {/* Operations Footer */}
-                <div className="flex items-center justify-between border-t border-slate-100 pt-2.5 mt-2.5 shrink-0">
-                  <div className="text-[9px] font-mono text-slate-400">
+                <div className="flex items-center justify-between border-t border-[#E8E8ED]/40 pt-3 mt-3 shrink-0">
+                  <div className="text-[9px] font-mono text-[#86868B]">
                     เพิ่ม: {item.created_at ? new Date(item.created_at).toLocaleDateString('th-TH') : ''}
                   </div>
                   
                   <div className="flex items-center space-x-1.5">
                     <button
                       onClick={() => handleOpenEditForm(item)}
-                      className="p-1 bg-slate-50 text-slate-600 hover:bg-slate-200 rounded transition-all"
+                      className="p-1.5 bg-[#F5F5F7] text-[#1D1D1F] hover:bg-[#E8E8ED] rounded-full transition-all duration-200"
                       title="แก้ไขข้อมูลพัสดุ"
                     >
                       <Edit3 className="h-3.5 w-3.5" />
@@ -575,10 +598,10 @@ export default function InventoryView({ config, refreshTrigger, onRefresh }: Inv
                     <button
                       onClick={() => handleDeleteClick(item.id, item.name)}
                       disabled={item.status === 'borrowed'}
-                      className={`p-1 rounded transition-all ${
+                      className={`p-1.5 rounded-full transition-all duration-200 ${
                         item.status === 'borrowed'
-                          ? 'bg-slate-50 text-slate-300 cursor-not-allowed'
-                          : 'bg-rose-50 text-rose-600 hover:bg-rose-100'
+                          ? 'bg-[#F5F5F7] text-[#C5C5C7] cursor-not-allowed'
+                          : 'bg-[#FEEBEB] text-[#D12B2B] hover:bg-[#FCD7D7]'
                       }`}
                       title={item.status === 'borrowed' ? 'ไม่สามารถลบเพราะมีรายการยืมค้างอยู่' : 'ลบจากคลังสารสนเทศ'}
                     >
@@ -595,133 +618,142 @@ export default function InventoryView({ config, refreshTrigger, onRefresh }: Inv
       {/* Slide-over Panel for Create / Edit Form */}
       {isFormOpen && (
         <div className="fixed inset-0 z-50 overflow-hidden" id="form-overlay-wrapper">
-          <div className="absolute inset-0 bg-slate-900/45 backdrop-blur-xs transition-opacity" onClick={() => setIsFormOpen(false)} />
+          <div className="absolute inset-0 bg-[#1D1D1F]/30 backdrop-blur-sm transition-opacity" onClick={() => setIsFormOpen(false)} />
           
           <div className="absolute inset-y-0 right-0 max-w-full pl-10 flex">
-            <div className="w-screen max-w-lg bg-white shadow-2xl flex flex-col h-full rounded-l-3xl overflow-hidden text-left border-l border-slate-100">
+            <div className="w-screen max-w-lg bg-[#F5F5F7] shadow-[0_20px_50px_rgba(0,0,0,0.15)] flex flex-col h-full rounded-l-3xl overflow-hidden text-left border-l border-[#E8E8ED]">
               {/* Form Title */}
-              <div className="px-6 py-5 bg-indigo-950 text-white flex items-center justify-between shrink-0">
+              <div className="px-6 py-5 bg-white border-b border-[#E8E8ED] flex items-center justify-between shrink-0">
                 <div>
-                  <h3 className="text-md font-bold font-sans">
+                  <h3 className="text-sm font-bold font-sans text-[#1D1D1F]">
                     {formMode === 'create' ? 'ลงทะเบียนพัสดุชิ้นใหม่' : 'ปรับแก้ข้อมูลพัสดุ'}
                   </h3>
-                  <p className="text-3xs text-indigo-200 mt-1">
-                    {formMode === 'create' ? 'กรอกข้อมูลเพื่อลงบัญชีเข้าระบบ' : 'แก้ไขประเด็นเพื่อให้ความถูกต้องล่าสุด'}
+                  <p className="text-[10px] text-[#86868B] font-sans mt-0.5">
+                    {formMode === 'create' ? 'กรอกรายละเอียดเพื่อลงบัญชีคลังพัสดุอุปกรณ์' : 'ปรับแก้ข้อมูลพัสดุและจำนวนคงคลัง'}
                   </p>
                 </div>
                 <button
                   onClick={() => setIsFormOpen(false)}
-                  className="p-1 rounded-full text-indigo-200 hover:text-white hover:bg-indigo-900/55 transition cursor-pointer"
+                  className="p-1.5 rounded-full text-[#86868B] hover:text-[#1D1D1F] hover:bg-[#F5F5F7] transition cursor-pointer"
                 >
                   <X className="h-5 w-5" />
                 </button>
               </div>
 
               {/* Form Content */}
-              <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-4" id="inventory-edit-form">
+              <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-5 custom-scrollbar" id="inventory-edit-form">
                 
                 {/* Error/Success messages inside form */}
                 {errorMsg && (
-                  <div className="p-3 bg-rose-50 text-rose-700 border border-rose-100 rounded-xl text-xs font-sans flex items-start gap-1.5">
-                    <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+                  <div className="p-3 bg-[#FEEBEB] text-[#D12B2B] border border-[#FEEBEB]/40 rounded-xl text-xs font-sans flex items-start gap-2">
+                    <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5 text-[#D12B2B]" />
                     <span>{errorMsg}</span>
                   </div>
                 )}
                 {successMsg && (
-                  <div className="p-3 bg-emerald-50 text-emerald-800 border border-emerald-100 rounded-xl text-xs font-sans flex items-start gap-1.5">
-                    <CheckCircle2 className="h-4 w-4 shrink-0 mt-0.5" />
+                  <div className="p-3 bg-[#E5F9E0] text-[#1E7F28] border border-[#E5F9E0]/40 rounded-xl text-xs font-sans flex items-start gap-2">
+                    <CheckCircle2 className="h-4 w-4 shrink-0 mt-0.5 text-[#1E7F28]" />
                     <span>{successMsg}</span>
                   </div>
                 )}
 
                 {/* Equipment code */}
-                <div>
-                  <label className="block text-2xs font-mono text-gray-400 uppercase tracking-wider mb-1.5 font-bold">รหัสอุปกรณ์ (Equipment Code) *</label>
+                <div className="bg-white p-4 rounded-2xl border border-[#E8E8ED] space-y-1.5 shadow-2xs">
+                  <label className="block text-[10px] font-sans text-[#86868B] uppercase tracking-wider font-bold">รหัสอุปกรณ์ (Equipment Code) *</label>
                   <input
                     type="text"
                     required
                     disabled={formMode === 'edit'}
                     value={code}
                     onChange={(e) => setCode(e.target.value.toUpperCase())}
-                    className={`w-full px-3 py-2 border rounded-xl text-sm font-sans focus:outline-hidden focus:ring-1 focus:ring-indigo-500 ${
-                      formMode === 'edit' ? 'bg-gray-100 text-gray-500 border-gray-200 cursor-not-allowed' : 'border-gray-300'
+                    className={`w-full px-3.5 py-2.5 rounded-xl border text-xs font-sans transition-all duration-200 focus:outline-hidden ${
+                      formMode === 'edit' 
+                        ? 'bg-[#F5F5F7] text-[#86868B] border-transparent cursor-not-allowed font-mono' 
+                        : 'bg-[#F5F5F7] border-transparent focus:bg-white focus:border-[#0071E3] focus:ring-4 focus:ring-[#0071E3]/10 text-[#1D1D1F]'
                     }`}
                     placeholder="รหัสเฉพาะตน เช่น EQ-2026-050"
                   />
                   {formMode === 'create' && (
-                    <p className="text-[10px] text-gray-450 mt-1">
-                      สามารถกำหนดเอง หรือใช้รหัสที่ระบบรันให้ข้างต้นได้
+                    <p className="text-[9px] text-[#86868B] font-sans">
+                      สามารถกำหนดเอง หรือใช้รหัสอัตโนมัติที่ระบบรันให้ข้างต้นได้
                     </p>
                   )}
                 </div>
 
                 {/* Equipment category */}
-                <div>
-                  <label className="block text-2xs font-mono text-gray-400 uppercase tracking-wider mb-1.5 font-bold">หมวดหมู่พัสดุ (Category) *</label>
-                  <select
-                    value={category}
-                    onChange={(e) => setCategory(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm font-sans focus:outline-hidden focus:ring-1 focus:ring-indigo-500 bg-white"
-                  >
-                    {CATEGORIES.map((cat) => (
-                      <option key={cat} value={cat}>
-                        {cat}
-                      </option>
-                    ))}
-                  </select>
+                <div className="bg-white p-4 rounded-2xl border border-[#E8E8ED] space-y-1.5 shadow-2xs">
+                  <label className="block text-[10px] font-sans text-[#86868B] uppercase tracking-wider font-bold">หมวดหมู่พัสดุ (Category) *</label>
+                  <div className="relative">
+                    <select
+                      value={category}
+                      onChange={(e) => setCategory(e.target.value)}
+                      className="w-full px-3.5 py-2.5 bg-[#F5F5F7] border border-transparent rounded-xl text-xs font-sans text-[#1D1D1F] focus:outline-hidden focus:bg-white focus:border-[#0071E3] focus:ring-4 focus:ring-[#0071E3]/10 transition-all duration-200 appearance-none cursor-pointer"
+                    >
+                      {CATEGORIES.map((cat) => (
+                        <option key={cat} value={cat}>
+                          {cat}
+                        </option>
+                      ))}
+                    </select>
+                    <div className="absolute right-3.5 top-3.5 pointer-events-none text-[#86868B] text-[9px]">▼</div>
+                  </div>
                 </div>
 
                 {/* Equipment name */}
-                <div>
-                  <label className="block text-2xs font-mono text-gray-400 uppercase tracking-wider mb-1.5 font-bold">ชื่อพัสดุอุปกรณ์ (Equipment Name) *</label>
+                <div className="bg-white p-4 rounded-2xl border border-[#E8E8ED] space-y-1.5 shadow-2xs">
+                  <label className="block text-[10px] font-sans text-[#86868B] uppercase tracking-wider font-bold">ชื่อพัสดุอุปกรณ์ (Equipment Name) *</label>
                   <input
                     type="text"
                     required
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm font-sans focus:outline-hidden focus:ring-1 focus:ring-indigo-500"
+                    className="w-full px-3.5 py-2.5 bg-[#F5F5F7] border border-transparent rounded-xl text-xs font-sans text-[#1D1D1F] placeholder-[#86868B] focus:outline-hidden focus:bg-white focus:border-[#0071E3] focus:ring-4 focus:ring-[#0071E3]/10 transition-all duration-200"
                     placeholder="ระบุชื่อเรียกอุปกรณ์ เช่น กล้อง Dome HIKVISION 4MP"
                   />
                 </div>
 
                 {/* Quantities Inputs Row */}
-                <div className="grid grid-cols-3 gap-3 bg-indigo-50/40 p-3 rounded-2xl border border-indigo-100">
-                  <div>
-                    <label className="block text-[10px] font-sans font-bold text-slate-600 mb-1">จำนวนรวมทั้งหมด *</label>
-                    <input
-                      type="number"
-                      required
-                      min={1}
-                      value={totalQty}
-                      onChange={(e) => setTotalQty(Math.max(1, Number(e.target.value)))}
-                      className="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-xs font-sans focus:outline-hidden focus:ring-1 focus:ring-indigo-500 bg-white font-bold"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-sans font-bold text-amber-700 mb-1">ส่งตรวจซ่อม</label>
-                    <input
-                      type="number"
-                      min={0}
-                      value={maintenanceQty}
-                      onChange={(e) => setMaintenanceQty(Math.max(0, Number(e.target.value)))}
-                      className="w-full px-2.5 py-1.5 border border-amber-200 rounded-lg text-xs font-sans focus:outline-hidden focus:ring-1 focus:ring-indigo-500 bg-white"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-sans font-bold text-rose-700 mb-1">ชำรุดเสียหาย</label>
-                    <input
-                      type="number"
-                      min={0}
-                      value={brokenQty}
-                      onChange={(e) => setBrokenQty(Math.max(0, Number(e.target.value)))}
-                      className="w-full px-2.5 py-1.5 border border-rose-200 rounded-lg text-xs font-sans focus:outline-hidden focus:ring-1 focus:ring-indigo-500 bg-white"
-                    />
+                <div className="bg-white p-4 rounded-2xl border border-[#E8E8ED] space-y-3 shadow-2xs">
+                  <label className="block text-[10px] font-sans text-[#86868B] uppercase tracking-wider font-bold">การควบคุมจำนวนสต็อกในคลัง (Stock Limits) *</label>
+                  
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="space-y-1">
+                      <label className="block text-[9px] font-sans font-bold text-[#1D1D1F]">จำนวนรวมทั้งหมด *</label>
+                      <input
+                        type="number"
+                        required
+                        min={1}
+                        value={totalQty}
+                        onChange={(e) => setTotalQty(Math.max(1, Number(e.target.value)))}
+                        className="w-full px-3 py-2 bg-[#F5F5F7] border border-transparent rounded-xl text-xs font-sans text-[#1D1D1F] focus:outline-hidden focus:bg-white focus:border-[#0071E3] transition-all duration-200 font-bold text-center"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="block text-[9px] font-sans font-bold text-[#B76E00]">ส่งตรวจซ่อม</label>
+                      <input
+                        type="number"
+                        min={0}
+                        value={maintenanceQty}
+                        onChange={(e) => setMaintenanceQty(Math.max(0, Number(e.target.value)))}
+                        className="w-full px-3 py-2 bg-[#F5F5F7] border border-transparent rounded-xl text-xs font-sans text-[#1D1D1F] focus:outline-hidden focus:bg-white focus:border-[#0071E3] transition-all duration-200 text-center"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="block text-[9px] font-sans font-bold text-[#D12B2B]">ชำรุดเสียหาย</label>
+                      <input
+                        type="number"
+                        min={0}
+                        value={brokenQty}
+                        onChange={(e) => setBrokenQty(Math.max(0, Number(e.target.value)))}
+                        className="w-full px-3 py-2 bg-[#F5F5F7] border border-transparent rounded-xl text-xs font-sans text-[#1D1D1F] focus:outline-hidden focus:bg-white focus:border-[#0071E3] transition-all duration-200 text-center"
+                      />
+                    </div>
                   </div>
                 </div>
 
                 {/* Storage location */}
-                <div>
-                  <label className="block text-2xs font-mono text-gray-400 uppercase tracking-wider mb-1.5 font-bold">สถานที่และตำแหน่งเก็บรักษา *</label>
+                <div className="bg-white p-4 rounded-2xl border border-[#E8E8ED] space-y-2.5 shadow-2xs">
+                  <label className="block text-[10px] font-sans text-[#86868B] uppercase tracking-wider font-bold">สถานที่และตำแหน่งเก็บรักษา (Location) *</label>
                   
                   <div className="flex gap-2">
                     <div className="relative flex-1">
@@ -730,40 +762,34 @@ export default function InventoryView({ config, refreshTrigger, onRefresh }: Inv
                         id="location-select"
                         value={location}
                         onChange={(e) => setLocation(e.target.value)}
-                        className="w-full px-3 py-2.5 border border-gray-300 rounded-xl text-xs font-sans focus:outline-hidden focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 bg-white"
+                        className="w-full pl-3.5 pr-8 py-2.5 bg-[#F5F5F7] border border-transparent rounded-xl text-xs font-sans text-[#1D1D1F] focus:outline-hidden focus:bg-white focus:border-[#0071E3] focus:ring-4 focus:ring-[#0071E3]/10 transition-all duration-200 appearance-none cursor-pointer"
                       >
                         <option value="">-- กรุณาเลือกสถานที่เก็บ --</option>
                         {locationsList.map((loc) => (
                           <option key={loc} value={loc}>{loc}</option>
                         ))}
                       </select>
+                      <div className="absolute right-3.5 top-3.5 pointer-events-none text-[#86868B] text-[9px]">▼</div>
                     </div>
                     
                     <button
                       type="button"
                       id="btn-toggle-add-location"
                       onClick={() => setShowAddLocation(!showAddLocation)}
-                      className={`px-3.5 py-2 text-xs font-bold font-sans rounded-xl border transition-all cursor-pointer flex items-center gap-1 shrink-0 ${
+                      className={`px-3 py-2.5 text-xs font-bold font-sans rounded-xl border transition-all duration-200 cursor-pointer flex items-center gap-1 shrink-0 ${
                         showAddLocation
-                          ? 'bg-rose-50 border-rose-200 text-rose-700 hover:bg-rose-100'
-                          : 'bg-indigo-50 border-indigo-150 text-indigo-700 hover:bg-indigo-100'
+                          ? 'bg-[#FEEBEB] border-transparent text-[#D12B2B] hover:bg-[#FCD7D7]'
+                          : 'bg-[#E8F2FF] border-transparent text-[#0071E3] hover:bg-[#D4E8FF]'
                       }`}
                     >
-                      {showAddLocation ? (
-                        <>ปิดช่องเพิ่ม</>
-                      ) : (
-                        <>
-                          <Plus className="h-3.5 w-3.5" />
-                          <span>เพิ่มสถานที่</span>
-                        </>
-                      )}
+                      {showAddLocation ? 'ปิดช่อง' : 'เพิ่มสถานที่'}
                     </button>
                   </div>
 
                   {/* Inline Add Location Panel */}
                   {showAddLocation && (
-                    <div className="mt-2.5 p-3.5 bg-slate-50 border border-slate-150 rounded-xl space-y-2.5 animate-in fade-in slide-in-from-top-1 duration-200" id="add-location-panel">
-                      <label className="block text-[10px] font-sans font-bold text-slate-600">กรอกชื่อสถานที่เก็บชื่อใหม่ที่นี่</label>
+                    <div className="mt-2.5 p-3.5 bg-[#F5F5F7] border border-[#E8E8ED] rounded-xl space-y-2 animate-in fade-in slide-in-from-top-1 duration-200" id="add-location-panel">
+                      <label className="block text-[9px] font-sans font-bold text-[#86868B]">กรอกชื่อสถานที่เก็บใหม่</label>
                       <div className="flex gap-2">
                         <input
                           type="text"
@@ -771,7 +797,7 @@ export default function InventoryView({ config, refreshTrigger, onRefresh }: Inv
                           value={newLocationInput}
                           onChange={(e) => setNewLocationInput(e.target.value)}
                           placeholder="เช่น ตึก B ชั้น 3 ข้างห้องไอที"
-                          className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-xs font-sans focus:outline-hidden focus:ring-1 focus:ring-indigo-500 bg-white"
+                          className="flex-1 px-3 py-2 bg-white border border-[#E8E8ED] rounded-lg text-xs font-sans text-[#1D1D1F] placeholder-[#86868B] focus:outline-hidden focus:border-[#0071E3] transition-all"
                         />
                         <button
                           type="button"
@@ -791,7 +817,7 @@ export default function InventoryView({ config, refreshTrigger, onRefresh }: Inv
                               setShowAddLocation(false);
                             }
                           }}
-                          className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold font-sans text-xs rounded-lg shadow-2xs cursor-pointer select-none disabled:opacity-50"
+                          className="px-4 py-2 bg-[#0071E3] hover:bg-[#0077ED] text-white font-bold font-sans text-xs rounded-lg shadow-xs cursor-pointer select-none disabled:opacity-40"
                         >
                           บันทึก
                         </button>
@@ -801,35 +827,35 @@ export default function InventoryView({ config, refreshTrigger, onRefresh }: Inv
                 </div>
 
                 {/* Description */}
-                <div>
-                  <label className="block text-2xs font-mono text-gray-400 uppercase tracking-wider mb-1.5">หมายรายละเอียด / รายละเอียดเบื้องลึก</label>
+                <div className="bg-white p-4 rounded-2xl border border-[#E8E8ED] space-y-1.5 shadow-2xs">
+                  <label className="block text-[10px] font-sans text-[#86868B] uppercase tracking-wider mb-1">หมายเหตุ / รายละเอียดสินค้าเพิ่มเติม</label>
                   <textarea
                     rows={3}
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm font-sans focus:outline-hidden focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
+                    className="w-full px-3.5 py-2.5 bg-[#F5F5F7] border border-transparent rounded-xl text-xs font-sans text-[#1D1D1F] placeholder-[#86868B] focus:outline-hidden focus:bg-white focus:border-[#0071E3] focus:ring-4 focus:ring-[#0071E3]/10 transition-all duration-200"
                     placeholder="เช่น คุณสมบัติทางเทคนิค หมายเลขประจำเครื่อง (S/N) หรือข้อมูลสำคัญในการดูแล"
                   />
                 </div>
 
                 {/* Image Source Toggle and Upload Options */}
-                <div className="space-y-2">
-                  <label className="block text-2xs font-mono text-gray-400 uppercase tracking-wider mb-0.5">ภาพประกอบรูปพัสดุ (Equipment Image)</label>
+                <div className="bg-white p-4 rounded-2xl border border-[#E8E8ED] space-y-3.5 shadow-2xs">
+                  <label className="block text-[10px] font-sans text-[#86868B] uppercase tracking-wider font-bold">ภาพประกอบรูปพัสดุ (Equipment Image)</label>
                   
-                  <div className="grid grid-cols-2 p-1 bg-slate-100 rounded-xl border border-slate-200">
+                  <div className="grid grid-cols-2 p-1 bg-[#F5F5F7] rounded-xl border border-[#E8E8ED]">
                     <button
                       type="button"
                       onClick={() => {
                         setImageSourceMode('upload');
                         setUploadError('');
                       }}
-                      className={`py-1.5 text-xs font-sans font-bold rounded-lg transition-all cursor-pointer ${
+                      className={`py-1.5 text-[10px] font-sans font-bold rounded-lg transition-all duration-200 cursor-pointer ${
                         imageSourceMode === 'upload'
-                          ? 'bg-white text-slate-800 shadow-3xs'
-                          : 'text-slate-500 hover:text-slate-700'
+                          ? 'bg-white text-[#1D1D1F] shadow-[0_2px_8px_rgba(0,0,0,0.06)]'
+                          : 'text-[#86868B] hover:text-[#1D1D1F]'
                       }`}
                     >
-                      📁 อัปโหลดไฟล์รูปภาพ
+                      📁 อัปโหลดไฟล์ภาพ
                     </button>
                     <button
                       type="button"
@@ -837,13 +863,13 @@ export default function InventoryView({ config, refreshTrigger, onRefresh }: Inv
                         setImageSourceMode('url');
                         setUploadError('');
                       }}
-                      className={`py-1.5 text-xs font-sans font-bold rounded-lg transition-all cursor-pointer ${
+                      className={`py-1.5 text-[10px] font-sans font-bold rounded-lg transition-all duration-200 cursor-pointer ${
                         imageSourceMode === 'url'
-                          ? 'bg-white text-slate-800 shadow-3xs'
-                          : 'text-slate-500 hover:text-slate-700'
+                          ? 'bg-white text-[#1D1D1F] shadow-[0_2px_8px_rgba(0,0,0,0.06)]'
+                          : 'text-[#86868B] hover:text-[#1D1D1F]'
                       }`}
                     >
-                      🌐 ใส่ลิงก์ URL รูปภาพ
+                      🌐 ใส่ลิงก์ URL ภาพ
                     </button>
                   </div>
 
@@ -855,35 +881,35 @@ export default function InventoryView({ config, refreshTrigger, onRefresh }: Inv
                         onDragOver={handleDrag}
                         onDragLeave={handleDrag}
                         onDrop={handleDrop}
-                        className={`border-2 border-dashed rounded-2xl p-5 text-center flex flex-col items-center justify-center transition-all ${
+                        className={`border border-dashed rounded-2xl p-5 text-center flex flex-col items-center justify-center transition-all ${
                           dragActive 
-                            ? 'border-indigo-500 bg-indigo-50/50' 
+                            ? 'border-[#0071E3] bg-[#E8F2FF]/40' 
                             : imageUrl && imageUrl.startsWith('data:image')
-                              ? 'border-emerald-300 bg-emerald-50/5'
-                              : 'border-slate-300 hover:border-slate-400 bg-slate-50'
+                              ? 'border-[#1E7F28] bg-[#E5F9E0]/5'
+                              : 'border-[#C5C5C7] hover:border-[#86868B] bg-[#F5F5F7]/30'
                         }`}
                       >
                         {imageUrl && imageUrl.startsWith('data:image') ? (
                           <div className="space-y-3 w-full flex flex-col items-center">
-                            <div className="relative w-28 h-28 rounded-xl overflow-hidden border border-emerald-250 bg-slate-50 shadow-xs flex items-center justify-center">
+                            <div className="relative w-28 h-28 rounded-xl overflow-hidden border border-[#E8E8ED] bg-[#F5F5F7] shadow-xs flex items-center justify-center">
                               <img 
                                 src={imageUrl} 
                                 alt="Uploaded preview" 
-                                className="w-full h-full object-contain p-1"
+                                className="w-full h-full object-contain p-1.5"
                               />
                               <button
                                 type="button"
                                 onClick={() => setImageUrl('')}
-                                className="absolute top-1 right-1 bg-rose-600 hover:bg-rose-700 text-white p-1 rounded-full shadow-md transition cursor-pointer"
+                                className="absolute top-1 right-1 bg-[#D12B2B] hover:bg-[#E53E3E] text-white p-1 rounded-full shadow-md transition cursor-pointer"
                                 title="ลบรูปภาพ"
                               >
-                                <X className="h-3.5 w-3.5" />
+                                <X className="h-3 w-3" />
                               </button>
                             </div>
-                            <span className="text-[10px] font-sans font-semibold text-emerald-800 bg-emerald-100/50 px-2.5 py-0.5 rounded-full border border-emerald-200">
+                            <span className="text-[9px] font-sans font-semibold text-[#1E7F28] bg-[#E5F9E0] px-2.5 py-0.5 rounded-full">
                               ✓ พร้อมบันทึกภาพอัปโหลดแล้ว
                             </span>
-                            <label className="text-[10px] font-sans text-indigo-600 hover:text-indigo-805 cursor-pointer font-bold underline">
+                            <label className="text-[10px] font-sans text-[#0071E3] hover:underline cursor-pointer font-bold">
                               เปลี่ยนรูปภาพใหม่...
                               <input 
                                 type="file" 
@@ -895,10 +921,10 @@ export default function InventoryView({ config, refreshTrigger, onRefresh }: Inv
                           </div>
                         ) : (
                           <>
-                            <FileImage className={`h-8 w-8 mb-2 ${dragActive ? 'text-indigo-500 animate-bounce' : 'text-slate-400'}`} />
-                            <p className="text-xs font-sans text-slate-600 select-none">
+                            <FileImage className={`h-8 w-8 mb-2 ${dragActive ? 'text-[#0071E3] animate-pulse' : 'text-[#86868B]'}`} />
+                            <p className="text-xs font-sans text-[#1D1D1F] select-none">
                               ลากรูปภาพมาวางที่นี่ หรือ{' '}
-                              <label className="text-indigo-600 hover:text-indigo-700 cursor-pointer font-bold underline">
+                              <label className="text-[#0071E3] hover:underline cursor-pointer font-bold">
                                 เลือกไฟล์จากเครื่อง
                                 <input 
                                   type="file" 
@@ -908,15 +934,15 @@ export default function InventoryView({ config, refreshTrigger, onRefresh }: Inv
                                 />
                               </label>
                             </p>
-                            <p className="text-[10px] font-sans text-slate-400 mt-1 select-none">
-                              ไฟล์รูปภาพทุกประเภท ไม่เกิน 10MB (ระบบแปลงย่อขนาดแบบปลอดภัยอัตโนมัติ)
+                            <p className="text-[9px] font-sans text-[#86868B] mt-1 select-none">
+                              ไฟล์รูปภาพทุกประเภท ไม่เกิน 10MB (ระบบย่อรูปภาพให้ปลอดภัยอัตโนมัติ)
                             </p>
                           </>
                         )}
                       </div>
 
                       {uploadError && (
-                        <p className="text-[11px] text-rose-600 font-sans mt-1 bg-rose-50 p-2 rounded-lg border border-rose-100 flex items-center gap-1">
+                        <p className="text-[10px] text-[#D12B2B] font-sans mt-1 bg-[#FEEBEB] p-2 rounded-lg border border-[#FEEBEB]/45 flex items-center gap-1">
                           <AlertCircle className="h-3.5 w-3.5" /> {uploadError}
                         </p>
                       )}
@@ -927,37 +953,37 @@ export default function InventoryView({ config, refreshTrigger, onRefresh }: Inv
                         type="url"
                         value={imageUrl && !imageUrl.startsWith('data:image') ? imageUrl : ''}
                         onChange={(e) => setImageUrl(e.target.value)}
-                        className="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm font-sans focus:outline-hidden focus:ring-1 focus:ring-indigo-500"
-                        placeholder="กรอก URL รูปภาพจากอินเทอร์เน็ต เช่น https://images.unsplash.com/..."
+                        className="w-full px-3.5 py-2.5 bg-[#F5F5F7] border border-transparent rounded-xl text-xs font-sans text-[#1D1D1F] placeholder-[#86868B] focus:outline-hidden focus:bg-white focus:border-[#0071E3] focus:ring-4 focus:ring-[#0071E3]/10 transition-all duration-200"
+                        placeholder="กรอก URL รูปภาพ เช่น https://images.unsplash.com/..."
                       />
                       
                       {imageUrl && !imageUrl.startsWith('data:image') && (
-                        <div className="flex items-center gap-3 bg-slate-50 p-2 rounded-xl border border-slate-200">
+                        <div className="flex items-center gap-3 bg-[#F5F5F7] p-2.5 rounded-xl border border-[#E8E8ED]">
                           <img 
                             src={imageUrl} 
                             alt="URL Preview" 
-                            className="w-12 h-12 object-cover rounded-lg border border-slate-250 shrink-0"
+                            className="w-12 h-12 object-cover rounded-lg border border-[#E8E8ED] bg-white shrink-0"
                             onError={(e) => {
                               (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1557862921-37829c790f19?w=500&auto=format&fit=crop&q=80';
                             }}
                           />
                           <div className="text-left">
-                            <div className="text-[10px] text-slate-450 font-sans font-bold">ตัวอย่างภาพประกอบ:</div>
-                            <div className="text-[10px] text-slate-600 font-mono truncate max-w-[280px]">{imageUrl}</div>
+                            <div className="text-[9px] text-[#86868B] font-sans font-bold">ตัวอย่างรูปภาพลิงก์:</div>
+                            <div className="text-[9px] text-[#1D1D1F] font-mono truncate max-w-[280px]">{imageUrl}</div>
                           </div>
                         </div>
                       )}
 
                       {/* Stock shortcuts */}
                       <div className="pt-1">
-                        <span className="text-[10px] text-slate-400 font-sans block mb-1">หรือเลือกรูปภาพยอดนิยม:</span>
+                        <span className="text-[9px] text-[#86868B] font-sans block mb-1">หรือเลือกภาพเทมเพลตด่วน:</span>
                         <div className="flex flex-wrap gap-1.5">
                           {STOCK_IMAGES.map((img) => (
                             <button
                               key={img.name}
                               type="button"
                               onClick={() => setImageUrl(img.url)}
-                              className="text-[9px] font-sans px-2 py-1 bg-slate-50 border border-slate-200 text-slate-600 rounded-md hover:bg-slate-100 font-medium transition-all cursor-pointer"
+                              className="text-[9px] font-sans px-2.5 py-1 bg-[#F5F5F7] border border-[#E8E8ED] text-[#1D1D1F] rounded-lg hover:bg-[#E8E8ED] transition cursor-pointer"
                             >
                               {img.name}
                             </button>
@@ -970,19 +996,19 @@ export default function InventoryView({ config, refreshTrigger, onRefresh }: Inv
               </form>
 
               {/* Form buttons */}
-              <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-end space-x-3 shrink-0">
+              <div className="px-6 py-4 bg-white border-t border-[#E8E8ED] flex items-center justify-end space-x-3 shrink-0">
                 <button
                   type="button"
                   onClick={() => setIsFormOpen(false)}
-                  className="px-4 py-2 border border-gray-300 rounded-xl text-sm font-sans font-medium hover:bg-white text-gray-700 transition"
+                  className="px-4 py-2 border border-[#C5C5C7] rounded-full text-xs font-sans font-semibold hover:bg-[#F5F5F7] text-[#1D1D1F] transition cursor-pointer"
                 >
                   ยกเลิก
                 </button>
                 <button
                   onClick={handleSubmit}
-                  className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-sans font-semibold text-sm rounded-xl shadow-xs transition cursor-pointer"
+                  className="px-5 py-2 bg-[#0071E3] hover:bg-[#0077ED] active:scale-95 text-white font-sans font-semibold text-xs rounded-full shadow-sm hover:shadow-md transition-all cursor-pointer"
                 >
-                  {formMode === 'create' ? 'เบิกบันทึกสิ่งของใหม่' : 'จัดเก็บการเปลี่ยนแปลง'}
+                  {formMode === 'create' ? 'ลงทะเบียนพัสดุ' : 'บันทึกการเปลี่ยนแปลง'}
                 </button>
               </div>
             </div>
@@ -992,21 +1018,21 @@ export default function InventoryView({ config, refreshTrigger, onRefresh }: Inv
 
       {/* Custom Delete Confirmation Modal */}
       {deleteConfirmId && (
-        <div className="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs transition-opacity animate-in fade-in duration-200">
-          <div className="bg-white rounded-2xl border border-slate-150 shadow-2xl max-w-sm w-full p-6 text-left relative overflow-hidden animate-in zoom-in-95 duration-200">
-            <div className="flex items-center gap-3 text-red-600 mb-4">
-              <div className="p-2.5 bg-red-50 rounded-full">
-                <Trash2 className="h-6 w-6" />
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#1D1D1F]/35 backdrop-blur-sm transition-opacity animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl border border-[#E8E8ED] shadow-[0_20px_50px_rgba(0,0,0,0.15)] max-w-sm w-full p-6 text-left relative overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="flex items-center gap-3 text-[#D12B2B] mb-4">
+              <div className="p-2.5 bg-[#FEEBEB] rounded-full">
+                <Trash2 className="h-5 w-5" />
               </div>
-              <h3 className="text-sm font-extrabold font-sans text-slate-900">คุณแน่ใจหรือไม่ว่าต้องการลบ?</h3>
+              <h3 className="text-sm font-bold font-sans text-[#1D1D1F]">ยืนยันต้องการลบพัสดุ?</h3>
             </div>
             
-            <p className="text-xs text-slate-500 font-sans leading-relaxed mb-6">
-              ต้องการลบอุปกรณ์ <strong className="text-slate-850 font-bold font-sans">"{deleteConfirmName}"</strong> ออกจากคลังพัสดุถาวรใช่หรือไม่? ระบบจะลบประวัติการทำรายการเบิก-คืนที่เชื่อมโยงอยู่กับชิ้นพัสดุนี้ด้วยเพื่อเสถียรภาพฐานข้อมูล
+            <p className="text-xs text-[#86868B] font-sans leading-relaxed mb-6">
+              คุณต้องการลบพัสดุอุปกรณ์ <strong className="text-[#1D1D1F] font-bold font-sans">"{deleteConfirmName}"</strong> ออกจากฐานข้อมูลคลังพัสดุถาวรใช่หรือไม่? ประวัติการเบิกจ่ายของสินค้านี้จะถูกยกเลิกด้วย
             </p>
 
             {deleteError && (
-              <div className="mb-4 p-2.5 bg-red-50 border border-red-150 text-red-800 text-3xs font-medium rounded-xl leading-relaxed">
+              <div className="mb-4 p-2.5 bg-[#FEEBEB] border border-transparent text-[#D12B2B] text-[10px] font-sans rounded-xl leading-relaxed">
                 🚨 {deleteError}
               </div>
             )}
@@ -1016,7 +1042,7 @@ export default function InventoryView({ config, refreshTrigger, onRefresh }: Inv
                 type="button"
                 onClick={() => { setDeleteConfirmId(null); setDeleteConfirmName(''); }}
                 disabled={isDeleting}
-                className="px-3.5 py-2 border border-slate-200 hover:bg-slate-50 text-slate-600 font-bold font-sans text-xs rounded-xl transition cursor-pointer select-none disabled:opacity-50"
+                className="px-4 py-2 border border-[#C5C5C7] hover:bg-[#F5F5F7] text-[#1D1D1F] font-semibold font-sans text-xs rounded-full transition cursor-pointer select-none disabled:opacity-40"
               >
                 ยกเลิก
               </button>
@@ -1024,7 +1050,7 @@ export default function InventoryView({ config, refreshTrigger, onRefresh }: Inv
                 type="button"
                 onClick={handleConfirmDelete}
                 disabled={isDeleting}
-                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-bold font-sans text-xs rounded-xl shadow-xs transition flex items-center gap-1.5 cursor-pointer select-none disabled:opacity-50"
+                className="px-5 py-2 bg-[#D12B2B] hover:bg-[#E53E3E] text-white font-bold font-sans text-xs rounded-full shadow-xs transition flex items-center gap-1.5 cursor-pointer select-none disabled:opacity-40"
               >
                 {isDeleting ? (
                   <>
@@ -1032,7 +1058,7 @@ export default function InventoryView({ config, refreshTrigger, onRefresh }: Inv
                     <span>กำลังลบ...</span>
                   </>
                 ) : (
-                  <span>ใช่, แน่ใจลบเลย</span>
+                  <span>ใช่, ลบถาวรเลย</span>
                 )}
               </button>
             </div>

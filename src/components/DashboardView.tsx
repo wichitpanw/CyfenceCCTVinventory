@@ -111,38 +111,38 @@ export default function DashboardView({ config, onNavigate, onQuickReturn, refre
   const totalActiveBorrowedItems = departmentChartData.reduce((sum, item) => sum + item.value, 0);
 
   const DEPT_COLORS = [
-    '#3B82F6', // Blue 500
-    '#8B5CF6', // Violet 500
-    '#10B981', // Emerald 500
-    '#F59E0B', // Amber 500
-    '#EF4444', // Red 500
-    '#06B6D4', // Cyan 500
-    '#EC4899', // Pink 500
-    '#14B8A6', // Teal 500
+    '#0071E3', // Apple Blue
+    '#34C759', // Apple Green
+    '#FF9500', // Apple Orange
+    '#AF52DE', // Apple Purple
+    '#FF3B30', // Apple Red
+    '#5AC8FA', // Apple Light Blue
+    '#FF2D55', // Apple Pink
+    '#86868B', // Apple Gray
   ];
 
   return (
     <div className="space-y-4" id="dashboard-view-wrapper">
       {/* If connected to live Supabase but empty database, show a nice welcoming helper banner */}
       {!config.useLocalStorage && equipments.length === 0 && (
-        <div className="bg-[#1e1a2f] border border-indigo-500/80 rounded-2xl p-5 text-white text-left shadow-lg relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-600/10 rounded-full -mr-10 -mt-10" />
+        <div className="bg-[#E8F2FF] border border-[#0071E3]/20 rounded-2xl p-5 text-[#1D1D1F] text-left shadow-xs relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-[#0071E3]/5 rounded-full -mr-10 -mt-10" />
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 relative z-10">
             <div className="space-y-1">
-              <span className="bg-indigo-600 text-white text-[9px] font-mono font-black tracking-widest px-2.5 py-0.5 rounded uppercase">
+              <span className="bg-[#0071E3] text-white text-[9px] font-sans font-black tracking-widest px-2.5 py-0.5 rounded-full uppercase">
                 Supabase LIVE (เชื่อมสำเร็จ)
               </span>
-              <h3 className="text-xs font-sans font-black text-white mt-1.5">
+              <h3 className="text-xs font-sans font-extrabold text-[#1D1D1F] mt-1.5">
                 🎉 เชื่อมต่อระบบเรียลไทม์สำเร็จแล้ว แต่ยังตรวจไม่พบข้อมูลพัสดุในระบบ!
               </h3>
-              <p className="text-slate-300 text-[11px] leading-relaxed max-w-2xl">
+              <p className="text-[#86868B] text-[11px] leading-relaxed max-w-2xl">
                 เนื่องจากเป็นฐานข้อมูลใหม่ที่ว่างเปล่า จึงยังไม่พบข้อมูลอุปกรณ์และกราฟแสดงผลผลลัพธ์ ท่านสามารถกดยืนยันการนำเข้าข้อมูลชุดตัวอย่างเริ่มต้น (กล้องวงจรปิด, สายสัญญาณ, อะแดปเตอร์สลับ PoE) ได้ฟรีในพริบตาผ่านปุ่มเติมชุดข้อมูลตัวอย่างที่หน้าตั้งค่า!
               </p>
             </div>
             
             <button
               onClick={() => onNavigate('settings')}
-              className="bg-indigo-600 hover:bg-indigo-500 text-white font-sans font-extrabold text-xs py-2 px-4 rounded-xl shadow-md cursor-pointer transition-all flex items-center gap-1.5 shrink-0"
+              className="bg-[#0071E3] hover:bg-[#0077ED] text-white font-sans font-extrabold text-xs py-2 px-4 rounded-xl shadow-xs cursor-pointer transition-all flex items-center gap-1.5 shrink-0"
             >
               <Database className="h-4 w-4" />
               <span>ก้าวไปหน้าเติมข้อมูลเริ่มต้น ➔</span>
@@ -156,20 +156,20 @@ export default function DashboardView({ config, onNavigate, onQuickReturn, refre
         {/* Card 1: Total Items */}
         <div 
           onClick={() => onNavigate('inventory')}
-          className="bg-white border border-slate-250 p-4 rounded flex flex-col justify-center relative overflow-hidden transition-all duration-300 cursor-pointer group hover:border-blue-500 hover:shadow-xs"
+          className="bg-white border border-[#E8E8ED] p-5 rounded-2xl flex flex-col justify-center relative overflow-hidden transition-all duration-300 cursor-pointer group hover:border-[#0071E3] hover:shadow-[0_8px_30px_rgba(0,0,0,0.04)] hover:-translate-y-0.5"
           id="kpi-total-items"
         >
-          <div className="absolute top-0 right-0 w-16 h-16 bg-blue-50 rounded-full -mr-6 -mt-6 transition-transform group-hover:scale-110 duration-500" />
+          <div className="absolute top-0 right-0 w-16 h-16 bg-[#E8F2FF] rounded-full -mr-6 -mt-6 transition-transform group-hover:scale-110 duration-500" />
           <div className="flex items-center space-x-3.5 relative z-10">
-            <div className="p-2.5 bg-blue-50 text-blue-600 rounded-sm group-hover:bg-blue-600 group-hover:text-white transition-all duration-300">
+            <div className="p-3 bg-[#E8F2FF] text-[#0071E3] rounded-2xl group-hover:bg-[#0071E3] group-hover:text-white transition-all duration-300">
               <Package className="h-5 w-5" />
             </div>
             <div>
-              <p className="text-[10px] text-slate-400 uppercase font-sans font-bold tracking-wider">อุปกรณ์ทั้งหมด</p>
-              <h3 className="text-2xl font-mono font-bold text-slate-900 mt-0.5">{stats?.totalItems || 0} ชิ้น</h3>
+              <p className="text-[10px] text-[#86868B] uppercase font-sans font-bold tracking-wider">อุปกรณ์ทั้งหมด</p>
+              <h3 className="text-2xl font-sans font-extrabold text-[#1D1D1F] mt-0.5">{stats?.totalItems || 0} ชิ้น</h3>
             </div>
           </div>
-          <p className="text-[11px] text-blue-600 font-bold mt-4 flex items-center group-hover:translate-x-1 transition-transform duration-300">
+          <p className="text-[11px] text-[#0071E3] font-bold mt-4 flex items-center group-hover:translate-x-1 transition-transform duration-300">
             ดูรายการอุปกรณ์ทั้งหมด &rarr;
           </p>
         </div>
@@ -177,25 +177,25 @@ export default function DashboardView({ config, onNavigate, onQuickReturn, refre
         {/* Card 2: Active / Overdue Borrows */}
         <div 
           onClick={() => onNavigate('borrow')}
-          className="bg-white border border-slate-250 p-4 rounded flex flex-col justify-center relative overflow-hidden transition-all duration-300 cursor-pointer group hover:border-blue-500 hover:shadow-xs"
+          className="bg-white border border-[#E8E8ED] p-5 rounded-2xl flex flex-col justify-center relative overflow-hidden transition-all duration-300 cursor-pointer group hover:border-[#0071E3] hover:shadow-[0_8px_30px_rgba(0,0,0,0.04)] hover:-translate-y-0.5"
           id="kpi-borrowed-items"
         >
-          <div className="absolute top-0 right-0 w-16 h-16 bg-amber-50 rounded-full -mr-6 -mt-6 transition-transform group-hover:scale-110 duration-500" />
+          <div className="absolute top-0 right-0 w-16 h-16 bg-[#FFF2E0] rounded-full -mr-6 -mt-6 transition-transform group-hover:scale-110 duration-500" />
           <div className="flex items-center space-x-3.5 relative z-10">
-            <div className="p-2.5 bg-amber-50 text-amber-600 rounded-sm group-hover:bg-amber-600 group-hover:text-white transition-all duration-300">
+            <div className="p-3 bg-[#FFF2E0] text-[#FF9500] rounded-2xl group-hover:bg-[#FF9500] group-hover:text-white transition-all duration-300">
               <Clock className="h-5 w-5" />
             </div>
             <div>
-              <p className="text-[10px] text-slate-400 uppercase font-sans font-bold tracking-wider">ถูกเบิกยืมขณะนี้</p>
-              <h3 className="text-2xl font-mono font-bold text-slate-900 mt-0.5">
+              <p className="text-[10px] text-[#86868B] uppercase font-sans font-bold tracking-wider">ถูกเบิกยืมขณะนี้</p>
+              <h3 className="text-2xl font-sans font-extrabold text-[#1D1D1F] mt-0.5">
                 {stats?.activeBorrows || 0} รายการ
               </h3>
             </div>
           </div>
-          <div className="mt-4 flex items-center justify-between text-[11px] text-blue-600 font-bold">
+          <div className="mt-4 flex items-center justify-between text-[11px] text-[#0071E3] font-bold">
             <span className="group-hover:translate-x-1 transition-transform duration-300">ทำรายการเพิ่มหรือส่งคืน &rarr;</span>
             {stats && stats.overdueBorrows > 0 && (
-              <span className="bg-red-50 text-red-650 font-bold px-2 py-0.5 rounded text-[10px] border border-red-100 animate-pulse flex items-center gap-1">
+              <span className="bg-[#FFEBEA] text-[#FF3B30] font-bold px-2.5 py-0.5 rounded-full text-[10px] border border-[#FF3B30]/10 animate-pulse flex items-center gap-1">
                 <AlertTriangle className="h-3 w-3" /> เกินกำหนด {stats.overdueBorrows} ชิ้น
               </span>
             )}
@@ -205,20 +205,20 @@ export default function DashboardView({ config, onNavigate, onQuickReturn, refre
         {/* Card 3: Ready / Maintenance */}
         <div 
           onClick={() => onNavigate('inventory')}
-          className="bg-white border border-slate-250 p-4 rounded flex flex-col justify-center relative overflow-hidden transition-all duration-300 cursor-pointer group hover:border-blue-500 hover:shadow-xs"
+          className="bg-white border border-[#E8E8ED] p-5 rounded-2xl flex flex-col justify-center relative overflow-hidden transition-all duration-300 cursor-pointer group hover:border-[#0071E3] hover:shadow-[0_8px_30px_rgba(0,0,0,0.04)] hover:-translate-y-0.5"
           id="kpi-available-items"
         >
-          <div className="absolute top-0 right-0 w-16 h-16 bg-emerald-50 rounded-full -mr-6 -mt-6 transition-transform group-hover:scale-110 duration-500" />
+          <div className="absolute top-0 right-0 w-16 h-16 bg-[#EAF9EE] rounded-full -mr-6 -mt-6 transition-transform group-hover:scale-110 duration-500" />
           <div className="flex items-center space-x-3.5 relative z-10">
-            <div className="p-2.5 bg-emerald-50 text-emerald-600 rounded-sm group-hover:bg-emerald-600 group-hover:text-white transition-all duration-300">
+            <div className="p-3 bg-[#EAF9EE] text-[#34C759] rounded-2xl group-hover:bg-[#34C759] group-hover:text-white transition-all duration-300">
               <CheckCircle className="h-5 w-5" />
             </div>
             <div>
-              <p className="text-[10px] text-slate-400 uppercase font-sans font-bold tracking-wider">พร้อมใช้งานทันที</p>
-              <h3 className="text-2xl font-mono font-bold text-emerald-600 mt-0.5">{stats?.availableItems || 0} ชิ้น</h3>
+              <p className="text-[10px] text-[#86868B] uppercase font-sans font-bold tracking-wider">พร้อมใช้งานทันที</p>
+              <h3 className="text-2xl font-sans font-extrabold text-[#34C759] mt-0.5">{stats?.availableItems || 0} ชิ้น</h3>
             </div>
           </div>
-          <p className="text-[11px] text-emerald-650 font-bold mt-4 group-hover:translate-x-1 transition-transform duration-300">
+          <p className="text-[11px] text-[#34C759] font-bold mt-4 group-hover:translate-x-1 transition-transform duration-300">
             คิดเป็น {stats && stats.totalItems ? Math.round((stats.availableItems / stats.totalItems) * 100) : 0}% ของคลัง &rarr;
           </p>
         </div>
@@ -226,22 +226,22 @@ export default function DashboardView({ config, onNavigate, onQuickReturn, refre
         {/* Card 4: Critical Maintain Items */}
         <div 
           onClick={() => onNavigate('inventory')}
-          className="bg-white border border-slate-250 p-4 rounded flex flex-col justify-center relative overflow-hidden transition-all duration-300 cursor-pointer group hover:border-blue-500 hover:shadow-xs"
+          className="bg-white border border-[#E8E8ED] p-5 rounded-2xl flex flex-col justify-center relative overflow-hidden transition-all duration-300 cursor-pointer group hover:border-[#0071E3] hover:shadow-[0_8px_30px_rgba(0,0,0,0.04)] hover:-translate-y-0.5"
           id="kpi-maintenance-items"
         >
-          <div className="absolute top-0 right-0 w-16 h-16 bg-rose-50 rounded-full -mr-6 -mt-6 transition-transform group-hover:scale-110 duration-500" />
+          <div className="absolute top-0 right-0 w-16 h-16 bg-[#FFEBEA] rounded-full -mr-6 -mt-6 transition-transform group-hover:scale-110 duration-500" />
           <div className="flex items-center space-x-3.5 relative z-10">
-            <div className="p-2.5 bg-rose-50 text-rose-600 rounded-sm group-hover:bg-rose-600 group-hover:text-white transition-all duration-300">
+            <div className="p-3 bg-[#FFEBEA] text-[#FF3B30] rounded-2xl group-hover:bg-[#FF3B30] group-hover:text-white transition-all duration-300">
               <AlertTriangle className="h-5 w-5" />
             </div>
             <div>
-              <p className="text-[10px] text-slate-400 uppercase font-sans font-bold tracking-wider">ซ่อมบำรุง / ชำรุด</p>
-              <h3 className="text-2xl font-mono font-bold text-rose-655 mt-0.5">
+              <p className="text-[10px] text-[#86868B] uppercase font-sans font-bold tracking-wider">ซ่อมบำรุง / ชำรุด</p>
+              <h3 className="text-2xl font-sans font-extrabold text-[#FF3B30] mt-0.5">
                 {(stats?.maintenanceItems || 0) + (stats?.brokenItems || 0)} ชิ้น
               </h3>
             </div>
           </div>
-          <p className="text-[11px] text-rose-650 font-bold mt-4 group-hover:translate-x-1 transition-transform duration-300">
+          <p className="text-[11px] text-[#FF3B30] font-bold mt-4 group-hover:translate-x-1 transition-transform duration-300">
             ซ่อมบำรุง {stats?.maintenanceItems || 0} · ชำรุด {stats?.brokenItems || 0} ชิ้น &rarr;
           </p>
         </div>
@@ -250,27 +250,27 @@ export default function DashboardView({ config, onNavigate, onQuickReturn, refre
       {/* Charts section */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4" id="dashboard-charts-section">
         {/* Status Distribution (Pie Chart) */}
-        <div className="lg:col-span-5 bg-white p-4 border border-slate-250 rounded shadow-3xs flex flex-col" id="chart-pie">
-          <div className="flex items-center justify-between mb-3">
-            <h4 className="text-xs font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
-              <Layers className="h-4 w-4 text-indigo-600" /> สัดส่วนพัสดุที่ถูกยืมแยกตามหน่วยงาน/บริษัท
+        <div className="lg:col-span-5 bg-white p-5 border border-[#E8E8ED] rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.04)] flex flex-col" id="chart-pie">
+          <div className="flex items-center justify-between mb-4">
+            <h4 className="text-xs font-bold text-[#86868B] uppercase tracking-wider flex items-center gap-2">
+              <Layers className="h-4 w-4 text-[#0071E3]" /> สัดส่วนพัสดุที่ถูกยืมแยกตามหน่วยงาน/บริษัท
             </h4>
           </div>
           <div className="flex-1 flex flex-col justify-center min-h-[220px]">
             {departmentChartData.length === 0 ? (
               <div className="text-center py-8 px-4 flex flex-col items-center justify-center space-y-2">
-                <div className="p-3 bg-slate-50 text-slate-400 rounded-full">
-                  <Package className="h-6 w-6 stroke-1" />
+                <div className="p-4 bg-[#F5F5F7] text-[#86868B] rounded-2xl">
+                  <Package className="h-6 w-6 stroke-1.5" />
                 </div>
-                <p className="text-xs font-sans font-bold text-slate-700">ไม่มีข้อมูลพัสดุที่กำลังถูกยืมขณะนี้</p>
-                <p className="text-[11px] text-slate-400 text-center font-sans max-w-[240px]">เมื่อมีการทำรายการเบิกยืมพัสดุ สถานะของบริษัทหรือหน่วยงานที่เบิกจะมาปรากฏสัดส่วนขึ้นบนกราฟรูปวงกลมนี้ทันทีค่ะ</p>
+                <p className="text-xs font-sans font-extrabold text-[#1D1D1F]">ไม่มีข้อมูลพัสดุที่กำลังถูกยืมขณะนี้</p>
+                <p className="text-[11px] text-[#86868B] text-center font-sans max-w-[240px]">เมื่อมีการทำรายการเบิกยืมพัสดุ สถานะของบริษัทหรือหน่วยงานที่เบิกจะมาปรากฏสัดส่วนขึ้นบนกราฟรูปวงกลมนี้ทันทีค่ะ</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-12 gap-4 items-center">
                 <div className="sm:col-span-7 h-44 relative flex items-center justify-center">
                   <div className="absolute flex flex-col items-center justify-center pointer-events-none">
-                    <span className="text-2xl font-mono font-black text-slate-800 leading-none">{totalActiveBorrowedItems}</span>
-                    <span className="text-[9px] text-slate-400 font-sans mt-0.5 font-bold uppercase tracking-wider">พัสดุถูกยืม</span>
+                    <span className="text-2xl font-sans font-extrabold text-[#1D1D1F] leading-none">{totalActiveBorrowedItems}</span>
+                    <span className="text-[9px] text-[#86868B] font-sans mt-0.5 font-bold uppercase tracking-wider">พัสดุถูกยืม</span>
                   </div>
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
@@ -278,8 +278,8 @@ export default function DashboardView({ config, onNavigate, onQuickReturn, refre
                         data={departmentChartData}
                         cx="50%"
                         cy="50%"
-                        innerRadius={50}
-                        outerRadius={70}
+                        innerRadius={52}
+                        outerRadius={72}
                         paddingAngle={3}
                         dataKey="value"
                       >
@@ -289,10 +289,10 @@ export default function DashboardView({ config, onNavigate, onQuickReturn, refre
                       </Pie>
                       <Tooltip 
                         contentStyle={{ 
-                          fontFamily: 'Inter, sans-serif', 
-                          borderRadius: '8px', 
-                          border: '1px solid #E2E8F0', 
-                          boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
+                          fontFamily: 'var(--font-sans)', 
+                          borderRadius: '12px', 
+                          border: '1px solid #E8E8ED', 
+                          boxShadow: '0 8px 30px rgba(0,0,0,0.04)',
                           fontSize: '11px'
                         }}
                         formatter={(value: any, name: any) => [`${value} ชิ้น`, name]}
@@ -308,10 +308,10 @@ export default function DashboardView({ config, onNavigate, onQuickReturn, refre
                       <div key={item.name} className="flex items-center justify-between text-[11px] font-sans">
                         <div className="flex items-center space-x-1.5 min-w-0">
                           <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: color }}></span>
-                          <span className="text-slate-700 font-bold truncate" title={item.name}>{item.name}</span>
+                          <span className="text-[#1D1D1F] font-bold truncate" title={item.name}>{item.name}</span>
                         </div>
-                        <span className="font-mono text-slate-500 shrink-0 font-bold pl-2">
-                          {item.value} ชิ้น <span className="text-slate-350 text-[10px] font-medium">({percent}%)</span>
+                        <span className="font-sans text-[#86868B] shrink-0 font-bold pl-2">
+                          {item.value} ชิ้น <span className="text-[#86868B]/60 text-[10px] font-medium">({percent}%)</span>
                         </span>
                       </div>
                     );
@@ -323,14 +323,14 @@ export default function DashboardView({ config, onNavigate, onQuickReturn, refre
         </div>
 
         {/* Category breakdown (Horizontal Bar Chart) */}
-        <div className="lg:col-span-7 bg-white p-4 border border-slate-250 rounded shadow-3xs" id="chart-bar">
-          <h4 className="text-xs font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2 mb-3">
-            <Package className="h-4 w-4 text-blue-600" /> ปริมาณอุปกรณ์คงเหลือแยกตามหมวดหมู่
+        <div className="lg:col-span-7 bg-white p-5 border border-[#E8E8ED] rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.04)]" id="chart-bar">
+          <h4 className="text-xs font-bold text-[#86868B] uppercase tracking-wider flex items-center gap-2 mb-4">
+            <Package className="h-4 w-4 text-[#0071E3]" /> ปริมาณอุปกรณ์คงเหลือแยกตามหมวดหมู่
           </h4>
           <div className="h-56">
             {categoryChartData.length === 0 ? (
               <div className="w-full h-full flex items-center justify-center">
-                <p className="text-xs font-mono text-gray-400">ไม่มีข้อมูลอุปกรณ์เพื่อแสดงสถิติ</p>
+                <p className="text-xs font-sans font-bold text-[#86868B]">ไม่มีข้อมูลอุปกรณ์เพื่อแสดงสถิติ</p>
               </div>
             ) : (
               <ResponsiveContainer width="100%" height="100%">
@@ -339,28 +339,28 @@ export default function DashboardView({ config, onNavigate, onQuickReturn, refre
                   data={categoryChartData} 
                   margin={{ top: 5, right: 20, left: 10, bottom: 5 }}
                 >
-                  <XAxis type="number" stroke="#9CA3AF" fontSize={9} tickLine={false} axisLine={false} allowDecimals={false} />
+                  <XAxis type="number" stroke="#86868B" fontSize={9} tickLine={false} axisLine={false} allowDecimals={false} />
                   <YAxis 
                     dataKey="name" 
                     type="category" 
-                    stroke="#64748B" 
+                    stroke="#1D1D1F" 
                     fontSize={10} 
                     tickLine={false} 
                     axisLine={false} 
                     width={140}
                   />
                   <Tooltip 
-                    cursor={{ fill: '#F8FAFC' }}
+                    cursor={{ fill: '#F5F5F7' }}
                     contentStyle={{ 
-                      fontFamily: 'Inter, sans-serif', 
-                      borderRadius: '8px', 
-                      border: '1px solid #E2E8F0', 
-                      boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
+                      fontFamily: 'var(--font-sans)', 
+                      borderRadius: '12px', 
+                      border: '1px solid #E8E8ED', 
+                      boxShadow: '0 8px 30px rgba(0,0,0,0.04)',
                       fontSize: '11px'
                     }}
                     formatter={(value: any) => [`${value} ชิ้น`, 'คงเหลือในคลัง']}
                   />
-                  <Bar dataKey="value" fill="#3B82F6" radius={[0, 4, 4, 0]} barSize={12} name="จำนวนคงเหลือ" />
+                  <Bar dataKey="value" fill="#0071E3" radius={[0, 8, 8, 0]} barSize={12} name="จำนวนคงเหลือ" />
                 </BarChart>
               </ResponsiveContainer>
             )}
@@ -371,14 +371,14 @@ export default function DashboardView({ config, onNavigate, onQuickReturn, refre
       {/* Grid: Recent Borrow Activity & Urgency Box */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4" id="recent-activities-row">
         {/* Recent Transactions list */}
-        <div className="lg:col-span-8 bg-white p-4 border border-slate-250 rounded shadow-3xs flex flex-col" id="recent-transactions">
+        <div className="lg:col-span-8 bg-white p-5 border border-[#E8E8ED] rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.04)] flex flex-col" id="recent-transactions">
           <div className="flex items-center justify-between mb-4">
-            <h4 className="text-xs font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
-              <History className="h-4 w-4 text-blue-600" /> รายการเดินคลังล่าสุด (เบิก-คืน)
+            <h4 className="text-xs font-bold text-[#86868B] uppercase tracking-wider flex items-center gap-2">
+              <History className="h-4 w-4 text-[#0071E3]" /> รายการเดินคลังล่าสุด (เบิก-คืน)
             </h4>
             <button 
               onClick={() => onNavigate('history')}
-              className="text-xs text-blue-600 hover:text-blue-800 font-bold hover:underline transition-all"
+              className="text-xs text-[#0071E3] hover:text-[#0077ED] font-bold transition-all"
             >
               ดูประวัติทั้งหมด &rarr;
             </button>
@@ -386,51 +386,51 @@ export default function DashboardView({ config, onNavigate, onQuickReturn, refre
 
           <div className="flow-root flex-1">
             {recentTransactions.length === 0 ? (
-              <div className="text-center py-12 text-slate-400 font-sans text-xs">
+              <div className="text-center py-12 text-[#86868B] font-sans text-xs">
                 ไม่มีประวัติการเบิกคืนบันทึกในระบบในขณะนี้
               </div>
             ) : (
-              <ul className="-my-4 divide-y divide-slate-100">
+              <ul className="-my-4 divide-y divide-[#E8E8ED]">
                 {recentTransactions.map((tx) => (
-                  <li key={tx.id} className="py-3">
+                  <li key={tx.id} className="py-3.5">
                     <div className="flex items-center justify-between space-x-4">
-                      <div className="flex-1 min-w-0 flex items-start space-x-3">
-                        <div className={`mt-0.5 p-1.5 rounded-sm shrink-0 ${
+                      <div className="flex-1 min-w-0 flex items-start space-x-3.5">
+                        <div className={`mt-0.5 p-2 rounded-xl shrink-0 ${
                           tx.status === 'returned' 
-                            ? 'bg-emerald-50 text-emerald-600'
+                            ? 'bg-[#EAF9EE] text-[#34C759]'
                             : tx.status === 'overdue'
-                              ? 'bg-rose-50 text-rose-600'
-                              : 'bg-blue-50 text-blue-600'
+                              ? 'bg-[#FFEBEA] text-[#FF3B30]'
+                              : 'bg-[#E8F2FF] text-[#0071E3]'
                         }`}>
                           {tx.status === 'returned' ? (
-                            <ArrowDownLeft className="h-3.5 w-3.5" />
+                            <ArrowDownLeft className="h-4 w-4" />
                           ) : (
-                            <ArrowUpRight className="h-3.5 w-3.5" />
+                            <ArrowUpRight className="h-4 w-4" />
                           )}
                         </div>
                         <div className="text-left">
-                          <p className="text-xs font-bold text-slate-800 truncate">
+                          <p className="text-xs font-extrabold text-[#1D1D1F] truncate">
                             {tx.equipment_name}
                           </p>
-                          <p className="text-[11px] text-slate-500 font-sans mt-0.5">
-                            ผู้เบิก: <span className="font-semibold text-slate-700">{tx.borrower_name}</span> ({tx.borrower_department})
+                          <p className="text-[11px] text-[#86868B] font-sans mt-0.5">
+                            ผู้เบิก: <span className="font-semibold text-[#1D1D1F]">{tx.borrower_name}</span> ({tx.borrower_department})
                           </p>
-                          <p className="text-[10px] text-slate-400 font-mono mt-0.5 flex items-center gap-2">
-                            <span><Calendar className="h-3 w-3 inline mr-0.5" /> {new Date(tx.borrow_date).toLocaleDateString('th-TH')}</span>
+                          <p className="text-[10px] text-[#86868B]/80 font-sans mt-0.5 flex items-center gap-2">
+                            <span><Calendar className="h-3 w-3 inline mr-0.5 text-[#86868B]" /> {new Date(tx.borrow_date).toLocaleDateString('th-TH')}</span>
                             {tx.return_date && (
-                              <span className="text-emerald-700 font-bold">คืนเมื่อ: {new Date(tx.return_date).toLocaleDateString('th-TH')}</span>
+                              <span className="text-[#34C759] font-bold">คืนเมื่อ: {new Date(tx.return_date).toLocaleDateString('th-TH')}</span>
                             )}
                           </p>
                         </div>
                       </div>
                       
-                      <div className="flex flex-col items-end space-y-1.5 shrink-0">
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded text-[9px] font-extrabold font-sans uppercase border ${
+                      <div className="flex flex-col items-end space-y-2 shrink-0">
+                        <span className={`badge-apple ${
                           tx.status === 'returned'
-                            ? 'bg-emerald-50 text-emerald-750 border-emerald-100'
+                            ? 'badge-apple-green'
                             : tx.status === 'overdue'
-                              ? 'bg-rose-50 text-rose-750 border-rose-100'
-                              : 'bg-blue-50 text-blue-750 border-blue-105'
+                              ? 'badge-apple-red'
+                              : 'badge-apple-blue'
                         }`}>
                           {tx.status === 'returned' ? 'คืนเรียบร้อย' : tx.status === 'overdue' ? 'เลยกำหนดส่งคืน' : 'กำลังเบิกยืม'}
                         </span>
@@ -438,9 +438,9 @@ export default function DashboardView({ config, onNavigate, onQuickReturn, refre
                         {tx.status !== 'returned' && (
                           <button
                             onClick={() => onQuickReturn(tx)}
-                            className="text-[10px] bg-blue-50 text-blue-600 hover:bg-blue-100 font-bold px-2 py-1 rounded transition-all cursor-pointer"
+                            className="text-[10px] bg-[#F5F5F7] text-[#1D1D1F] border border-[#E8E8ED] hover:bg-[#E8F2FF] hover:text-[#0071E3] hover:border-transparent font-extrabold px-3 py-1.5 rounded-full transition-all cursor-pointer"
                           >
-                            ทำรายการคืนด่วน
+                            ทำรายการคืน
                           </button>
                         )}
                       </div>
@@ -454,45 +454,45 @@ export default function DashboardView({ config, onNavigate, onQuickReturn, refre
 
         {/* Quick Tips / Connection Info Box */}
         <div className="lg:col-span-4 flex flex-col space-y-4" id="dashboard-right-rail">
-          <div className="bg-white p-4 border border-slate-250 rounded shadow-3xs text-left" id="overdue-alerts">
-            <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3">
+          <div className="bg-white p-5 border border-[#E8E8ED] rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.04)] text-left" id="overdue-alerts">
+            <h4 className="text-[10px] font-bold text-[#86868B] uppercase tracking-wider mb-4">
               การแจ้งเตือนพัสดุเร่งด่วน
             </h4>
             <div className="space-y-3">
               {stats && stats.overdueBorrows > 0 ? (
-                <div className="bg-red-50 border border-red-105 rounded p-3 flex items-start space-x-2.5">
-                  <XOctagon className="h-4.5 w-4.5 text-red-500 shrink-0 mt-0.5" />
+                <div className="bg-[#FFEBEA] border border-[#FF3B30]/10 rounded-2xl p-4 flex items-start space-x-3">
+                  <XOctagon className="h-5 w-5 text-[#FF3B30] shrink-0 mt-0.5" />
                   <div>
-                    <h5 className="text-xs font-bold text-red-800">มีพัสดุเลยอายุคืน!</h5>
-                    <p className="text-[10px] text-red-700 mt-1 leading-relaxed">
+                    <h5 className="text-xs font-sans font-extrabold text-[#FF3B30]">มีพัสดุเลยอายุคืน!</h5>
+                    <p className="text-[10px] text-[#FF3B30]/80 mt-1 leading-relaxed">
                       พบอุปกรณ์จำนวน <span className="font-bold">{stats.overdueBorrows} ชิ้น</span> เลยกำหนดวันคืนที่ผู้เบิกระบุไว้ กรุณาตามตัวผู้เบิกเพื่อส่งมอบคืนคลัง
                     </p>
                     <button
                       onClick={() => onNavigate('borrow')}
-                      className="text-[10px] font-bold text-red-800 hover:text-red-900 underline mt-1.5 inline-block"
+                      className="text-[10px] font-extrabold text-[#FF3B30] hover:text-[#FF453A] underline mt-2 inline-block"
                     >
                       ตรวจสอบรายการเลยกำหนด &rarr;
                     </button>
                   </div>
                 </div>
               ) : (
-                <div className="bg-emerald-50 border border-emerald-100 rounded p-3 flex items-start space-x-2.5">
-                  <CheckCircle className="h-4.5 w-4.5 text-emerald-500 shrink-0 mt-0.5" />
+                <div className="bg-[#EAF9EE] border border-[#34C759]/10 rounded-2xl p-4 flex items-start space-x-3">
+                  <CheckCircle className="h-5 w-5 text-[#34C759] shrink-0 mt-0.5" />
                   <div>
-                    <h5 className="text-xs font-bold text-emerald-800">พัสดุเป็นระเบียบเรียบร้อย</h5>
-                    <p className="text-[10px] text-emerald-700 mt-1 leading-relaxed">
+                    <h5 className="text-xs font-sans font-extrabold text-[#2F9E44]">พัสดุเป็นระเบียบเรียบร้อย</h5>
+                    <p className="text-[10px] text-[#2F9E44]/90 mt-1 leading-relaxed">
                       ยินดีด้วย! ปัจจุบันไม่มีอุปกรณ์ชิ้นใดเลยกำหนดส่งคืน ถือว่าระบบยืมคืนพัสดุทำงานได้อย่างมีประสิทธิภาพ
                     </p>
                   </div>
                 </div>
               )}
               
-              <div className="bg-slate-50 border border-slate-100 rounded p-3 flex items-start space-x-2.5">
-                <AlertTriangle className="h-4.5 w-4.5 text-amber-500 shrink-0 mt-0.5" />
+              <div className="bg-[#F5F5F7] border border-[#E8E8ED] rounded-2xl p-4 flex items-start space-x-3">
+                <AlertTriangle className="h-5 w-5 text-[#FF9500] shrink-0 mt-0.5" />
                 <div>
-                  <h5 className="text-xs font-bold text-slate-800">อุปกรณ์กำลังซ่อมบำรุง</h5>
-                  <p className="text-[10px] text-slate-600 mt-1 leading-relaxed">
-                    มีอุปกรณ์ <span className="font-bold text-amber-600">{stats?.maintenanceItems || 0} ชิ้น</span> อยู่ระหว่างส่งตรวจสภาพ และ <span className="font-bold text-red-650">{stats?.brokenItems || 0} ชิ้น</span> เสียหายห้ามนำออกเบิก
+                  <h5 className="text-xs font-sans font-extrabold text-[#1D1D1F]">อุปกรณ์กำลังซ่อมบำรุง</h5>
+                  <p className="text-[10px] text-[#86868B] mt-1 leading-relaxed">
+                    มีอุปกรณ์ <span className="font-bold text-[#FF9500]">{stats?.maintenanceItems || 0} ชิ้น</span> อยู่ระหว่างส่งตรวจสภาพ และ <span className="font-bold text-[#FF3B30]">{stats?.brokenItems || 0} ชิ้น</span> เสียหายห้ามนำออกเบิก
                   </p>
                 </div>
               </div>
