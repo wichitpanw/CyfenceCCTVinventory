@@ -238,11 +238,6 @@ export default function SupabaseSettingsView({
             ลบ
           </button>
         </div>
-
-        {/* Assistance Note */}
-        <div className="text-[10px] text-slate-400 font-sans border-t border-slate-100 pt-3 flex items-center justify-center gap-1 select-none">
-          <span>ความช่วยเหลือ: ลีนุกส์พร้อมเคียงข้างคุณเสมอค่ะ 👓</span>
-        </div>
       </div>
     );
   }
