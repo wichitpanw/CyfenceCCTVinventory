@@ -254,7 +254,7 @@ export default function App() {
 
       {/* Humble Footer info */}
       <footer className="py-6 px-6 shrink-0 mt-12 text-center text-[10px] font-sans font-medium text-[#86868B] select-none" id="main-footer">
-        <p>Powered by Warapon Wichitpan © 2026 · NT Cyfence CCTV & Network Inventory</p>
+        <p>Powered by Warapon Wichitpan © 2026 · NT Cyfence</p>
       </footer>
     </div>
   );
