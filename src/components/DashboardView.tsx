@@ -16,26 +16,36 @@ import {
 } from 'recharts';
 
 /** Custom hook: measure a container's real pixel size via ResizeObserver.
- *  Only updates state when BOTH width and height are > 0, so charts
+ *  Uses a CALLBACK REF so the observer attaches the moment the DOM node
+ *  appears — even when the node is conditionally rendered after data loads.
+ *  Only updates state when both width and height are > 0, so charts
  *  never receive the Recharts sentinel value of -1. */
 function useContainerSize() {
-  const ref = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState<{ width: number; height: number } | null>(null);
+  const roRef = useRef<ResizeObserver | null>(null);
 
-  const measure = useCallback(() => {
-    if (!ref.current) return;
-    const { width, height } = ref.current.getBoundingClientRect();
-    if (width > 0 && height > 0) {
-      setSize({ width: Math.floor(width), height: Math.floor(height) });
+  // Callback ref: fires immediately when the DOM node is attached or detached
+  const ref = useCallback((node: HTMLDivElement | null) => {
+    // Tear down any existing observer
+    if (roRef.current) {
+      roRef.current.disconnect();
+      roRef.current = null;
     }
-  }, []);
+    if (!node) return;
 
-  useEffect(() => {
-    measure();
-    const ro = new ResizeObserver(measure);
-    if (ref.current) ro.observe(ref.current);
-    return () => ro.disconnect();
-  }, [measure]);
+    // Measure immediately on attach
+    const doMeasure = () => {
+      const { width, height } = node.getBoundingClientRect();
+      if (width > 0 && height > 0) {
+        setSize({ width: Math.floor(width), height: Math.floor(height) });
+      }
+    };
+
+    doMeasure();
+    const ro = new ResizeObserver(doMeasure);
+    ro.observe(node);
+    roRef.current = ro;
+  }, []);
 
   return { ref, size };
 }
