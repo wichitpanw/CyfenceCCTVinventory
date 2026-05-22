@@ -757,8 +757,8 @@ export default function BorrowReturnView({ config, refreshTrigger, onRefresh, qu
           </div>
 
           {/* Available Items selector list (Right) */}
-          <div className="lg:col-span-5 flex flex-col h-full" id="avail-items-picker-col">
-            <div className="bg-white p-4 rounded-xl border border-slate-250 shadow-xs text-left flex-1 flex flex-col h-full">
+          <div className="lg:col-span-5 flex flex-col space-y-4 lg:self-start" id="avail-items-picker-col">
+            <div className="bg-white p-4 rounded-xl border border-slate-250 shadow-xs text-left">
               <h4 className="text-[10px] font-bold font-sans text-slate-500 uppercase tracking-wider mb-2.5 flex items-center justify-between">
                 <span>เลือกคลังอุปกรณ์พร้อมใช้ ({availableEquipments.length} รายการ)</span>
               </h4>
@@ -864,7 +864,7 @@ export default function BorrowReturnView({ config, refreshTrigger, onRefresh, qu
               )}
 
               {/* List items scroll */}
-              <div className="space-y-2 overflow-y-auto flex-1 min-h-[300px] lg:min-h-0 pr-1">
+              <div className="space-y-2 overflow-y-auto max-h-[520px] pr-1">
                 {availableEquipments.length === 0 ? (
                   <div className="text-center py-8 text-xs text-slate-400">
                     ไม่มีพัสดุว่างพร้อมให้ยืมตามคำค้นหานี้
