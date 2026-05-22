@@ -337,11 +337,21 @@ export default function HistoryView({ config, refreshTrigger }: HistoryViewProps
                         </td>
 
                         {/* Purpose and Evidence */}
-                        <td className="px-4 xl:px-6 py-4">
+                        <td className="px-4 xl:px-6 py-4 max-w-[200px]">
                           <div className="space-y-1.5">
-                            <p className="text-xs text-slate-600 line-clamp-1 font-sans italic" title={group.purpose}>
-                              "{group.purpose || 'ไม่ได้ระบุวัตถุประสงค์'}"
-                            </p>
+                            {/* Purpose with tooltip for long text */}
+                            <div className="group relative">
+                              <p className="text-xs text-slate-600 line-clamp-2 font-sans italic leading-relaxed cursor-default" title={group.purpose || 'ไม่ได้ระบุวัตถุประสงค์'}>
+                                "{group.purpose || 'ไม่ได้ระบุวัตถุประสงค์'}"
+                              </p>
+                              {/* Hover tooltip for full purpose text */}
+                              {group.purpose && group.purpose.length > 40 && (
+                                <div className="absolute left-0 top-full mt-1.5 z-50 hidden group-hover:block w-64 bg-[#1D1D1F] text-white text-[11px] font-sans leading-relaxed rounded-xl px-3 py-2.5 shadow-2xl pointer-events-none">
+                                  <p className="text-white/70 text-[9px] font-bold uppercase tracking-wider mb-1">วัตถุประสงค์เต็มข้อความ</p>
+                                  {group.purpose}
+                                </div>
+                              )}
+                            </div>
                             {group.evidence_image_url && (
                               <button
                                 type="button"
@@ -349,10 +359,10 @@ export default function HistoryView({ config, refreshTrigger }: HistoryViewProps
                                   e.stopPropagation();
                                   setActiveLightboxUrl(group.evidence_image_url);
                                 }}
-                                className="inline-flex items-center gap-1.5 bg-blue-50/40 px-2 py-0.5 rounded-lg text-[9.5px] text-apple-primary font-bold hover:underline cursor-pointer border border-blue-100/50 font-sans active:scale-95 transition-all"
+                                title="คลิกดูภาพหลักฐานการเบิก"
+                                className="inline-flex items-center justify-center w-7 h-7 bg-blue-50/60 hover:bg-blue-100 rounded-lg cursor-pointer border border-blue-100/60 transition-all active:scale-90 shrink-0"
                               >
-                                <Camera className="w-3 h-3 shrink-0" />
-                                <span>ภาพหลักฐานเบิก &rarr;</span>
+                                <Camera className="w-3.5 h-3.5 text-apple-primary" />
                               </button>
                             )}
                           </div>
@@ -516,10 +526,10 @@ export default function HistoryView({ config, refreshTrigger }: HistoryViewProps
                       <button
                         type="button"
                         onClick={() => setActiveLightboxUrl(group.evidence_image_url)}
-                        className="inline-flex items-center gap-1.5 bg-blue-50/40 px-2.5 py-1 rounded-lg text-[9.5px] text-apple-primary font-bold hover:underline cursor-pointer border border-blue-100/50 font-sans active:scale-95 transition-all"
+                        title="คลิกดูภาพหลักฐานการเบิก"
+                        className="inline-flex items-center justify-center w-8 h-8 bg-blue-50/60 hover:bg-blue-100 rounded-xl cursor-pointer border border-blue-100/60 transition-all active:scale-90"
                       >
-                        <Camera className="w-3.5 h-3.5 shrink-0 text-blue-600" />
-                        <span>เปิดดูรูปหลักฐาน &rarr;</span>
+                        <Camera className="w-4 h-4 text-apple-primary shrink-0" />
                       </button>
                     </div>
                   )}
