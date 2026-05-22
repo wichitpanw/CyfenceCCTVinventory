@@ -81,15 +81,15 @@ export default function DashboardView({ config, onNavigate, onQuickReturn, refre
     );
   }
 
-  // Calculate Category Data for Chart
+  // Calculate Category Data for Chart (Sum of available/remaining quantities in stock)
   const categoryCounts: Record<string, number> = {};
   equipments.forEach(item => {
-    categoryCounts[item.category] = (categoryCounts[item.category] || 0) + 1;
+    categoryCounts[item.category] = (categoryCounts[item.category] || 0) + (item.available_qty || 0);
   });
   const categoryChartData = Object.entries(categoryCounts).map(([name, value]) => ({
     name,
     value
-  }));
+  })).sort((a, b) => b.value - a.value);
 
   // Calculate Department Borrowing Data for Pie Chart (Active Borrows Only)
   const activeTransactions = allTransactions.filter(
@@ -322,10 +322,10 @@ export default function DashboardView({ config, onNavigate, onQuickReturn, refre
           </div>
         </div>
 
-        {/* Category breakdown (Bar Chart) */}
+        {/* Category breakdown (Horizontal Bar Chart) */}
         <div className="lg:col-span-7 bg-white p-4 border border-slate-250 rounded shadow-3xs" id="chart-bar">
           <h4 className="text-xs font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2 mb-3">
-            <Package className="h-4 w-4 text-blue-600" /> จำนวนแยกตามหมวดหมู่ประเภท
+            <Package className="h-4 w-4 text-blue-600" /> ปริมาณอุปกรณ์คงเหลือแยกตามหมวดหมู่
           </h4>
           <div className="h-56">
             {categoryChartData.length === 0 ? (
@@ -334,24 +334,33 @@ export default function DashboardView({ config, onNavigate, onQuickReturn, refre
               </div>
             ) : (
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={categoryChartData} margin={{ top: 10, right: 10, left: -20, bottom: 15 }}>
-                  <XAxis 
+                <BarChart 
+                  layout="vertical" 
+                  data={categoryChartData} 
+                  margin={{ top: 5, right: 20, left: 10, bottom: 5 }}
+                >
+                  <XAxis type="number" stroke="#9CA3AF" fontSize={9} tickLine={false} axisLine={false} allowDecimals={false} />
+                  <YAxis 
                     dataKey="name" 
+                    type="category" 
                     stroke="#64748B" 
                     fontSize={10} 
                     tickLine={false} 
                     axisLine={false} 
-                    interval={0}
-                    angle={-12}
-                    textAnchor="end"
-                    height={50}
+                    width={140}
                   />
-                  <YAxis stroke="#9CA3AF" fontSize={9} tickLine={false} axisLine={false} allowDecimals={false} />
                   <Tooltip 
                     cursor={{ fill: '#F8FAFC' }}
-                    contentStyle={{ fontFamily: 'Inter, sans-serif', borderRadius: '4px', border: '1px solid #E2E8F0', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}
+                    contentStyle={{ 
+                      fontFamily: 'Inter, sans-serif', 
+                      borderRadius: '8px', 
+                      border: '1px solid #E2E8F0', 
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
+                      fontSize: '11px'
+                    }}
+                    formatter={(value: any) => [`${value} ชิ้น`, 'คงเหลือในคลัง']}
                   />
-                  <Bar dataKey="value" fill="#3B82F6" radius={[2, 2, 0, 0]} barSize={24} name="จำนวนอุปกรณ์" />
+                  <Bar dataKey="value" fill="#3B82F6" radius={[0, 4, 4, 0]} barSize={12} name="จำนวนคงเหลือ" />
                 </BarChart>
               </ResponsiveContainer>
             )}
