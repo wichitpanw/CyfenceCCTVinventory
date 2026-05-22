@@ -46,11 +46,18 @@ export default function DashboardView({ config, onNavigate, onQuickReturn, refre
   const [allTransactions, setAllTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [dbError, setDbError] = useState<string | null>(null);
-  const [isMounted, setIsMounted] = useState(false);
+  const [renderCharts, setRenderCharts] = useState(false);
 
   useEffect(() => {
-    setIsMounted(true);
-  }, []);
+    if (!loading) {
+      const timer = setTimeout(() => {
+        setRenderCharts(true);
+      }, 150);
+      return () => clearTimeout(timer);
+    } else {
+      setRenderCharts(false);
+    }
+  }, [loading]);
 
   useEffect(() => {
     async function fetchDashboardData() {
@@ -277,7 +284,7 @@ export default function DashboardView({ config, onNavigate, onQuickReturn, refre
                     <span className="text-2xl font-sans font-extrabold text-[#1D1D1F] leading-none">{totalActiveBorrowedItems}</span>
                     <span className="text-[9px] text-[#86868B] font-sans mt-0.5 font-bold uppercase tracking-wider">พัสดุถูกยืม</span>
                   </div>
-                  {isMounted && (
+                  {renderCharts && (
                     <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                       <PieChart>
                         <Pie
@@ -340,7 +347,7 @@ export default function DashboardView({ config, onNavigate, onQuickReturn, refre
                 <p className="text-xs font-sans font-bold text-[#86868B]">ไม่มีข้อมูลอุปกรณ์เพื่อแสดงสถิติ</p>
               </div>
             ) : (
-              isMounted && (
+              renderCharts && (
                 <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                   <BarChart 
                     layout="vertical" 
