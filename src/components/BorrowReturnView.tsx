@@ -111,6 +111,7 @@ export default function BorrowReturnView({ config, refreshTrigger, onRefresh, qu
   const [purpose, setPurpose] = useState('');
   const [dueDate, setDueDate] = useState('');
   const [searchTermEq, setSearchTermEq] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [borrowQty, setBorrowQty] = useState<number>(1);
 
   // Evidence Image State (Step 6)
@@ -346,13 +347,14 @@ export default function BorrowReturnView({ config, refreshTrigger, onRefresh, qu
     }
   };
 
-  // Equipments that are available for borrow and match search
+  // Equipments that are available for borrow and match search & category filter
   const availableEquipments = equipments.filter(item => {
     const isAvail = (item.available_qty ?? (item.status === 'borrowed' ? 0 : 1)) > 0;
     const matchesSearch = 
       item.name.toLowerCase().includes(searchTermEq.toLowerCase()) || 
       item.code.toLowerCase().includes(searchTermEq.toLowerCase());
-    return isAvail && matchesSearch;
+    const matchesCategory = !selectedCategory || item.category === selectedCategory;
+    return isAvail && matchesSearch && matchesCategory;
   });
 
   // Active borrows
@@ -755,8 +757,8 @@ export default function BorrowReturnView({ config, refreshTrigger, onRefresh, qu
           </div>
 
           {/* Available Items selector list (Right) */}
-          <div className="lg:col-span-5 flex flex-col space-y-4 lg:self-start" id="avail-items-picker-col">
-            <div className="bg-white p-4 rounded-xl border border-slate-250 shadow-xs text-left">
+          <div className="lg:col-span-5 flex flex-col h-full" id="avail-items-picker-col">
+            <div className="bg-white p-4 rounded-xl border border-slate-250 shadow-xs text-left flex-1 flex flex-col h-full">
               <h4 className="text-[10px] font-bold font-sans text-slate-500 uppercase tracking-wider mb-2.5 flex items-center justify-between">
                 <span>เลือกคลังอุปกรณ์พร้อมใช้ ({availableEquipments.length} รายการ)</span>
               </h4>
@@ -771,6 +773,38 @@ export default function BorrowReturnView({ config, refreshTrigger, onRefresh, qu
                   onChange={(e) => setSearchTermEq(e.target.value)}
                   className="w-full pl-9 pr-3 py-1.5 border border-slate-200 bg-slate-50 rounded-lg text-xs font-sans focus:outline-hidden"
                 />
+              </div>
+
+              {/* Category Filter Buttons */}
+              <div className="mb-3.5 space-y-1.5 shrink-0">
+                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">กรองด่วนตามหมวดหมู่:</span>
+                <div className="flex flex-wrap gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedCategory('')}
+                    className={`text-[10px] font-sans font-bold px-2.5 py-1 rounded-md border transition cursor-pointer ${
+                      !selectedCategory
+                        ? 'bg-blue-600 border-blue-600 text-white shadow-3xs'
+                        : 'bg-slate-50 border-slate-200 text-slate-650 hover:bg-slate-100'
+                    }`}
+                  >
+                    ทั้งหมด
+                  </button>
+                  {Array.from(new Set(equipments.map(item => item.category))).filter(Boolean).map(cat => (
+                    <button
+                      key={cat}
+                      type="button"
+                      onClick={() => setSelectedCategory(cat)}
+                      className={`text-[10px] font-sans font-bold px-2.5 py-1 rounded-md border transition cursor-pointer ${
+                        selectedCategory === cat
+                          ? 'bg-blue-600 border-blue-600 text-white shadow-3xs'
+                          : 'bg-slate-50 border-slate-200 text-slate-650 hover:bg-slate-100'
+                      }`}
+                    >
+                      {cat}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               {/* Selector and Multiplier panel */}
@@ -830,7 +864,7 @@ export default function BorrowReturnView({ config, refreshTrigger, onRefresh, qu
               )}
 
               {/* List items scroll */}
-              <div className="space-y-2 overflow-y-auto max-h-110 pr-1">
+              <div className="space-y-2 overflow-y-auto flex-1 min-h-[300px] lg:min-h-0 pr-1">
                 {availableEquipments.length === 0 ? (
                   <div className="text-center py-8 text-xs text-slate-400">
                     ไม่มีพัสดุว่างพร้อมให้ยืมตามคำค้นหานี้
