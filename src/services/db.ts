@@ -1,0 +1,1224 @@
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { Equipment, Transaction, SupabaseConfig, DashboardStats } from '../types';
+
+const STORAGE_KEY_CONFIG = 'item_inventory_supabase_config';
+const STORAGE_KEY_EQUIPMENT = 'item_inventory_equipment_data';
+const STORAGE_KEY_TRANSACTIONS = 'item_inventory_transactions_data';
+
+// Initial Mocked Seed Data for Local Mode
+const SEED_EQUIPMENT: Equipment[] = [
+  {
+    id: 'eq-import-001',
+    code: 'CAM-DHA-2M',
+    name: 'กล้อง 2M Dahua',
+    category: 'กล้องวงจรปิด (CCTV)',
+    status: 'available',
+    location: 'คลังหลักสำนักงานใหญ่',
+    description: 'กล้องวงจรปิดความละเอียด 2 ล้านพิกเซล ยี่ห้อ Dahua',
+    image_url: 'https://images.unsplash.com/photo-1557862921-37829c790f19?w=500&auto=format&fit=crop&q=80',
+    total_qty: 85,
+    available_qty: 85,
+    maintenance_qty: 0,
+    broken_qty: 0,
+    created_at: '2026-05-22T00:00:00Z'
+  },
+  {
+    id: 'eq-import-002',
+    code: 'CAM-HIK-2M',
+    name: 'กล้อง 2M Hikvision',
+    category: 'กล้องวงจรปิด (CCTV)',
+    status: 'available',
+    location: 'คลังหลักสำนักงานใหญ่',
+    description: 'กล้องวงจรปิดความละเอียด 2 ล้านพิกเซล ยี่ห้อ Hikvision',
+    image_url: 'https://images.unsplash.com/photo-1557862921-37829c790f19?w=500&auto=format&fit=crop&q=80',
+    total_qty: 15,
+    available_qty: 15,
+    maintenance_qty: 0,
+    broken_qty: 0,
+    created_at: '2026-05-22T00:00:00Z'
+  },
+  {
+    id: 'eq-import-003',
+    code: 'CAM-PTZ-2M',
+    name: 'กล้อง 2M (PTZ)',
+    category: 'กล้องวงจรปิด (CCTV)',
+    status: 'available',
+    location: 'คลังหลักสำนักงานใหญ่',
+    description: 'กล้องวงจรปิดความละเอียด 2 ล้านพิกเซล แบบหมุน-ก้ม-เงย-ซูมได้ (PTZ)',
+    image_url: 'https://images.unsplash.com/photo-1557862921-37829c790f19?w=500&auto=format&fit=crop&q=80',
+    total_qty: 10,
+    available_qty: 10,
+    maintenance_qty: 0,
+    broken_qty: 0,
+    created_at: '2026-05-22T00:00:00Z'
+  },
+  {
+    id: 'eq-import-004',
+    code: 'NVR-DHA-4CH',
+    name: 'NVR Dahua 4CH',
+    category: 'เครื่องบันทึกและระบบเก็บข้อมูล',
+    status: 'available',
+    location: 'คลังเครื่องบันทึก',
+    description: 'เครื่องบันทึก NVR ยี่ห้อ Dahua ขนาด 4 ช่องสัญญาณ (Channels)',
+    image_url: 'https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?w=500&auto=format&fit=crop&q=80',
+    total_qty: 40,
+    available_qty: 40,
+    maintenance_qty: 0,
+    broken_qty: 0,
+    created_at: '2026-05-22T00:00:00Z'
+  },
+  {
+    id: 'eq-import-005',
+    code: 'NET-POE-4P',
+    name: 'POE Switch 4 Ports',
+    category: 'ระบบเครือข่ายเน็ตเวิร์ก',
+    status: 'available',
+    location: 'ห้องเครือข่าย',
+    description: 'สวิตช์เครือข่ายชนิดส่งกระแสไฟผ่านสายแลน (PoE) จำนวน 4 พอร์ต',
+    image_url: 'https://images.unsplash.com/photo-1530018607912-eff2df114f11?w=500&auto=format&fit=crop&q=80',
+    total_qty: 55,
+    available_qty: 55,
+    maintenance_qty: 0,
+    broken_qty: 0,
+    created_at: '2026-05-22T00:00:00Z'
+  },
+  {
+    id: 'eq-import-006',
+    code: 'CAB-OUT-LNK',
+    name: 'Outdoor Rack (LINK)',
+    category: 'ชั้นวางและตู้แร็ค (Cabinet)',
+    status: 'available',
+    location: 'โกดังเก็บตู้แร็ค',
+    description: 'ตู้แร็คติดตั้งภายนอกอาคาร ยี่ห้อ LINK แท้ ทนแดดทนฝน',
+    image_url: 'https://images.unsplash.com/photo-1504148455328-c376907d081c?w=500&auto=format&fit=crop&q=80',
+    total_qty: 35,
+    available_qty: 35,
+    maintenance_qty: 0,
+    broken_qty: 0,
+    created_at: '2026-05-22T00:00:00Z'
+  },
+  {
+    id: 'eq-import-007',
+    code: 'NET-RTR-3G4G',
+    name: '3G/4G Router NT',
+    category: 'ระบบเครือข่ายเน็ตเวิร์ก',
+    status: 'available',
+    location: 'ตู้พักงานระบบ',
+    description: 'เราเตอร์รับสัญญาณโทรศัพท์มือถือ 3G/4G สังกัดค่าย NT',
+    image_url: 'https://images.unsplash.com/photo-1530018607912-eff2df114f11?w=500&auto=format&fit=crop&q=80',
+    total_qty: 2,
+    available_qty: 2,
+    maintenance_qty: 0,
+    broken_qty: 0,
+    created_at: '2026-05-22T00:00:00Z'
+  },
+  {
+    id: 'eq-import-008',
+    code: 'CAB-OUT-SML',
+    name: 'Outdoor Rack (เล็ก)',
+    category: 'ชั้นวางและตู้แร็ค (Cabinet)',
+    status: 'available',
+    location: 'โกดังเก็บตู้แร็ค',
+    description: 'ตู้แร็คติดตั้งภายนอกขนาดเล็กกะทัดร้อย',
+    image_url: 'https://images.unsplash.com/photo-1504148455328-c376907d081c?w=500&auto=format&fit=crop&q=80',
+    total_qty: 3,
+    available_qty: 3,
+    maintenance_qty: 0,
+    broken_qty: 0,
+    created_at: '2026-05-22T00:00:00Z'
+  },
+  {
+    id: 'eq-import-009',
+    code: 'CAB-OUT-WDN',
+    name: 'Outdoor Rack (WIDEN)',
+    category: 'ชั้นวางและตู้แร็ค (Cabinet)',
+    status: 'available',
+    location: 'โกดังเก็บตู้แร็ค',
+    description: 'ตู้แร็คติดตั้งภายนอกอาคาร ยี่ห้อ WIDEN แข็งแกร่งทนทานสูงสุด',
+    image_url: 'https://images.unsplash.com/photo-1504148455328-c376907d081c?w=500&auto=format&fit=crop&q=80',
+    total_qty: 20,
+    available_qty: 20,
+    maintenance_qty: 0,
+    broken_qty: 0,
+    created_at: '2026-05-22T00:00:00Z'
+  },
+  {
+    id: 'eq-import-010',
+    code: 'PC-PD-STD',
+    name: 'PC ภด.',
+    category: 'จอภาพและอุปกรณ์คอมพิวเตอร์',
+    status: 'available',
+    location: 'ห้องจัดเตรียมอุปกรณ์คอมพิวเตอร์',
+    description: 'เครื่องคอมพิวเตอร์ส่วนบุคคล (PC) สำหรับแผนกและงาน ภด.',
+    image_url: 'https://images.unsplash.com/photo-1527443224154-c4a3942d3acf?w=500&auto=format&fit=crop&q=80',
+    total_qty: 8,
+    available_qty: 8,
+    maintenance_qty: 0,
+    broken_qty: 0,
+    created_at: '2026-05-22T00:00:00Z'
+  },
+  {
+    id: 'eq-import-011',
+    code: 'CTRL-CCTV-SYS',
+    name: 'ชุดควบคุมกล้องวงจรปิด',
+    category: 'เครื่องบันทึกและระบบเก็บข้อมูล',
+    status: 'available',
+    location: 'ห้องคอนโทรลรูม ชั้น 2',
+    description: 'ชุดควบคุมและสั่งงานกล้องวงจรปิดกลางแบบคอนโซล',
+    image_url: 'https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?w=500&auto=format&fit=crop&q=80',
+    total_qty: 1,
+    available_qty: 1,
+    maintenance_qty: 0,
+    broken_qty: 0,
+    created_at: '2026-05-22T00:00:00Z'
+  },
+  {
+    id: 'eq-import-012',
+    code: 'MON-PD-27',
+    name: 'จอ 27" ภด.',
+    category: 'จอภาพและอุปกรณ์คอมพิวเตอร์',
+    status: 'available',
+    location: 'ห้องจัดเตรียมอุปกรณ์คอมพิวเตอร์',
+    description: 'จอมอนิเตอร์แสดงภาพขนาด 27 นิ้ว สำหรับแผนก ภด.',
+    image_url: 'https://images.unsplash.com/photo-1527443224154-c4a3942d3acf?w=500&auto=format&fit=crop&q=80',
+    total_qty: 8,
+    available_qty: 8,
+    maintenance_qty: 0,
+    broken_qty: 0,
+    created_at: '2026-05-22T00:00:00Z'
+  },
+  {
+    id: 'eq-import-013',
+    code: 'MON-DE-27',
+    name: 'จอ 27" DE',
+    category: 'จอภาพและอุปกรณ์คอมพิวเตอร์',
+    status: 'available',
+    location: 'ห้องคอมพิวเตอร์คลังกลาง',
+    description: 'จอมอนิเตอร์แสดงภาพขนาด 27 นิ้ว ยี่ห้อ Dell / DE คุณภาพสูง',
+    image_url: 'https://images.unsplash.com/photo-1527443224154-c4a3942d3acf?w=500&auto=format&fit=crop&q=80',
+    total_qty: 22,
+    available_qty: 22,
+    maintenance_qty: 0,
+    broken_qty: 0,
+    created_at: '2026-05-22T00:00:00Z'
+  },
+  {
+    id: 'eq-import-014',
+    code: 'NVR-UNV-8CH',
+    name: 'NVR UNV 8CH',
+    category: 'เครื่องบันทึกและระบบเก็บข้อมูล',
+    status: 'available',
+    location: 'คลังเครื่องบันทึก',
+    description: 'เครื่องบันทึก NVR ยี่ห้อ Uniview (UNV) ขนาด 8 ช่องสัญญาณความน่าเชื่อถือสูง',
+    image_url: 'https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?w=500&auto=format&fit=crop&q=80',
+    total_qty: 24,
+    available_qty: 24,
+    maintenance_qty: 0,
+    broken_qty: 0,
+    created_at: '2026-05-22T00:00:00Z'
+  },
+  {
+    id: 'eq-import-015',
+    code: 'CAM-UNV-5M',
+    name: 'กล้อง 5M UNV',
+    category: 'กล้องวงจรปิด (CCTV)',
+    status: 'available',
+    location: 'คลังหลักสำนักงานใหญ่',
+    description: 'กล้องวงจรปิด Uniview (UNV) ความละเอียดสูงพิเศษ 5 ล้านพิกเซล',
+    image_url: 'https://images.unsplash.com/photo-1557862921-37829c790f19?w=500&auto=format&fit=crop&q=80',
+    total_qty: 168,
+    available_qty: 168,
+    maintenance_qty: 0,
+    broken_qty: 0,
+    created_at: '2026-05-22T00:00:00Z'
+  },
+  {
+    id: 'eq-import-016',
+    code: 'PWR-UPS-800',
+    name: 'UPS 800 VA',
+    category: 'แหล่งจ่ายไฟและอุปกรณ์สำรอง',
+    status: 'available',
+    location: 'ห้องอุปกรณ์กำลังไฟ',
+    description: 'เครื่องสำรองไฟฟ้าเสถียรภาพสูง ขนาดกำลังไฟ 800 VA สำหรับป้องกันกล้องวงจรปิดดับ',
+    image_url: 'https://images.unsplash.com/photo-1584286595398-a59f21d313f5?w=500&auto=format&fit=crop&q=80',
+    total_qty: 24,
+    available_qty: 24,
+    maintenance_qty: 0,
+    broken_qty: 0,
+    created_at: '2026-05-22T00:00:00Z'
+  },
+  {
+    id: 'eq-import-017',
+    code: 'CAM-UNV-2M',
+    name: 'กล้อง 2M UNV',
+    category: 'กล้องวงจรปิด (CCTV)',
+    status: 'available',
+    location: 'คลังหลักสำนักงานใหญ่',
+    description: 'กล้องวงจรปิด Uniview (UNV) ความละเอียดคมชัด 2 ล้านพิกเซล',
+    image_url: 'https://images.unsplash.com/photo-1557862921-37829c790f19?w=500&auto=format&fit=crop&q=80',
+    total_qty: 72,
+    available_qty: 72,
+    maintenance_qty: 0,
+    broken_qty: 0,
+    created_at: '2026-05-22T00:00:00Z'
+  },
+  {
+    id: 'eq-import-018',
+    code: 'MON-DE-19',
+    name: 'จอ 19" DE',
+    category: 'จอภาพและอุปกรณ์คอมพิวเตอร์',
+    status: 'available',
+    location: 'ห้องคอมพิวเตอร์คลังกลาง',
+    description: 'จอมอนิเตอร์ขนาดกะทัดรัด 19 นิ้ว ยี่ห้อ DE/Dell สำหรับจอสังเกตการณ์ระบบ',
+    image_url: 'https://images.unsplash.com/photo-1527443224154-c4a3942d3acf?w=500&auto=format&fit=crop&q=80',
+    total_qty: 60,
+    available_qty: 60,
+    maintenance_qty: 0,
+    broken_qty: 0,
+    created_at: '2026-05-22T00:00:00Z'
+  },
+  {
+    id: 'eq-import-019',
+    code: 'AUD-SPK-GEN',
+    name: 'ลำโพง',
+    category: 'จอภาพและอุปกรณ์คอมพิวเตอร์',
+    status: 'available',
+    location: 'ห้องควบคุมระบบสื่อสาร',
+    description: 'ลำโพงขยายเสียงสำหรับระบบประกาศและห้องประมวลผล',
+    image_url: 'https://images.unsplash.com/photo-1527443224154-c4a3942d3acf?w=500&auto=format&fit=crop&q=80',
+    total_qty: 24,
+    available_qty: 24,
+    maintenance_qty: 0,
+    broken_qty: 0,
+    created_at: '2026-05-22T00:00:00Z'
+  },
+  {
+    id: 'eq-import-020',
+    code: 'PC-DE-LRG',
+    name: 'PC ใหญ่ DE',
+    category: 'จอภาพและอุปกรณ์คอมพิวเตอร์',
+    status: 'available',
+    location: 'ห้องเวิร์กสเตชัน ชั้น 2',
+    description: 'คอมพิวเตอร์ส่วนบุคคล ตู้อัลตร้าคอร์ระดับเคสใหญ่ ยี่ห้อ DE/Dell มีสมรรถนะสูง',
+    image_url: 'https://images.unsplash.com/photo-1527443224154-c4a3942d3acf?w=500&auto=format&fit=crop&q=80',
+    total_qty: 22,
+    available_qty: 22,
+    maintenance_qty: 0,
+    broken_qty: 0,
+    created_at: '2026-05-22T00:00:00Z'
+  },
+  {
+    id: 'eq-import-021',
+    code: 'NET-POE-8P',
+    name: 'POE Switch 8 Ports',
+    category: 'ระบบเครือข่ายเน็ตเวิร์ก',
+    status: 'available',
+    location: 'ห้องเครือข่าย',
+    description: 'สวิตช์เครือข่าย PoE ยี่ห้อเสถียร ขนาด 8 พอร์ต สำหรับเชื่อมต่อไฟลากยาว',
+    image_url: 'https://images.unsplash.com/photo-1530018607912-eff2df114f11?w=500&auto=format&fit=crop&q=80',
+    total_qty: 24,
+    available_qty: 24,
+    maintenance_qty: 0,
+    broken_qty: 0,
+    created_at: '2026-05-22T00:00:00Z'
+  },
+  {
+    id: 'eq-import-022',
+    code: 'CAB-OUT-STD',
+    name: 'Outdoor Rack',
+    category: 'ชั้นวางและตู้แร็ค (Cabinet)',
+    status: 'available',
+    location: 'โกดังเก็บตู้แร็ค',
+    description: 'ตู้แร็คมาตรฐานใช้งานจัดตั้งนอกอาคารระบายความร้อนในตัว',
+    image_url: 'https://images.unsplash.com/photo-1504148455328-c376907d081c?w=500&auto=format&fit=crop&q=80',
+    total_qty: 24,
+    available_qty: 24,
+    maintenance_qty: 0,
+    broken_qty: 0,
+    created_at: '2026-05-22T00:00:00Z'
+  },
+  {
+    id: 'eq-import-023',
+    code: 'PC-DE-SML',
+    name: 'PC เล็ก DE',
+    category: 'จอภาพและอุปกรณ์คอมพิวเตอร์',
+    status: 'available',
+    location: 'ห้องเวิร์กสเตชัน ชั้น 2',
+    description: 'คอมพิวเตอร์เคสเล็กประหยัดเนื้อที่การติดตั้ง ยี่ห้อ DE/Dell ขีดขวัญเสถียรภาพ',
+    image_url: 'https://images.unsplash.com/photo-1527443224154-c4a3942d3acf?w=500&auto=format&fit=crop&q=80',
+    total_qty: 60,
+    available_qty: 60,
+    maintenance_qty: 0,
+    broken_qty: 0,
+    created_at: '2026-05-22T00:00:00Z'
+  },
+  {
+    id: 'eq-import-024',
+    code: 'CAM-UNV-SAM-5M',
+    name: 'กล้อง 5M UNV SAMCOM',
+    category: 'กล้องวงจรปิด (CCTV)',
+    status: 'available',
+    location: 'คลังสินค้าพิเศษ SAMCOM',
+    description: 'กล้องวงจรปิด Uniview 5 ล้านพิกเซล สำหรับงานกลุ่มโครงการเฉพาะ SAMCOM',
+    image_url: 'https://images.unsplash.com/photo-1557862921-37829c790f19?w=500&auto=format&fit=crop&q=80',
+    total_qty: 200,
+    available_qty: 200,
+    maintenance_qty: 0,
+    broken_qty: 0,
+    created_at: '2026-05-22T00:00:00Z'
+  },
+  {
+    id: 'eq-import-025',
+    code: 'CAM-PTZ-SAM-2M',
+    name: 'กล้อง PTZ UNV SAMCOM',
+    category: 'กล้องวงจรปิด (CCTV)',
+    status: 'available',
+    location: 'คลังสินค้าพิเศษ SAMCOM',
+    description: 'กล้อง PTZ ยี่ห้อ Uniview หมุนส่ายซูมได้สำหรับโครงการเฉพาะ SAMCOM',
+    image_url: 'https://images.unsplash.com/photo-1557862921-37829c790f19?w=500&auto=format&fit=crop&q=80',
+    total_qty: 15,
+    available_qty: 15,
+    maintenance_qty: 0,
+    broken_qty: 0,
+    created_at: '2026-05-22T00:00:00Z'
+  },
+  {
+    id: 'eq-import-026',
+    code: 'NVR-UNV-SAM-8C',
+    name: 'NVR UNV 8CH SAMCOM',
+    category: 'เครื่องบันทึกและระบบเก็บข้อมูล',
+    status: 'available',
+    location: 'คลังสินค้าพิเศษ SAMCOM',
+    description: 'เครื่องบันทึก Uniview NVR ขนาด 8 ช่องสัญญาณสำหรับโครงการเฉพาะ SAMCOM',
+    image_url: 'https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?w=500&auto=format&fit=crop&q=80',
+    total_qty: 60,
+    available_qty: 60,
+    maintenance_qty: 0,
+    broken_qty: 0,
+    created_at: '2026-05-22T00:00:00Z'
+  }
+];
+
+const SEED_TRANSACTIONS: Transaction[] = [];
+
+let supabaseInstance: SupabaseClient | null = null;
+
+// Initialize Supabase Client dynamically
+export function getSupabaseClient(config: SupabaseConfig): SupabaseClient | null {
+  if (config.useLocalStorage || !config.supabaseUrl || !config.supabaseKey) {
+    supabaseInstance = null;
+    return null;
+  }
+  
+  if (!supabaseInstance) {
+    try {
+      supabaseInstance = createClient(config.supabaseUrl, config.supabaseKey);
+    } catch (e) {
+      console.error('Failed to create Supabase client', e);
+      supabaseInstance = null;
+    }
+  }
+  return supabaseInstance;
+}
+
+// Get Database Configuration
+export function getDbConfig(): SupabaseConfig {
+  const saved = localStorage.getItem(STORAGE_KEY_CONFIG);
+  if (saved) {
+    try {
+      const parsed = JSON.parse(saved);
+      return {
+        ...parsed,
+        useLocalStorage: false // Force false since user explicitly requested to drop localstorage mode
+      };
+    } catch (e) {}
+  }
+
+  // Safe extraction of potential env variables set by the user
+  const metaEnv = (import.meta as any).env || {};
+  const envUrl = (metaEnv.VITE_SUPABASE_URL as string) || '';
+  const envKey = (metaEnv.VITE_SUPABASE_ANON_KEY as string) || '';
+
+  return {
+    supabaseUrl: envUrl,
+    supabaseKey: envKey,
+    useLocalStorage: false // Force false always
+  };
+}
+
+// Save Database Configuration
+export function saveDbConfig(config: SupabaseConfig): void {
+  const updated = {
+    ...config,
+    useLocalStorage: false // Always override to false
+  };
+  localStorage.setItem(STORAGE_KEY_CONFIG, JSON.stringify(updated));
+  supabaseInstance = null; // force recreation
+}
+
+// Helper to handle and format Supabase Column or Schema specific mismatch/stale errors
+export function handleSupabaseError(error: any, context: string): never {
+  const msg = error?.message || String(error);
+  if (
+    msg.toLowerCase().includes('available_qty') || 
+    msg.toLowerCase().includes('total_qty') || 
+    msg.toLowerCase().includes('maintenance_qty') || 
+    msg.toLowerCase().includes('broken_qty') || 
+    msg.toLowerCase().includes('borrow_qty') ||
+    msg.toLowerCase().includes('evidence_image_url') ||
+    msg.toLowerCase().includes('column') ||
+    msg.toLowerCase().includes('schema cache')
+  ) {
+    throw new Error(
+      `เกิดข้อผิดพลาดฐานข้อมูลยังไม่ถูกปรับปรุงสเกลจำนวน (${context}) [${msg}]: เนื่องจากตารางในบัญชี Supabase ของคุณยังเป็นโครงสร้างเดิมที่ขาดฟิลด์ควบคุมยอดรวม (เช่น available_qty) หรือคอลัมน์รูปหลักฐาน (เช่น evidence_image_url) ` +
+      `กรุณาไปที่แท็บเมนู "ตั้งค่าแหล่งจัดเก็บข้อมูล" ในแอป คัดลอก "คำสั่ง SQL อัปเกรดตารางเดิมที่มีอยู่แล้ว" แล้วรันใน SQL Editor ของ Supabase เพื่ออัปเดตและกู้คืนระบบให้ใช้งานต่อได้ทันทีค่ะ!`
+    );
+  }
+  throw new Error(`${context} ล้มเหลว: ${msg}`);
+}
+
+// Check database connection
+export async function testDbConnection(config: SupabaseConfig): Promise<{ success: boolean; message: string }> {
+  if (config.useLocalStorage) {
+    return { success: true, message: 'เชื่อมต่อด้วยหน่วยความจำบราวเซอร์ (Local Storage) สำเร็จ' };
+  }
+  if (!config.supabaseUrl || !config.supabaseKey) {
+    return { success: false, message: 'กรุณากรอก Supabase URL และ Key ให้ครบถ้วน' };
+  }
+  try {
+    const client = createClient(config.supabaseUrl, config.supabaseKey);
+    // Try to query schema
+    const { error } = await client.from('equipment').select('count', { count: 'exact', head: true });
+    
+    if (error) {
+      // If error is code missing or permissions, table might not exist but connection works,
+      // let's try reading a dummy query to see if connection itself succeeds.
+      if (error.code === 'PGRST116' || error.message.includes('not found') || error.message.includes('relation "equipment" does not exist')) {
+        return { 
+          success: true, 
+          message: 'เชื่อมโยงกับโครงการกิ๊กใน Supabase ได้จริง! แต่ยังไม่สร้างโครงสร้างตาราง (Table "equipment" ยังไม่มี)' 
+        };
+      }
+      return { success: false, message: `ตรวจพบบัญชีแต่พบข้อผิดพลาด: ${error.message} (Code: ${error.code})` };
+    }
+    
+    return { success: true, message: 'เชื่อมต่อและพบตารางใน Supabase เรียบร้อยแล้ว พร้อมใช้งานระดับสูง!' };
+  } catch (err: any) {
+    return { success: false, message: `การเชื่อมต่อขัดข้อง: ${err?.message || 'โปรดตรวจสอบความถูกต้องของ URL/Key'}` };
+  }
+}
+
+// --- Data Fetching Operations ---
+
+// Equipments Fetch
+export async function getEquipments(config: SupabaseConfig): Promise<Equipment[]> {
+  const client = getSupabaseClient(config);
+  
+  if (client) {
+    try {
+      const { data, error } = await client
+        .from('equipment')
+        .select('*')
+        .order('code', { ascending: true });
+        
+      if (!error && data) {
+        return (data as any[]).map(item => ({
+          ...item,
+          total_qty: item.total_qty ?? 1,
+          available_qty: item.available_qty ?? (item.status === 'borrowed' ? 0 : 1),
+          maintenance_qty: item.maintenance_qty ?? (item.status === 'maintenance' ? 1 : 0),
+          broken_qty: item.broken_qty ?? (item.status === 'broken' ? 1 : 0),
+        })) as Equipment[];
+      }
+      console.warn('Supabase fetch failed, rolling to local array:', error);
+    } catch (err) {
+      console.error('Error fetching from Supabase', err);
+    }
+  }
+
+  // Local Database Fallback
+  const stored = localStorage.getItem(STORAGE_KEY_EQUIPMENT);
+  if (!stored || !stored.includes('eq-import-001')) {
+    localStorage.setItem(STORAGE_KEY_EQUIPMENT, JSON.stringify(SEED_EQUIPMENT));
+    localStorage.setItem(STORAGE_KEY_TRANSACTIONS, JSON.stringify([]));
+    return SEED_EQUIPMENT;
+  }
+  try {
+    const parsed = JSON.parse(stored) as any[];
+    return parsed.map(item => ({
+      ...item,
+      total_qty: item.total_qty ?? 1,
+      available_qty: item.available_qty ?? (item.status === 'borrowed' ? 0 : 1),
+      maintenance_qty: item.maintenance_qty ?? (item.status === 'maintenance' ? 1 : 0),
+      broken_qty: item.broken_qty ?? (item.status === 'broken' ? 1 : 0),
+    })) as Equipment[];
+  } catch (e) {
+    return SEED_EQUIPMENT;
+  }
+}
+
+// Transactions Fetch
+export async function getTransactions(config: SupabaseConfig): Promise<Transaction[]> {
+  const client = getSupabaseClient(config);
+  
+  if (client) {
+    try {
+      const { data, error } = await client
+        .from('transactions')
+        .select('*')
+        .order('created_at', { ascending: false });
+        
+      if (!error && data) {
+        // Dynamically recalculate "overdue" if still "borrowing" and due_date < current_time
+        const now = new Date();
+        const recalculated = data.map((tx: any) => {
+          let recStatus = tx.status;
+          if (tx.status === 'borrowing' && new Date(tx.due_date) < now) {
+            recStatus = 'overdue';
+          }
+          return {
+            ...tx,
+            status: recStatus,
+            borrow_qty: tx.borrow_qty ?? 1
+          };
+        });
+        return recalculated as Transaction[];
+      }
+      console.warn('Supabase fetch transactions failed, rolling to local:', error);
+    } catch (err) {
+      console.error('Error fetching transactions from Supabase', err);
+    }
+  }
+
+  // Local Database Fallback
+  const stored = localStorage.getItem(STORAGE_KEY_TRANSACTIONS);
+  if (!stored) {
+    localStorage.setItem(STORAGE_KEY_TRANSACTIONS, JSON.stringify(SEED_TRANSACTIONS));
+    return SEED_TRANSACTIONS;
+  }
+  try {
+    const list = JSON.parse(stored) as any[];
+    const now = new Date();
+    // recalculate overdue for mock data
+    return list.map(tx => {
+      let recStatus = tx.status;
+      if (tx.status === 'borrowing' && new Date(tx.due_date) < now) {
+        recStatus = 'overdue';
+      }
+      return {
+        ...tx,
+        status: recStatus,
+        borrow_qty: tx.borrow_qty ?? 1
+      };
+    }) as Transaction[];
+  } catch (e) {
+    return SEED_TRANSACTIONS;
+  }
+}
+
+// --- CRUD Operations ---
+
+// Add Equipment
+export async function addEquipment(config: SupabaseConfig, item: Omit<Equipment, 'id' | 'created_at'>): Promise<Equipment> {
+  const newId = `eq-${Date.now()}`;
+  const newItem: Equipment = {
+    ...item,
+    id: newId,
+    created_at: new Date().toISOString(),
+  };
+
+  const client = getSupabaseClient(config);
+  if (client) {
+    try {
+      // In Supabase, if the schema is UUID for 'id', we let Supabase handle or convert.
+      // To bypass UUID issues, we insert with newId. If table has auto-increment or uuid, 
+      // it might crash if we pass string. So let's delete id from insert if it's generated,
+      // or standard string if schema uses VARCHAR/TEXT for pk.
+      // We will assume schema uses VARCHAR/TEXT for 'id' to be highly flexible for both.
+      const { data, error } = await client
+        .from('equipment')
+        .insert([newItem])
+        .select();
+        
+      if (!error && data && data[0]) {
+        return data[0] as Equipment;
+      }
+      if (error) {
+        throw error;
+      }
+    } catch (err: any) {
+      console.error('Error adding equipment in Supabase', err);
+      handleSupabaseError(err, 'ลงทะเบียนอุปกรณ์ใหม่');
+    }
+  }
+
+  // Local database fallback
+  const items = await getEquipments(config);
+  items.push(newItem);
+  localStorage.setItem(STORAGE_KEY_EQUIPMENT, JSON.stringify(items));
+  return newItem;
+}
+
+// Update Equipment Info
+export async function updateEquipment(config: SupabaseConfig, item: Equipment): Promise<Equipment> {
+  const client = getSupabaseClient(config);
+  if (client) {
+    try {
+      const { data, error } = await client
+        .from('equipment')
+        .update(item)
+        .eq('id', item.id)
+        .select();
+        
+      if (!error && data && data[0]) {
+        return data[0] as Equipment;
+      }
+      if (error) {
+        throw error;
+      }
+    } catch (err: any) {
+      console.error('Error updating equipment', err);
+      handleSupabaseError(err, 'บันทึกแก้ไขอุปกรณ์');
+    }
+  }
+
+  // Local database fallback
+  const items = await getEquipments(config);
+  const index = items.findIndex(x => x.id === item.id);
+  if (index !== -1) {
+    items[index] = item;
+    localStorage.setItem(STORAGE_KEY_EQUIPMENT, JSON.stringify(items));
+    return item;
+  }
+  throw new Error('ไม่พบข้อมูลอุปกรณ์เพื่อแก้ไข');
+}
+
+// Delete Equipment
+export async function deleteEquipment(config: SupabaseConfig, id: string): Promise<boolean> {
+  const client = getSupabaseClient(config);
+  if (client) {
+    try {
+      // 1. Delete associated transactions first to prevent foreign key reference constraint violation!
+      const { error: rxError } = await client
+        .from('transactions')
+        .delete()
+        .eq('equipment_id', id);
+        
+      if (rxError) {
+        console.warn('Silent warning: Failed to cascade delete transactions', rxError);
+      }
+
+      // 2. Now delete the equipment safely!
+      const { error } = await client
+        .from('equipment')
+        .delete()
+        .eq('id', id);
+        
+      if (error) {
+        throw new Error(error.message);
+      }
+      return true;
+    } catch (err: any) {
+      console.error('Error deleting equipment in Supabase', err);
+      throw err;
+    }
+  }
+
+  // Local database fallback
+  const items = await getEquipments(config);
+  const filtered = items.filter(x => x.id !== id);
+  localStorage.setItem(STORAGE_KEY_EQUIPMENT, JSON.stringify(filtered));
+  return true;
+}
+
+// --- Transaction Specific Operations (Borrow/Return) ---
+
+// Borrow Equipment (สร้างประวัติเบิก และ เปลี่ยนสถานะเครื่องเป็น borrowed)
+export async function borrowEquipment(
+  config: SupabaseConfig,
+  equipment: Equipment,
+  params: {
+    borrowerName: string;
+    borrowerDepartment: string;
+    purpose: string;
+    dueDate: string;
+    borrowQty: number;
+    borrowDate?: string;
+    evidenceImageUrl?: string;
+  }
+): Promise<Transaction> {
+  const nowStr = new Date().toISOString();
+  const bDate = params.borrowDate ? new Date(params.borrowDate).toISOString() : nowStr;
+  const borrowQty = params.borrowQty || 1;
+  
+  const randStr = Math.random().toString(36).substring(2, 7);
+  const newTx: Transaction = {
+    id: `tx-${Date.now()}-${randStr}`,
+    equipment_id: equipment.id,
+    equipment_code: equipment.code,
+    equipment_name: equipment.name,
+    borrower_name: params.borrowerName,
+    borrower_department: params.borrowerDepartment,
+    borrow_date: bDate,
+    due_date: new Date(params.dueDate).toISOString(),
+    return_date: null,
+    purpose: params.purpose,
+    status: 'borrowing',
+    borrow_qty: borrowQty,
+    evidence_image_url: params.evidenceImageUrl || undefined,
+    created_at: nowStr,
+  };
+
+  const client = getSupabaseClient(config);
+  if (client) {
+    try {
+      // Step 1: ดึงรายละเอียดล่าช้าเพื่อเช็กจำนวน
+      const { data: eqData, error: eqFetchErr } = await client
+        .from('equipment')
+        .select('*')
+        .eq('id', equipment.id);
+        
+      if (eqFetchErr || !eqData || eqData.length === 0) {
+        throw new Error('ไม่พบข้อมูลอุปกรณ์นี้บนระบบเซิร์ฟเวอร์');
+      }
+      
+      const currentEq = eqData[0];
+      const availableQty = currentEq.available_qty ?? (currentEq.status === 'borrowed' ? 0 : 1);
+      
+      if (availableQty < borrowQty) {
+        throw new Error(`อุปกรณ์คงคลังไม่เพียงพอ (คงเหลืออยู่ ${availableQty} ชิ้น แต่ยื่นขอเบิก ${borrowQty} ชิ้น)`);
+      }
+
+      // Step 2: บันทึกประวัติเบิกยืม
+      const { data: txData, error: txErr } = await client
+        .from('transactions')
+        .insert([newTx])
+        .select();
+
+      if (txErr) {
+        throw new Error(`การบันทึกรายการยืมล้มเหลว: ${txErr.message}`);
+      }
+
+      // Step 3: หักจำนวนคงเหลือ และ อัปเดตสถานะของอุปกรณ์
+      const nextAvailable = availableQty - borrowQty;
+      const nextStatus = nextAvailable === 0 ? 'borrowed' : 'available';
+      
+      const { error: eqErr } = await client
+        .from('equipment')
+        .update({ 
+          available_qty: nextAvailable,
+          status: nextStatus
+        })
+        .eq('id', equipment.id);
+
+      if (eqErr) {
+        console.error('Supabase status update failed, trying to roll back transactional state...');
+        await client.from('transactions').delete().eq('id', newTx.id);
+        throw new Error(`อัปเดตสถานะอุปกรณ์ล้มเหลว: ${eqErr.message}`);
+      }
+
+      return txData[0] as Transaction;
+    } catch (err: any) {
+      console.error('Error during Supabase borrow', err);
+      handleSupabaseError(err, 'ทำรายการเบิกอุปกรณ์');
+    }
+  }
+
+  // Local Database Fallback
+  const items = await getEquipments(config);
+  const txs = await getTransactions(config);
+
+  const eqIndex = items.findIndex(x => x.id === equipment.id);
+  if (eqIndex === -1) {
+    throw new Error('ไม่พบข้อมูลอุปกรณ์ในระบบ');
+  }
+
+  const item = items[eqIndex];
+  const availableQty = item.available_qty ?? (item.status === 'borrowed' ? 0 : 1);
+  if (availableQty < borrowQty) {
+    throw new Error(`อุปกรณ์คงคลังไม่เพียงพอ (คงเหลืออยู่ ${availableQty} ชิ้น แต่ยื่นขอเบิก ${borrowQty} ชิ้น)`);
+  }
+
+  // Update Status Local
+  item.available_qty = availableQty - borrowQty;
+  item.status = item.available_qty === 0 ? 'borrowed' : 'available';
+  txs.unshift(newTx);
+
+  localStorage.setItem(STORAGE_KEY_EQUIPMENT, JSON.stringify(items));
+  localStorage.setItem(STORAGE_KEY_TRANSACTIONS, JSON.stringify(txs));
+
+  return newTx;
+}
+
+// Return Equipment (บันทึกคืน และ เปลี่ยนสถานะเครื่องกลับเป็น available/maintenance/broken)
+export async function returnEquipment(
+  config: SupabaseConfig,
+  transactionId: string,
+  params: {
+    conditionOnReturn: string;
+    itemConditionStatus: 'available' | 'maintenance' | 'broken';
+    returnQty?: number;
+    returnDate?: string;
+  }
+): Promise<Transaction> {
+  const returnDateStr = params.returnDate ? new Date(params.returnDate).toISOString() : new Date().toISOString();
+  
+  const client = getSupabaseClient(config);
+  if (client) {
+    try {
+      // Step 1: ดึงรายละเอียดการคืนเพื่อรู้ว่ายืมอุปกรณ์อะไรอยู่
+      const { data: txs, error: txFetchErr } = await client
+        .from('transactions')
+        .select('*')
+        .eq('id', transactionId);
+
+      if (txFetchErr || !txs || txs.length === 0) {
+        throw new Error('ไม่พบประวัติรายการยืมนี้ในฐานข้อมูล');
+      }
+
+      const tx = txs[0] as Transaction;
+      if (tx.status === 'returned') {
+        throw new Error('รายการเบิกยืมนี้ระบุว่าได้ทำรายการคืนคลังเรียบร้อยแล้วก่อนหน้า');
+      }
+
+      const bQty = tx.borrow_qty ?? 1;
+      const rQty = params.returnQty ?? bQty;
+
+      // Step 2: อัปเดตตาราง Transactions
+      const { data: updatedTx, error: txErr } = await client
+        .from('transactions')
+        .update({
+          return_date: returnDateStr,
+          condition_on_return: params.conditionOnReturn,
+          status: 'returned'
+        })
+        .eq('id', transactionId)
+        .select();
+
+      if (txErr) {
+        throw new Error(`อัปเดตรายการคืนล้มเหลว: ${txErr.message}`);
+      }
+
+      // Step 3: ดึงข้อมูลอุปกรณ์ปัจจุบันเพื่อคำนวณจำนวน
+      const { data: eqData, error: eqFetchErr } = await client
+        .from('equipment')
+        .select('*')
+        .eq('id', tx.equipment_id);
+        
+      if (eqFetchErr || !eqData || eqData.length === 0) {
+        throw new Error('ไม่พบข้อมูลตัวอุปกรณ์ในคลังระบบ');
+      }
+      
+      const currentEq = eqData[0];
+      let eqAvailable = currentEq.available_qty ?? 0;
+      let eqMaintenance = currentEq.maintenance_qty ?? 0;
+      let eqBroken = currentEq.broken_qty ?? 0;
+      
+      if (params.itemConditionStatus === 'available') {
+        eqAvailable += rQty;
+      } else if (params.itemConditionStatus === 'maintenance') {
+        eqMaintenance += rQty;
+      } else if (params.itemConditionStatus === 'broken') {
+        eqBroken += rQty;
+      }
+      
+      let nextStatus = currentEq.status;
+      if (eqAvailable > 0) {
+        nextStatus = 'available';
+      } else if (eqMaintenance > 0) {
+        nextStatus = 'maintenance';
+      } else if (eqBroken > 0) {
+        nextStatus = 'broken';
+      } else {
+        nextStatus = 'borrowed';
+      }
+
+      // Step 4: อัปเดตสถานะและจำนวนอุปกรณ์กลับไปที่คลัง
+      const { error: eqErr } = await client
+        .from('equipment')
+        .update({ 
+          available_qty: eqAvailable,
+          maintenance_qty: eqMaintenance,
+          broken_qty: eqBroken,
+          status: nextStatus
+        })
+        .eq('id', tx.equipment_id);
+
+      if (eqErr) {
+        throw new Error(`คืนเรียบร้อยแต่อัปเดตอุปกรณ์ล้มเหลว: ${eqErr.message}`);
+      }
+
+      return updatedTx[0] as Transaction;
+    } catch (err: any) {
+      console.error('Error during Supabase return', err);
+      handleSupabaseError(err, 'ทำรายการคืนคลังและประเมินสภาพ');
+    }
+  }
+
+  // Local Database Fallback
+  const items = await getEquipments(config);
+  const txs = await getTransactions(config);
+
+  const txIndex = txs.findIndex(x => x.id === transactionId);
+  if (txIndex === -1) {
+    throw new Error('ไม่พบประวัติรายการยืมนี้ในระบบ');
+  }
+
+  const tx = txs[txIndex];
+  if (tx.status === 'returned') {
+    throw new Error('รายการเบิกยืมนี้ระบุว่าได้ทำรายการคืนคลังเรียบร้อยแล้วก่อนหน้า');
+  }
+
+  const eqIndex = items.findIndex(x => x.id === tx.equipment_id);
+  if (eqIndex === -1) {
+    throw new Error('ไม่พบตัวอุปกรณ์ในฐานข้อมูล');
+  }
+
+  const item = items[eqIndex];
+  const bQty = tx.borrow_qty ?? 1;
+  const rQty = params.returnQty ?? bQty;
+
+  // Update Transaction
+  txs[txIndex] = {
+    ...tx,
+    return_date: returnDateStr,
+    condition_on_return: params.conditionOnReturn,
+    status: 'returned'
+  };
+
+  // Update Equipment Status & Quantities Local
+  let eqAvailable = item.available_qty ?? 0;
+  let eqMaintenance = item.maintenance_qty ?? 0;
+  let eqBroken = item.broken_qty ?? 0;
+
+  if (params.itemConditionStatus === 'available') {
+    eqAvailable += rQty;
+  } else if (params.itemConditionStatus === 'maintenance') {
+    eqMaintenance += rQty;
+  } else if (params.itemConditionStatus === 'broken') {
+    eqBroken += rQty;
+  }
+
+  item.available_qty = eqAvailable;
+  item.maintenance_qty = eqMaintenance;
+  item.broken_qty = eqBroken;
+
+  if (eqAvailable > 0) {
+    item.status = 'available';
+  } else if (eqMaintenance > 0) {
+    item.status = 'maintenance';
+  } else if (eqBroken > 0) {
+    item.status = 'broken';
+  } else {
+    item.status = 'borrowed';
+  }
+
+  localStorage.setItem(STORAGE_KEY_EQUIPMENT, JSON.stringify(items));
+  localStorage.setItem(STORAGE_KEY_TRANSACTIONS, JSON.stringify(txs));
+
+  return txs[txIndex];
+}
+
+// Seed starter demo data into a freshly connected Supabase database
+export async function seedSupabaseData(config: SupabaseConfig, forceOverwrite = false): Promise<{ success: boolean; count: number; message: string }> {
+  const client = getSupabaseClient(config);
+  if (!client) {
+    return { success: false, count: 0, message: 'ไม่ได้เลือกโหมดเซิร์ฟเวอร์ Supabase หรือยังไม่ได้ตั้งค่า API Credentials' };
+  }
+
+  try {
+    // If force overwriting, clean the existing tables first!
+    if (forceOverwrite) {
+      // Delete from transactions first due to foreign keys constraint
+      const { error: delTxErr } = await client
+        .from('transactions')
+        .delete()
+        .neq('id', 'force-delete-all-key-placeholder'); // deletes all rows
+
+      if (delTxErr && !delTxErr.message.includes('relation "transactions" does not exist')) {
+        console.warn('Unable to clean transactions:', delTxErr);
+      }
+
+      const { error: delEqErr } = await client
+        .from('equipment')
+        .delete()
+        .neq('id', 'force-delete-all-key-placeholder');
+
+      if (delEqErr && !delEqErr.message.includes('relation "equipment" does not exist')) {
+        console.warn('Unable to clean equipment:', delEqErr);
+      }
+    } else {
+      // 1. Check if we already have equipments to avoid duplicate key violations or overwriting existing live data
+      const { data: existing, error: checkErr } = await client
+        .from('equipment')
+        .select('id');
+
+      if (checkErr) {
+        throw checkErr;
+      }
+
+      if (existing && existing.length > 0) {
+        return {
+          success: false,
+          count: existing.length,
+          message: `ตารางอุปกรณ์ในระบบ Supabase ของท่านมีฐานข้อมูลจริงอยู่แล้วจำนวน ${existing.length} รายการ กรุณาใช้ตัวเลือก "เขียนทับข้อมูลทั้งหมด" หากแน่ใจว่าต้องการล้างคลังระบบแล้วใส่อุปกรณ์ 26 รายการใหม่`
+        };
+      }
+    }
+
+    // 2. Insert Core Equipment Seed Data
+    const { error: equipInsertErr } = await client
+      .from('equipment')
+      .insert(SEED_EQUIPMENT);
+
+    if (equipInsertErr) {
+      throw new Error(`การบันทึกข้อมูลพัสดุเริ่มต้นล้มเหลว: ${equipInsertErr.message}`);
+    }
+
+    // 3. Insert Core Transaction History Seed Data
+    const { error: txInsertErr } = await client
+      .from('transactions')
+      .insert(SEED_TRANSACTIONS);
+
+    if (txInsertErr) {
+      console.warn('Silent notice: transactions seed was skipped or failed', txInsertErr);
+    }
+
+    return {
+      success: true,
+      count: SEED_EQUIPMENT.length,
+      message: `เตรียมข้อมูลสำเร็จ! นำเข้ารายการพัสดุจาก AppSheet จำนวน ${SEED_EQUIPMENT.length} รายการ ลงสู่ระบบและแสดงผลเรียลไทม์เรียบร้อยแล้ว`
+    };
+  } catch (err: any) {
+    console.error('Failed to seed Supabase database', err);
+    return {
+      success: false,
+      count: 0,
+      message: `ไม่สามารถเขียนข้อมูล: ${err?.message || 'โปรดดูสคริปต์ว่าท่านได้รันสร้างตารางในหน้าแดชบอร์ด Supabase หรือยัง'}`
+    };
+  }
+}
+
+// Calculate Dashboard Stats
+export async function getDashboardStats(config: SupabaseConfig): Promise<DashboardStats> {
+  const items = await getEquipments(config);
+  const txs = await getTransactions(config);
+  
+  let totalItems = 0;
+  let availableItems = 0;
+  let borrowedItems = 0;
+  let maintenanceItems = 0;
+  let brokenItems = 0;
+  
+  items.forEach(item => {
+    const tQty = item.total_qty ?? 1;
+    const aQty = item.available_qty ?? (item.status === 'borrowed' ? 0 : 1);
+    const mQty = item.maintenance_qty ?? (item.status === 'maintenance' ? tQty : 0);
+    const bQty = item.broken_qty ?? (item.status === 'broken' ? tQty : 0);
+    const borrowedQty = tQty - aQty - mQty - bQty;
+    
+    totalItems += tQty;
+    availableItems += aQty;
+    borrowedItems += Math.max(0, borrowedQty);
+    maintenanceItems += mQty;
+    brokenItems += bQty;
+  });
+  
+  const totalTransactions = txs.length;
+  const activeBorrows = txs.filter(x => x.status === 'borrowing' || x.status === 'overdue').length;
+  const overdueBorrows = txs.filter(x => x.status === 'overdue').length;
+
+  return {
+    totalItems,
+    availableItems,
+    borrowedItems,
+    maintenanceItems,
+    brokenItems,
+    totalTransactions,
+    activeBorrows,
+    overdueBorrows
+  };
+}
+
+// Provide Default SQL Schema setup script for the user
+export const SUPABASE_SQL_SCHEMA = `-- คัดลอกสคริปต์นี้เพื่อไปรันใน SQL Editor ของ Supabase เพื่อตั้งค่าตารางแอปพลิเคชันคลังอุปกรณ์
+-- 1. สร้างตารางอุปกรณ์ (equipment)
+create table if not exists equipment (
+  id varchar(100) primary key,
+  code varchar(100) unique not null,
+  name text not null,
+  category varchar(100) not null,
+  status varchar(50) default 'available' check (status in ('available', 'borrowed', 'maintenance', 'broken')),
+  location text not null,
+  description text,
+  image_url text,
+  total_qty integer default 1,
+  available_qty integer default 1,
+  maintenance_qty integer default 0,
+  broken_qty integer default 0,
+  created_at timestamptz default now()
+);
+
+-- การเปิดสิทธิ์ Row Level Security (RLS) - แนะนำให้ปิดชั่วคราวเพื่อพัฒนาสะดวก หรือตั้งแบบอนุญาตให้ทุกคนอ่าน-เขียนได้ก่อน
+alter table equipment enable row level security;
+create policy "Allow all users full access to equipment" on equipment
+  for all using (true) with check (true);
+
+-- 2. สร้างตารางบันทึกการเบิก-คืน (transactions)
+create table if not exists transactions (
+  id varchar(100) primary key,
+  equipment_id varchar(100) references equipment(id) on delete cascade,
+  equipment_code varchar(100) not null,
+  equipment_name text not null,
+  borrower_name text not null,
+  borrower_department text not null,
+  borrow_date timestamptz default now(),
+  due_date timestamptz not null,
+  return_date timestamptz,
+  purpose text,
+  status varchar(50) default 'borrowing' check (status in ('borrowing', 'returned', 'overdue')),
+  condition_on_return text,
+  borrow_qty integer default 1,
+  evidence_image_url text,
+  created_at timestamptz default now()
+);
+
+alter table transactions enable row level security;
+create policy "Allow all users full access to transactions" on transactions
+  for all using (true) with check (true);
+
+-- 4. รีเซ็ตและอัปเดตแคชโครงสร้างตารางของ API ในระบบ (PostgREST Schema Cache) สำคัญมาก!
+NOTIFY pgrst, 'reload schema';
+`;
+
+export const SUPABASE_MIGRATION_SQL = `-- สคริปต์แก้ไข/อัปเกรดตารางพัสดุเดิมของคุณเพื่อรองรับยอดควบคุมจำนวนพัสดุ (Multi-quantity)
+-- คัดลอกและไปรันใน SQL Editor ของ Supabase เพื่อขจัดข้อผิดพลาด 'available_qty column not found' ได้ทันที
+
+-- 1. เพิ่มคอลัมน์ที่จำเป็นในตารางอุปกรณ์ (equipment)
+ALTER TABLE equipment ADD COLUMN IF NOT EXISTS total_qty integer default 1;
+ALTER TABLE equipment ADD COLUMN IF NOT EXISTS available_qty integer default 1;
+ALTER TABLE equipment ADD COLUMN IF NOT EXISTS maintenance_qty integer default 0;
+ALTER TABLE equipment ADD COLUMN IF NOT EXISTS broken_qty integer default 0;
+
+-- 2. เพิ่มคอลัมน์ที่จำเป็นในตารางรายการเบิกยืม (transactions)
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS borrow_qty integer default 1;
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS evidence_image_url text;
+
+-- 3. อัปเดตข้อมูลแถวข้อมูลเดิมที่มีอยู่ ให้มีค่าตั้งต้นเป็น 1 ชิ้น เพื่อหลีกเลี่ยงเป็นค่า NULL
+UPDATE equipment SET 
+  total_qty = COALESCE(total_qty, 1),
+  available_qty = COALESCE(available_qty, CASE WHEN status = 'borrowed' THEN 0 ELSE 1 END),
+  maintenance_qty = COALESCE(maintenance_qty, CASE WHEN status = 'maintenance' THEN 1 ELSE 0 END),
+  broken_qty = COALESCE(broken_qty, CASE WHEN status = 'broken' THEN 1 ELSE 0 END);
+
+UPDATE transactions SET 
+  borrow_qty = COALESCE(borrow_qty, 1);
+
+-- 4. แจ้งเตือนระบบควบคุม API (PostgREST) ให้กวาดล้างและรีสตาร์ตโครงสร้างใหม่ทันที (แก้ปัญหา Cache Stale / PGRST204)
+NOTIFY pgrst, 'reload schema';
+`;

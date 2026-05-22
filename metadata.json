@@ -1,0 +1,1 @@
+{"name":"Equipment Inventory Management","description":"ระบบบริหารจัดการคลังอุปกรณ์อัจฉริยะ พร้อมระบบเบิก-คืน และรายงานสถิติต่างๆ สามารถเชื่อมต่อกับ Supabase","requestFramePermissions":[],"majorCapabilities":["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]}
