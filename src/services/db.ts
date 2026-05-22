@@ -4,7 +4,7 @@
  */
 
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import { Equipment, Transaction, SupabaseConfig, DashboardStats } from '../types';
+import { Equipment, Transaction, SupabaseConfig, DashboardStats, SystemSettings } from '../types';
 
 const STORAGE_KEY_CONFIG = 'item_inventory_supabase_config';
 const STORAGE_KEY_EQUIPMENT = 'item_inventory_equipment_data';
@@ -1145,6 +1145,46 @@ export async function getDashboardStats(config: SupabaseConfig): Promise<Dashboa
   };
 }
 
+// Fetch system settings
+export async function getSystemSettings(config: SupabaseConfig): Promise<SystemSettings | null> {
+  const client = getSupabaseClient(config);
+  if (client) {
+    try {
+      const { data, error } = await client
+        .from('system_settings')
+        .select('*')
+        .eq('id', 'default')
+        .single();
+      if (!error && data) {
+        return data as SystemSettings;
+      }
+    } catch (e) {
+      console.error('Error fetching system settings from Supabase:', e);
+    }
+  }
+  return null;
+}
+
+// Save system settings
+export async function saveSystemSettings(config: SupabaseConfig, settings: Omit<SystemSettings, 'id'>): Promise<void> {
+  const client = getSupabaseClient(config);
+  if (client) {
+    try {
+      const { error } = await client
+        .from('system_settings')
+        .upsert({
+          id: 'default',
+          ...settings,
+          updated_at: new Date().toISOString()
+        });
+      if (error) throw error;
+    } catch (e) {
+      console.error('Error saving system settings to Supabase:', e);
+      throw e;
+    }
+  }
+}
+
 // Provide Default SQL Schema setup script for the user
 export const SUPABASE_SQL_SCHEMA = `-- คัดลอกสคริปต์นี้เพื่อไปรันใน SQL Editor ของ Supabase เพื่อตั้งค่าตารางแอปพลิเคชันคลังอุปกรณ์
 -- 1. สร้างตารางอุปกรณ์ (equipment)
@@ -1192,12 +1232,26 @@ alter table transactions enable row level security;
 create policy "Allow all users full access to transactions" on transactions
   for all using (true) with check (true);
 
+-- 3. สร้างตารางบันทึกการตั้งค่าระบบ (system_settings)
+create table if not exists system_settings (
+  id varchar(100) primary key,
+  title text not null,
+  description text,
+  version varchar(50),
+  custom_logo text,
+  updated_at timestamptz default now()
+);
+
+alter table system_settings enable row level security;
+create policy "Allow all users full access to system_settings" on system_settings
+  for all using (true) with check (true);
+
 -- 4. รีเซ็ตและอัปเดตแคชโครงสร้างตารางของ API ในระบบ (PostgREST Schema Cache) สำคัญมาก!
 NOTIFY pgrst, 'reload schema';
 `;
 
-export const SUPABASE_MIGRATION_SQL = `-- สคริปต์แก้ไข/อัปเกรดตารางพัสดุเดิมของคุณเพื่อรองรับยอดควบคุมจำนวนพัสดุ (Multi-quantity)
--- คัดลอกและไปรันใน SQL Editor ของ Supabase เพื่อขจัดข้อผิดพลาด 'available_qty column not found' ได้ทันที
+export const SUPABASE_MIGRATION_SQL = `-- สคริปต์แก้ไข/อัปเกรดตารางพัสดุเดิมของคุณเพื่อรองรับยอดควบคุมจำนวนพัสดุ (Multi-quantity) และการแชร์ข้อมูลหน้าเว็บบนระบบคลาวด์
+-- คัดลอกและไปรันใน SQL Editor ของ Supabase เพื่อขจัดข้อผิดพลาด 'available_qty column not found' หรือเพิ่มตารางตั้งค่าโปรไฟล์แชร์ร่วมกันได้ทันที
 
 -- 1. เพิ่มคอลัมน์ที่จำเป็นในตารางอุปกรณ์ (equipment)
 ALTER TABLE equipment ADD COLUMN IF NOT EXISTS total_qty integer default 1;
@@ -1209,7 +1263,30 @@ ALTER TABLE equipment ADD COLUMN IF NOT EXISTS broken_qty integer default 0;
 ALTER TABLE transactions ADD COLUMN IF NOT EXISTS borrow_qty integer default 1;
 ALTER TABLE transactions ADD COLUMN IF NOT EXISTS evidence_image_url text;
 
--- 3. อัปเดตข้อมูลแถวข้อมูลเดิมที่มีอยู่ ให้มีค่าตั้งต้นเป็น 1 ชิ้น เพื่อหลีกเลี่ยงเป็นค่า NULL
+-- 3. สร้างตารางบันทึกการตั้งค่าระบบ (system_settings)
+create table if not exists system_settings (
+  id varchar(100) primary key,
+  title text not null,
+  description text,
+  version varchar(50),
+  custom_logo text,
+  updated_at timestamptz default now()
+);
+
+-- การเปิดสิทธิ์ RLS สำหรับตารางตั้งค่าระบบ
+alter table system_settings enable row level security;
+do $$
+begin
+  if not exists (
+    select 1 from pg_policies where policyname = 'Allow all users full access to system_settings'
+  ) then
+    create policy "Allow all users full access to system_settings" on system_settings
+      for all using (true) with check (true);
+  end if;
+end
+$$;
+
+-- 4. อัปเดตข้อมูลแถวข้อมูลเดิมที่มีอยู่ ให้มีค่าตั้งต้นเป็น 1 ชิ้น เพื่อหลีกเลี่ยงเป็นค่า NULL
 UPDATE equipment SET 
   total_qty = COALESCE(total_qty, 1),
   available_qty = COALESCE(available_qty, CASE WHEN status = 'borrowed' THEN 0 ELSE 1 END),
@@ -1219,6 +1296,6 @@ UPDATE equipment SET
 UPDATE transactions SET 
   borrow_qty = COALESCE(borrow_qty, 1);
 
--- 4. แจ้งเตือนระบบควบคุม API (PostgREST) ให้กวาดล้างและรีสตาร์ตโครงสร้างใหม่ทันที (แก้ปัญหา Cache Stale / PGRST204)
+-- 5. แจ้งเตือนระบบควบคุม API (PostgREST) ให้กวาดล้างและรีสตาร์ตโครงสร้างใหม่ทันที (แก้ปัญหา Cache Stale / PGRST204)
 NOTIFY pgrst, 'reload schema';
 `;

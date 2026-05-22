@@ -32,7 +32,8 @@ import {
   getDbConfig, 
   saveDbConfig,
   getEquipments,
-  getTransactions
+  getTransactions,
+  saveSystemSettings
 } from '../services/db';
 
 interface SupabaseSettingsViewProps {
@@ -481,13 +482,29 @@ export default function SupabaseSettingsView({
             <div className="flex justify-end pt-2 border-t border-gray-100">
               <button
                 type="button"
-                onClick={() => {
+                onClick={async () => {
                   onSystemTitleChange(localTitle);
                   onSystemDescChange(localDesc);
                   onSystemVersionChange(localVersion);
                   localStorage.setItem('system_title', localTitle);
                   localStorage.setItem('system_desc', localDesc);
                   localStorage.setItem('system_version', localVersion);
+                  
+                  // Save to Supabase DB as well
+                  try {
+                    const config = getDbConfig();
+                    if (config.supabaseUrl && config.supabaseKey) {
+                      await saveSystemSettings(config, {
+                        title: localTitle,
+                        description: localDesc,
+                        version: localVersion,
+                        custom_logo: customLogo
+                      });
+                    }
+                  } catch (e) {
+                    console.error('Failed to save settings to Supabase:', e);
+                  }
+                  
                   setProfileSaveSuccess(true);
                   setTimeout(() => setProfileSaveSuccess(false), 2500);
                 }}

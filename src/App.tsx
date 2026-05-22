@@ -39,10 +39,46 @@ export default function App() {
   // Handle action link from dashboard to return modal directly
   const [quickReturnTx, setQuickReturnTx] = useState<Transaction | null>(null);
 
-  // Load config on mount
+  // Load config and global system settings on mount / refresh
   useEffect(() => {
-    setDbConfig(getDbConfig());
-  }, []);
+    const config = getDbConfig();
+    setDbConfig(config);
+    
+    const fetchGlobalSettings = async () => {
+      if (config.supabaseUrl && config.supabaseKey) {
+        try {
+          const { getSystemSettings } = await import('./services/db');
+          const settings = await getSystemSettings(config);
+          if (settings) {
+            if (settings.title) {
+              setSystemTitle(settings.title);
+              localStorage.setItem('system_title', settings.title);
+            }
+            if (settings.description) {
+              setSystemDesc(settings.description);
+              localStorage.setItem('system_desc', settings.description);
+            }
+            if (settings.version) {
+              setSystemVersion(settings.version);
+              localStorage.setItem('system_version', settings.version);
+            }
+            if (settings.custom_logo !== undefined) {
+              setCustomLogo(settings.custom_logo);
+              if (settings.custom_logo) {
+                localStorage.setItem('system_custom_logo', settings.custom_logo);
+              } else {
+                localStorage.removeItem('system_custom_logo');
+              }
+            }
+          }
+        } catch (e) {
+          console.warn('Failed to load global system settings:', e);
+        }
+      }
+    };
+    
+    fetchGlobalSettings();
+  }, [refreshTrigger]);
 
   const handleConfigChange = (newConfig: SupabaseConfig) => {
     setDbConfig(newConfig);

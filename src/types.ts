@@ -53,3 +53,12 @@ export interface DashboardStats {
   activeBorrows: number;
   overdueBorrows: number;
 }
+
+export interface SystemSettings {
+  id: string;
+  title: string;
+  description: string;
+  version: string;
+  custom_logo: string;
+}
+
