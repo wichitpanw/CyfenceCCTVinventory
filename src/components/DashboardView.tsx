@@ -3,9 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { 
-  ResponsiveContainer, 
   BarChart, 
   Bar, 
   XAxis, 
@@ -13,9 +12,33 @@ import {
   Tooltip, 
   PieChart, 
   Pie, 
-  Cell,
-  Legend
+  Cell
 } from 'recharts';
+
+/** Custom hook: measure a container's real pixel size via ResizeObserver.
+ *  Only updates state when BOTH width and height are > 0, so charts
+ *  never receive the Recharts sentinel value of -1. */
+function useContainerSize() {
+  const ref = useRef<HTMLDivElement>(null);
+  const [size, setSize] = useState<{ width: number; height: number } | null>(null);
+
+  const measure = useCallback(() => {
+    if (!ref.current) return;
+    const { width, height } = ref.current.getBoundingClientRect();
+    if (width > 0 && height > 0) {
+      setSize({ width: Math.floor(width), height: Math.floor(height) });
+    }
+  }, []);
+
+  useEffect(() => {
+    measure();
+    const ro = new ResizeObserver(measure);
+    if (ref.current) ro.observe(ref.current);
+    return () => ro.disconnect();
+  }, [measure]);
+
+  return { ref, size };
+}
 import { 
   Package, 
   CheckCircle, 
@@ -46,18 +69,9 @@ export default function DashboardView({ config, onNavigate, onQuickReturn, refre
   const [allTransactions, setAllTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [dbError, setDbError] = useState<string | null>(null);
-  const [renderCharts, setRenderCharts] = useState(false);
-
-  useEffect(() => {
-    if (!loading) {
-      const timer = setTimeout(() => {
-        setRenderCharts(true);
-      }, 150);
-      return () => clearTimeout(timer);
-    } else {
-      setRenderCharts(false);
-    }
-  }, [loading]);
+  // Container size hooks for the two chart areas
+  const { ref: pieContainerRef, size: pieSize } = useContainerSize();
+  const { ref: barContainerRef, size: barSize } = useContainerSize();
 
   useEffect(() => {
     async function fetchDashboardData() {
@@ -84,14 +98,7 @@ export default function DashboardView({ config, onNavigate, onQuickReturn, refre
     fetchDashboardData();
   }, [config, refreshTrigger]);
 
-  if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center py-20" id="dashboard-loading">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mb-4"></div>
-        <p className="text-gray-500 font-sans">กำลังดึงข้อมูลแดชบอร์ด...</p>
-      </div>
-    );
-  }
+
 
   // Calculate Category Data for Chart (Sum of available/remaining quantities in stock)
   const categoryCounts: Record<string, number> = {};
@@ -134,9 +141,17 @@ export default function DashboardView({ config, onNavigate, onQuickReturn, refre
   ];
 
   return (
-    <div className="space-y-4" id="dashboard-view-wrapper">
+    <div className="space-y-4 relative min-h-[400px]" id="dashboard-view-wrapper">
+      {/* Global premium loading overlay to prevent Cumulative Layout Shift (CLS) and ensure dimensions are calculated beforehand */}
+      {loading && (
+        <div className="absolute inset-0 bg-[#F5F5F7]/60 backdrop-blur-xs flex flex-col items-center justify-center z-50 rounded-2xl transition-all duration-300" id="dashboard-loading-overlay">
+          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#0071E3] mb-3"></div>
+          <p className="text-xs text-[#86868B] font-sans font-semibold">กำลังดึงข้อมูลแดชบอร์ด...</p>
+        </div>
+      )}
+
       {/* If connected to live Supabase but empty database, show a nice welcoming helper banner */}
-      {!config.useLocalStorage && equipments.length === 0 && (
+      {!loading && !config.useLocalStorage && equipments.length === 0 && (
         <div className="bg-[#E8F2FF] border border-[#0071E3]/20 rounded-2xl p-5 text-[#1D1D1F] text-left shadow-xs relative overflow-hidden">
           <div className="absolute top-0 right-0 w-32 h-32 bg-[#0071E3]/5 rounded-full -mr-10 -mt-10" />
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 relative z-10">
@@ -279,39 +294,37 @@ export default function DashboardView({ config, onNavigate, onQuickReturn, refre
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-12 gap-4 items-center">
-                <div className="sm:col-span-7 h-44 relative flex items-center justify-center">
+                <div ref={pieContainerRef} className="sm:col-span-7 h-44 relative flex items-center justify-center">
                   <div className="absolute flex flex-col items-center justify-center pointer-events-none">
                     <span className="text-2xl font-sans font-extrabold text-[#1D1D1F] leading-none">{totalActiveBorrowedItems}</span>
                     <span className="text-[9px] text-[#86868B] font-sans mt-0.5 font-bold uppercase tracking-wider">พัสดุถูกยืม</span>
                   </div>
-                  {renderCharts && (
-                    <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
-                      <PieChart>
-                        <Pie
-                          data={departmentChartData}
-                          cx="50%"
-                          cy="50%"
-                          innerRadius={52}
-                          outerRadius={72}
-                          paddingAngle={3}
-                          dataKey="value"
-                        >
-                          {departmentChartData.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={DEPT_COLORS[index % DEPT_COLORS.length]} />
-                          ))}
-                        </Pie>
-                        <Tooltip 
-                          contentStyle={{ 
-                            fontFamily: 'var(--font-sans)', 
-                            borderRadius: '12px', 
-                            border: '1px solid #E8E8ED', 
-                            boxShadow: '0 8px 30px rgba(0,0,0,0.04)',
-                            fontSize: '11px'
-                          }}
-                          formatter={(value: any, name: any) => [`${value} ชิ้น`, name]}
-                        />
-                      </PieChart>
-                    </ResponsiveContainer>
+                  {pieSize && (
+                    <PieChart width={pieSize.width} height={pieSize.height}>
+                      <Pie
+                        data={departmentChartData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={52}
+                        outerRadius={72}
+                        paddingAngle={3}
+                        dataKey="value"
+                      >
+                        {departmentChartData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={DEPT_COLORS[index % DEPT_COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip 
+                        contentStyle={{ 
+                          fontFamily: 'var(--font-sans)', 
+                          borderRadius: '12px', 
+                          border: '1px solid #E8E8ED', 
+                          boxShadow: '0 8px 30px rgba(0,0,0,0.04)',
+                          fontSize: '11px'
+                        }}
+                        formatter={(value: any, name: any) => [`${value} ชิ้น`, name]}
+                      />
+                    </PieChart>
                   )}
                 </div>
                 <div className="sm:col-span-5 space-y-1.5 max-h-44 overflow-y-auto pr-1">
@@ -341,45 +354,43 @@ export default function DashboardView({ config, onNavigate, onQuickReturn, refre
           <h4 className="text-xs font-bold text-[#86868B] uppercase tracking-wider flex items-center gap-2 mb-4">
             <Package className="h-4 w-4 text-[#0071E3]" /> ปริมาณอุปกรณ์คงเหลือแยกตามหมวดหมู่
           </h4>
-          <div className="h-56">
+          <div ref={barContainerRef} className="h-56">
             {categoryChartData.length === 0 ? (
               <div className="w-full h-full flex items-center justify-center">
                 <p className="text-xs font-sans font-bold text-[#86868B]">ไม่มีข้อมูลอุปกรณ์เพื่อแสดงสถิติ</p>
               </div>
-            ) : (
-              renderCharts && (
-                <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
-                  <BarChart 
-                    layout="vertical" 
-                    data={categoryChartData} 
-                    margin={{ top: 5, right: 20, left: 10, bottom: 5 }}
-                  >
-                    <XAxis type="number" stroke="#86868B" fontSize={9} tickLine={false} axisLine={false} allowDecimals={false} />
-                    <YAxis 
-                      dataKey="name" 
-                      type="category" 
-                      stroke="#1D1D1F" 
-                      fontSize={10} 
-                      tickLine={false} 
-                      axisLine={false} 
-                      width={140}
-                    />
-                    <Tooltip 
-                      cursor={{ fill: '#F5F5F7' }}
-                      contentStyle={{ 
-                        fontFamily: 'var(--font-sans)', 
-                        borderRadius: '12px', 
-                        border: '1px solid #E8E8ED', 
-                        boxShadow: '0 8px 30px rgba(0,0,0,0.04)',
-                        fontSize: '11px'
-                      }}
-                      formatter={(value: any) => [`${value} ชิ้น`, 'คงเหลือในคลัง']}
-                    />
-                    <Bar dataKey="value" fill="#0071E3" radius={[0, 8, 8, 0]} barSize={12} name="จำนวนคงเหลือ" />
-                  </BarChart>
-                </ResponsiveContainer>
-              )
-            )}
+            ) : barSize ? (
+              <BarChart 
+                width={barSize.width}
+                height={barSize.height}
+                layout="vertical" 
+                data={categoryChartData} 
+                margin={{ top: 5, right: 20, left: 10, bottom: 5 }}
+              >
+                <XAxis type="number" stroke="#86868B" fontSize={9} tickLine={false} axisLine={false} allowDecimals={false} />
+                <YAxis 
+                  dataKey="name" 
+                  type="category" 
+                  stroke="#1D1D1F" 
+                  fontSize={10} 
+                  tickLine={false} 
+                  axisLine={false} 
+                  width={140}
+                />
+                <Tooltip 
+                  cursor={{ fill: '#F5F5F7' }}
+                  contentStyle={{ 
+                    fontFamily: 'var(--font-sans)', 
+                    borderRadius: '12px', 
+                    border: '1px solid #E8E8ED', 
+                    boxShadow: '0 8px 30px rgba(0,0,0,0.04)',
+                    fontSize: '11px'
+                  }}
+                  formatter={(value: any) => [`${value} ชิ้น`, 'คงเหลือในคลัง']}
+                />
+                <Bar dataKey="value" fill="#0071E3" radius={[0, 8, 8, 0]} barSize={12} name="จำนวนคงเหลือ" />
+              </BarChart>
+            ) : null}
           </div>
         </div>
       </div>
