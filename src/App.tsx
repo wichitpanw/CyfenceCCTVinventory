@@ -21,10 +21,22 @@ import SupabaseSettingsView from './components/SupabaseSettingsView';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<string>('dashboard');
-  const [dbConfig, setDbConfig] = useState<SupabaseConfig>({
-    supabaseUrl: '',
-    supabaseKey: '',
-    useLocalStorage: true
+  // Initialize config SYNCHRONOUSLY so child components never render with
+  // useLocalStorage:true (which would flash seed data) before useEffect fires.
+  const [dbConfig, setDbConfig] = useState<SupabaseConfig>(() => {
+    const saved = localStorage.getItem('item_inventory_supabase_config');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        return { ...parsed, useLocalStorage: false };
+      } catch { /* fall through */ }
+    }
+    const metaEnv = (import.meta as any).env || {};
+    return {
+      supabaseUrl: (metaEnv.VITE_SUPABASE_URL as string) || '',
+      supabaseKey: (metaEnv.VITE_SUPABASE_ANON_KEY as string) || '',
+      useLocalStorage: false
+    };
   });
   
   // Custom system profile states loaded locally
