@@ -638,7 +638,6 @@ export default function BorrowReturnView({ config, refreshTrigger, onRefresh, qu
                     <label className="block text-[11px] text-apple-dark font-bold uppercase tracking-wider">
                       6. รูปประกอบหลักฐาน
                     </label>
-                    <p className="text-[10px] text-apple-gray-dark mt-0.5">ถ่ายหรือเก็บเป็นไฟล์ภาพประกอบการเบิกเพื่อความโปร่งใส</p>
                   </div>
                   
                   {/* Image source pill */}
