@@ -415,7 +415,7 @@ export default function InventoryView({ config, refreshTrigger, onRefresh }: Inv
       <div className="bg-white p-3 rounded-2xl border border-[#E8E8ED] shadow-[0_8px_30px_rgba(0,0,0,0.04)] flex items-center gap-2" id="search-filter-grid">
         {/* Search */}
         <div className="relative flex-1" id="search-box">
-          <Search className="absolute left-3.5 top-3.5 h-4 w-4 text-[#86868B]" />
+          <Search className="absolute left-3.5 top-3.5 h-4 w-4 text-[#86868B] pointer-events-none" />
           <input
             type="text"
             placeholder="ค้นหาตามรหัส, ชื่อสิ่งของ หรือตำแหน่ง..."

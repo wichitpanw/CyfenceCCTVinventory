@@ -195,7 +195,7 @@ export default function HistoryView({ config, refreshTrigger }: HistoryViewProps
       <div className="bg-white p-3 rounded-2xl border border-[#E8E8ED] shadow-apple-card flex items-center gap-2" id="history-controls">
         {/* Search */}
         <div className="relative flex-1" id="history-search-box">
-          <Search className="absolute left-3.5 top-3.5 h-4 w-4 text-[#86868B]" />
+          <Search className="absolute left-3.5 top-3.5 h-4 w-4 text-[#86868B] pointer-events-none" />
           <input
             placeholder="ค้นหาข้อมูลประวัติด้วย ชื่อผู้เบิก, ฝ่าย, หรือชื่อ/รหัสพัสดุอุปกรณ์..."
             value={searchTerm}

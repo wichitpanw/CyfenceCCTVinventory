@@ -544,7 +544,7 @@ export default function BorrowReturnView({ config, refreshTrigger, onRefresh, qu
                 <div>
                   <label className="block text-[11px] text-apple-gray-dark font-semibold uppercase tracking-wider mb-1.5">2. ชื่อ-นามสกุล ผู้เสนอเบิก *</label>
                   <div className="relative">
-                    <User className="absolute left-3.5 top-3.5 h-4 w-4 text-apple-gray-dark" />
+                    <User className="absolute left-3.5 top-3.5 h-4 w-4 text-apple-gray-dark pointer-events-none" />
                     <input
                       type="text"
                       value={borrowerName}
@@ -559,7 +559,7 @@ export default function BorrowReturnView({ config, refreshTrigger, onRefresh, qu
                 <div>
                   <label className="block text-[11px] text-apple-gray-dark font-semibold uppercase tracking-wider mb-1.5">3. บริษัทผู้ยืม *</label>
                   <div className="relative">
-                    <Briefcase className="absolute left-3.5 top-3.5 h-4 w-4 text-apple-gray-dark" />
+                    <Briefcase className="absolute left-3.5 top-3.5 h-4 w-4 text-apple-gray-dark pointer-events-none" />
                     <select
                       value={borrowerDepartment}
                       onChange={(e) => setBorrowerDepartment(e.target.value)}
@@ -590,7 +590,7 @@ export default function BorrowReturnView({ config, refreshTrigger, onRefresh, qu
               <div>
                 <label className="block text-[11px] text-apple-gray-dark font-semibold uppercase tracking-wider mb-1.5">4. กำหนดวันส่งมอบคืนพัสดุ *</label>
                 <div className="relative mb-2.5">
-                  <Calendar className="absolute left-3.5 top-3.5 h-4 w-4 text-apple-gray-dark" />
+                  <Calendar className="absolute left-3.5 top-3.5 h-4 w-4 text-apple-gray-dark pointer-events-none" />
                   <input
                     type="date"
                     value={dueDate}
@@ -620,7 +620,7 @@ export default function BorrowReturnView({ config, refreshTrigger, onRefresh, qu
               <div>
                 <label className="block text-[11px] text-apple-gray-dark font-semibold uppercase tracking-wider mb-1.5">5. วัตถุประสงค์ในการเบิกใช้พัสดุ</label>
                 <div className="relative">
-                  <FileText className="absolute left-3.5 top-3.5 h-4 w-4 text-apple-gray-dark" />
+                  <FileText className="absolute left-3.5 top-3.5 h-4 w-4 text-apple-gray-dark pointer-events-none" />
                   <textarea
                     rows={2}
                     value={purpose}
@@ -765,7 +765,7 @@ export default function BorrowReturnView({ config, refreshTrigger, onRefresh, qu
               
               {/* Search input in panel */}
               <div className="relative mb-4">
-                <Search className="absolute left-3.5 top-3.5 h-4 w-4 text-apple-gray-dark" />
+                <Search className="absolute left-3.5 top-3.5 h-4 w-4 text-apple-gray-dark pointer-events-none" />
                 <input
                   type="text"
                   placeholder="ค้นหารหัส หรือชื่อพัสดุ..."
@@ -929,7 +929,7 @@ export default function BorrowReturnView({ config, refreshTrigger, onRefresh, qu
               <div className="lg:col-span-4 relative" id="return-text-search-container">
                 <label className="block text-[11px] font-sans text-slate-500 font-bold uppercase tracking-wider mb-1.5">คำค้นหาอุปกรณ์หรือรายชื่อ</label>
                 <div className="relative">
-                  <Search className="absolute left-3.5 top-3 h-4 w-4 text-slate-400" />
+                  <Search className="absolute left-3.5 top-3 h-4 w-4 text-slate-400 pointer-events-none" />
                   <input
                     type="text"
                     placeholder="ระบุชื่อผู้ยืม, แผนก, รหัสพัสดุ..."
