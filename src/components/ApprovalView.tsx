@@ -19,6 +19,7 @@ import {
   RotateCcw,
   Image as ImageIcon,
   ShieldCheck,
+  X,
 } from 'lucide-react';
 import { BorrowRequest, SupabaseConfig, Equipment } from '../types';
 import {
@@ -49,6 +50,7 @@ export default function ApprovalView({ config, refreshTrigger, onRefresh }: Appr
   // ── Data ────────────────────────────────────────────────────────────────────
   const [requests, setRequests] = useState<BorrowRequest[]>([]);
   const [equipments, setEquipments] = useState<Equipment[]>([]);
+  const [activeLightboxUrl, setActiveLightboxUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState<FilterStatus>('pending_approval');
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -312,7 +314,7 @@ export default function ApprovalView({ config, refreshTrigger, onRefresh }: Appr
                         <p className="text-[10px] font-bold uppercase tracking-wider text-[#86868B] mb-2 flex items-center gap-1">
                           <ImageIcon className="h-3 w-3" /> รูปหลักฐาน
                         </p>
-                        <img src={req.evidence_image_url} alt="Evidence" className="w-full max-h-48 object-contain rounded-xl border border-[#E8E8ED] cursor-pointer" onClick={() => window.open(req.evidence_image_url, '_blank')} />
+                        <img src={req.evidence_image_url} alt="Evidence" className="w-full max-h-48 object-contain rounded-xl border border-[#E8E8ED] cursor-pointer" onClick={() => setActiveLightboxUrl(req.evidence_image_url)} />
                       </div>
                     )}
 
@@ -413,6 +415,38 @@ export default function ApprovalView({ config, refreshTrigger, onRefresh }: Appr
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Lightbox Modal for Evidence Images */}
+      {activeLightboxUrl && (
+        <div 
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-[#1D1D1F]/80 backdrop-blur-md transition-opacity duration-300 animate-fade-in"
+          onClick={() => setActiveLightboxUrl(null)}
+        >
+          <div 
+            className="relative max-w-4xl max-h-[90vh] p-4 bg-white rounded-3xl overflow-hidden shadow-2xl flex flex-col items-center justify-center animate-in zoom-in-95 duration-250 border border-[#E8E8ED]" 
+            onClick={e => e.stopPropagation()}
+          >
+            <button 
+              type="button"
+              className="absolute top-4 right-4 p-2 bg-[#1D1D1F]/10 hover:bg-[#1D1D1F]/20 text-[#1D1D1F] rounded-full transition-all cursor-pointer z-10" 
+              onClick={() => setActiveLightboxUrl(null)}
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <div className="w-full overflow-auto flex items-center justify-center p-2">
+              <img 
+                src={activeLightboxUrl} 
+                alt="Evidence" 
+                className="max-w-full max-h-[75vh] object-contain rounded-2xl shadow-sm" 
+              />
+            </div>
+            <div className="mt-4 text-xs font-semibold text-[#86868B] font-sans flex items-center gap-2 pb-2">
+              <ImageIcon className="w-4 h-4 text-blue-650" />
+              <span>ภาพหลักฐานใบเบิกคลังอุปกรณ์ (Cyfence Inventory Evidence Image)</span>
+            </div>
+          </div>
         </div>
       )}
     </div>
