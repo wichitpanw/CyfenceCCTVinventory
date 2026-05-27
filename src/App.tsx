@@ -39,17 +39,17 @@ export default function App() {
       const nextPin = adminPin + num;
       setAdminPin(nextPin);
       if (nextPin === targetPin) {
-        setTimeout(() => {
-          sessionStorage.setItem('admin_sidebar_unlocked', 'true');
-          setIsAdminUnlocked(true);
-          setAdminPin('');
-          setShowAdminPinModal(false);
-        }, 200);
+        // Instant unlock transition without annoying delays
+        sessionStorage.setItem('admin_sidebar_unlocked', 'true');
+        setIsAdminUnlocked(true);
+        setAdminPin('');
+        setShowAdminPinModal(false);
       } else if (nextPin.length === 6) {
+        // Fast error response
         setTimeout(() => {
           setAdminPinError(true);
-          setTimeout(() => setAdminPin(''), 600);
-        }, 150);
+          setTimeout(() => setAdminPin(''), 400);
+        }, 50);
       }
     }
   };
@@ -117,6 +117,9 @@ export default function App() {
               } else {
                 localStorage.removeItem('system_custom_logo');
               }
+            }
+            if (settings.custom_pin) {
+              localStorage.setItem('system_admin_sidebar_pin', settings.custom_pin);
             }
           }
         } catch (e) {
@@ -400,6 +403,7 @@ export default function App() {
             
             {activeTab === 'settings' && (
               <SupabaseSettingsView 
+                config={dbConfig}
                 onConfigChange={handleConfigChange}
                 onRefreshAll={handleRefresh}
                 systemTitle={systemTitle}

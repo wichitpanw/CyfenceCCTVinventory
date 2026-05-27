@@ -23,6 +23,7 @@ import {
 } from '../services/db';
 
 interface SupabaseSettingsViewProps {
+  config: SupabaseConfig;
   onConfigChange: (newConfig: SupabaseConfig) => void;
   onRefreshAll: () => void;
   systemTitle: string;
@@ -36,6 +37,7 @@ interface SupabaseSettingsViewProps {
 }
 
 export default function SupabaseSettingsView({ 
+  config,
   onConfigChange, 
   onRefreshAll,
   systemTitle,
@@ -89,17 +91,15 @@ export default function SupabaseSettingsView({
       setPin(nextPin);
       
       if (nextPin === '8888') {
-        setTimeout(() => {
-          sessionStorage.setItem('supabase_settings_unlocked', 'true');
-          setIsUnlocked(true);
-        }, 200);
+        sessionStorage.setItem('supabase_settings_unlocked', 'true');
+        setIsUnlocked(true);
       } else if (nextPin.length === 4) {
         setTimeout(() => {
           setPinError(true);
           setTimeout(() => {
             setPin('');
-          }, 600);
-        }, 150);
+          }, 400);
+        }, 50);
       }
     }
   };
@@ -284,7 +284,27 @@ export default function SupabaseSettingsView({
                     alert('รหัสผ่านผู้ดูแลระบบจำเป็นต้องมีความยาวครบ 6 หลักถ้วนค่ะ');
                     return;
                   }
+                  
+                  // Save locally first
                   localStorage.setItem('system_admin_sidebar_pin', adminPinInput);
+                  
+                  // Save and Sync globally to Supabase!
+                  const savePinToSupabase = async () => {
+                    try {
+                      const { saveSystemSettings } = await import('../services/db');
+                      await saveSystemSettings(config, {
+                        title: systemTitle,
+                        description: systemDesc,
+                        version: systemVersion,
+                        custom_logo: customLogo,
+                        custom_pin: adminPinInput
+                      });
+                    } catch (syncErr) {
+                      console.warn('Failed to sync PIN to Supabase:', syncErr);
+                    }
+                  };
+                  savePinToSupabase();
+
                   setPinSaveSuccess(true);
                   setTimeout(() => setPinSaveSuccess(false), 2000);
                   onRefreshAll();

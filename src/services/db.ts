@@ -1499,6 +1499,7 @@ create table if not exists system_settings (
   description text,
   version varchar(50),
   custom_logo text,
+  custom_pin text,
   updated_at timestamptz default now()
 );
 
@@ -1554,6 +1555,7 @@ create table if not exists system_settings (
   description text,
   version varchar(50),
   custom_logo text,
+  custom_pin text,
   updated_at timestamptz default now()
 );
 

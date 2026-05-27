@@ -60,6 +60,7 @@ export interface SystemSettings {
   description: string;
   version: string;
   custom_logo: string;
+  custom_pin?: string;
 }
 
 // --- Approval Workflow Types ---
