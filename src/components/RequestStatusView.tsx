@@ -38,6 +38,10 @@ export default function RequestStatusView({ config, refreshTrigger }: RequestSta
   const [requests, setRequests] = useState<BorrowRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [startDate, setStartDate] = useState<string>('');
+  const [endDate, setEndDate] = useState<string>('');
+  const [dateType, setDateType] = useState<'create' | 'due'>('create');
 
   useEffect(() => {
     setLoading(true);
@@ -47,14 +51,40 @@ export default function RequestStatusView({ config, refreshTrigger }: RequestSta
   }, [config, refreshTrigger]);
 
   const filtered = requests.filter(r => {
-    if (!searchTerm) return true;
-    const term = searchTerm.toLowerCase();
-    return (
-      r.id.toLowerCase().includes(term) ||
-      r.requester_name.toLowerCase().includes(term) ||
-      r.requester_company.toLowerCase().includes(term) ||
-      (r.purpose && r.purpose.toLowerCase().includes(term))
-    );
+    // 1. Search term match
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase();
+      const matchSearch = 
+        r.id.toLowerCase().includes(term) ||
+        r.requester_name.toLowerCase().includes(term) ||
+        r.requester_company.toLowerCase().includes(term) ||
+        (r.purpose && r.purpose.toLowerCase().includes(term));
+      if (!matchSearch) return false;
+    }
+
+    // 2. Status match
+    if (statusFilter !== 'all' && r.status !== statusFilter) {
+      return false;
+    }
+
+    // 3. Date range match
+    if (startDate || endDate) {
+      const compareDateStr = dateType === 'create' ? r.created_at : r.requested_due_date;
+      const compareDate = new Date(compareDateStr);
+      
+      if (startDate) {
+        const start = new Date(startDate);
+        start.setHours(0,0,0,0);
+        if (compareDate < start) return false;
+      }
+      if (endDate) {
+        const end = new Date(endDate);
+        end.setHours(23,59,59,999);
+        if (compareDate > end) return false;
+      }
+    }
+
+    return true;
   });
 
   return (
@@ -69,16 +99,90 @@ export default function RequestStatusView({ config, refreshTrigger }: RequestSta
         </p>
       </div>
 
-      {/* Search Bar */}
-      <div className="relative">
-        <Search className="absolute left-3.5 top-3 h-4 w-4 text-slate-400 pointer-events-none" />
-        <input
-          type="text"
-          placeholder="ค้นหาด้วยรหัสคำขอ, ชื่อผู้ยื่น หรือวัตถุประสงค์สถานที่..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full pl-10 pr-4 py-2.5 border border-[#E8E8ED] rounded-2xl text-xs font-sans focus:outline-hidden focus:border-[#0071E3] bg-white transition-all shadow-[0_4px_16px_rgba(0,0,0,0.02)]"
-        />
+      {/* Search and Advanced Filters */}
+      <div className="bg-white p-5 rounded-2xl border border-[#E8E8ED] shadow-[0_4px_16px_rgba(0,0,0,0.02)] space-y-4">
+        {/* Search Bar */}
+        <div className="relative">
+          <Search className="absolute left-3.5 top-3 h-4 w-4 text-slate-400 pointer-events-none" />
+          <input
+            type="text"
+            placeholder="ค้นหาด้วยรหัสคำขอ, ชื่อผู้ยื่น หรือวัตถุประสงค์สถานที่..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-10 pr-4 py-2.5 border border-[#E8E8ED] rounded-xl text-xs font-sans focus:outline-hidden focus:border-[#0071E3] bg-[#F5F5F7]/60 focus:bg-white transition-all"
+          />
+        </div>
+
+        {/* Date and Status Filters Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+          {/* Status filter dropdown */}
+          <div>
+            <label className="block text-[10px] font-sans text-slate-450 font-bold uppercase tracking-wider mb-1.5">กรองตามสถานะ</label>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="w-full px-3 py-2 border border-[#E8E8ED] rounded-xl text-xs font-sans focus:outline-hidden focus:border-[#0071E3] bg-white transition-all cursor-pointer appearance-none"
+            >
+              <option value="all">แสดงสถานะทั้งหมด</option>
+              <option value="pending_approval">รอการอนุมัติ</option>
+              <option value="approved">อนุมัติแล้ว</option>
+              <option value="rejected">ปฏิเสธ</option>
+              <option value="borrowing">กำลังยืม</option>
+              <option value="returned">คืนแล้ว</option>
+            </select>
+          </div>
+
+          {/* Date Type selection dropdown */}
+          <div>
+            <label className="block text-[10px] font-sans text-slate-450 font-bold uppercase tracking-wider mb-1.5">ประเภทวันที่กรอง</label>
+            <select
+              value={dateType}
+              onChange={(e) => setDateType(e.target.value as 'create' | 'due')}
+              className="w-full px-3 py-2 border border-[#E8E8ED] rounded-xl text-xs font-sans focus:outline-hidden focus:border-[#0071E3] bg-white transition-all cursor-pointer appearance-none"
+            >
+              <option value="create">กรองตามวันที่ยื่นคำขอ</option>
+              <option value="due">กรองตามกำหนดส่งคืน</option>
+            </select>
+          </div>
+
+          {/* Start Date filter */}
+          <div>
+            <label className="block text-[10px] font-sans text-slate-450 font-bold uppercase tracking-wider mb-1.5">ตั้งแต่วันที่</label>
+            <input
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="w-full px-3 py-1.5 border border-[#E8E8ED] rounded-xl text-xs font-sans focus:outline-hidden focus:border-[#0071E3] bg-white transition-all"
+            />
+          </div>
+
+          {/* End Date filter */}
+          <div>
+            <label className="block text-[10px] font-sans text-slate-450 font-bold uppercase tracking-wider mb-1.5">ถึงวันที่</label>
+            <input
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              className="w-full px-3 py-1.5 border border-[#E8E8ED] rounded-xl text-xs font-sans focus:outline-hidden focus:border-[#0071E3] bg-white transition-all"
+            />
+          </div>
+        </div>
+
+        {/* Reset Filters Option */}
+        {(statusFilter !== 'all' || startDate || endDate) && (
+          <div className="flex justify-end pt-1">
+            <button
+              onClick={() => {
+                setStatusFilter('all');
+                setStartDate('');
+                setEndDate('');
+              }}
+              className="text-[10px] text-slate-500 hover:text-slate-700 font-bold underline cursor-pointer"
+            >
+              ล้างตัวกรองทั้งหมด ✕
+            </button>
+          </div>
+        )}
       </div>
 
       {loading ? (

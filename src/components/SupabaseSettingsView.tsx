@@ -242,16 +242,60 @@ export default function SupabaseSettingsView({
     );
   }
 
+  // Local state for custom Admin 6-digit PIN
+  const [adminPinInput, setAdminPinInput] = useState(() => localStorage.getItem('system_admin_sidebar_pin') || '888888');
+  const [pinSaveSuccess, setPinSaveSuccess] = useState(false);
+
   return (
     <div className="max-w-3xl mx-auto space-y-6 text-left w-full animate-fade-in" id="settings-root-container">
       
       {/* System Customization Panel */}
-      <div className="bg-white p-6 rounded-2xl border border-[#E8E8ED] shadow-apple-card">
-        <h3 className="text-sm font-bold text-slate-900 border-b border-[#E8E8ED] pb-3 mb-6 flex items-center gap-2">
-          <Settings2 className="h-4.5 w-4.5 text-apple-primary" /> ตั้งค่าระบบและโปรไฟล์โปรแกรม
-        </h3>
+      <div className="bg-white p-6 rounded-2xl border border-[#E8E8ED] shadow-apple-card space-y-6">
+        <div>
+          <h3 className="text-sm font-bold text-slate-900 border-b border-[#E8E8ED] pb-3 flex items-center gap-2">
+            <Settings2 className="h-4.5 w-4.5 text-apple-primary" /> ตั้งค่าระบบและโปรไฟล์โปรแกรม
+          </h3>
+        </div>
 
         <div className="space-y-5">
+          {/* 6-Digit Admin Sidebar PIN Customizer */}
+          <div className="p-4 bg-blue-50/30 rounded-2xl border border-blue-100/50 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <h4 className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                🔒 รหัส PIN 6 หลัก ปลดล็อก Sidebar เมนูบริหารคลัง
+              </h4>
+              <p className="text-[10px] text-slate-400 font-sans leading-relaxed">
+                กรุณาระบุเลขรหัสผ่าน 6 หลักเพื่อใช้ควบคุมสิทธิ์การเข้าถึงข้อมูลและการอนุมัติคลังแอดมิน (ค่าเริ่มต้น: 888888)
+              </p>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <input
+                type="text"
+                maxLength={6}
+                value={adminPinInput}
+                onChange={(e) => setAdminPinInput(e.target.value.replace(/[^0-9]/g, ''))}
+                className="w-24 px-3.5 py-1.5 border border-[#E8E8ED] rounded-xl text-center text-xs font-bold font-sans focus:outline-hidden focus:border-apple-primary bg-white transition-all"
+                placeholder="888888"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  if (adminPinInput.length !== 6) {
+                    alert('รหัสผ่านผู้ดูแลระบบจำเป็นต้องมีความยาวครบ 6 หลักถ้วนค่ะ');
+                    return;
+                  }
+                  localStorage.setItem('system_admin_sidebar_pin', adminPinInput);
+                  setPinSaveSuccess(true);
+                  setTimeout(() => setPinSaveSuccess(false), 2000);
+                  onRefreshAll();
+                }}
+                className="px-4 py-1.5 bg-[#0071E3] hover:bg-[#0077ED] text-white font-sans font-semibold text-xs rounded-xl shadow-md shadow-apple-primary/10 transition-all cursor-pointer"
+              >
+                {pinSaveSuccess ? 'บันทึกแล้ว ✓' : 'บันทึก PIN'}
+              </button>
+            </div>
+          </div>
+
           {/* Logo Customization */}
           <div>
             <label className="block text-[11px] font-sans font-bold text-slate-500 uppercase tracking-wider mb-2">ตราสัญลักษณ์ระบบ (System Logo)</label>

@@ -38,6 +38,7 @@ interface BorrowReturnViewProps {
 }
 
 const COMPANIES = [
+  'NT',
   'IQsafe',
   'Insider',
   'อื่นๆ ระบุ'

@@ -34,10 +34,11 @@ export default function App() {
 
   const handleAdminPinKeyPress = (num: string) => {
     setAdminPinError(false);
+    const targetPin = localStorage.getItem('system_admin_sidebar_pin') || '888888';
     if (adminPin.length < 6) {
       const nextPin = adminPin + num;
       setAdminPin(nextPin);
-      if (nextPin === '888888') {
+      if (nextPin === targetPin) {
         setTimeout(() => {
           sessionStorage.setItem('admin_sidebar_unlocked', 'true');
           setIsAdminUnlocked(true);
@@ -285,16 +286,16 @@ export default function App() {
                   className="w-full flex items-center justify-center gap-2 p-4 bg-[#F5F5F7] border border-dashed border-[#C7C7CC] hover:bg-[#E8E8ED] hover:border-[#86868B] text-[#86868B] hover:text-[#1D1D1F] rounded-xl text-xs font-bold transition-all cursor-pointer"
                 >
                   <ShieldCheck className="h-4 w-4 shrink-0" />
-                  <span>ปลดล็อกเมนูผู้ดูแลระบบ (6 หลัก)</span>
+                  <span>ปลดล็อกเมนูผู้ดูแลระบบ</span>
                 </button>
               ) : (
                 /* Unlocked State: render full menu */
                 <div className="flex flex-col gap-1">
                   {[
                     { id: 'dashboard', name: 'รายงานสรุปภาพรวม', icon: LayoutDashboard },
+                    { id: 'approval', name: 'อนุมัติคำขอ', icon: ShieldCheck, badge: pendingCount },
                     { id: 'inventory', name: 'รายการอุปกรณ์', icon: Package },
                     { id: 'borrow', name: 'ระบบเบิก-คืนพัสดุ', icon: ArrowLeftRight },
-                    { id: 'approval', name: 'อนุมัติคำขอ', icon: ShieldCheck, badge: pendingCount },
                     { id: 'history', name: 'ประวัติเบิกจ่าย', icon: HistoryIcon },
                   ].map(tab => {
                     const IconComp = tab.icon;
