@@ -299,7 +299,7 @@ export default function App() {
                     { id: 'dashboard', name: 'รายงานสรุปภาพรวม', icon: LayoutDashboard },
                     { id: 'approval', name: 'อนุมัติคำขอ', icon: ShieldCheck, badge: pendingCount },
                     { id: 'inventory', name: 'รายการอุปกรณ์', icon: Package },
-                    { id: 'borrow', name: 'ระบบเบิก-คืนพัสดุ', icon: ArrowLeftRight },
+                    { id: 'borrow', name: 'ระบบเบิก-คืนพัสดุ (สำหรับแอดมิน)', icon: ArrowLeftRight },
                     { id: 'history', name: 'ประวัติเบิกจ่าย', icon: HistoryIcon },
                   ].map(tab => {
                     const IconComp = tab.icon;
