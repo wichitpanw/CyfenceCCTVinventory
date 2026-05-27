@@ -39,16 +39,20 @@ const compressImage = (file: File): Promise<string> =>
       const img = new Image();
       img.src = ev.target?.result as string;
       img.onload = () => {
-        const MAX = 800;
+        const MAX = 500;
         let { width, height } = img;
         if (width > MAX) { height = (height * MAX) / width; width = MAX; }
         if (height > MAX) { width = (width * MAX) / height; height = MAX; }
         const canvas = document.createElement('canvas');
         canvas.width = width; canvas.height = height;
-        const ctx = canvas.getContext('2d')!;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          resolve(ev.target?.result as string); // safe guard fallback
+          return;
+        }
         ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, width, height);
         ctx.drawImage(img, 0, 0, width, height);
-        resolve(canvas.toDataURL('image/jpeg', 0.75));
+        resolve(canvas.toDataURL('image/jpeg', 0.7));
       };
       img.onerror = reject;
     };
@@ -180,12 +184,13 @@ export default function RequestView({ config, refreshTrigger }: RequestViewProps
 
       // Async Telegram Notification trigger
       const triggerTelegramNotification = async () => {
-        const token = localStorage.getItem('system_telegram_bot_token');
-        const chatId = localStorage.getItem('system_telegram_chat_id');
-        if (token && chatId) {
-          try {
-            const { sendTelegramNotification } = await import('../services/db');
-            
+        try {
+          const { getSystemSettings, sendTelegramNotification } = await import('../services/db');
+          const settings = await getSystemSettings(config);
+          const token = settings?.telegram_bot_token || localStorage.getItem('system_telegram_bot_token');
+          const chatId = settings?.telegram_chat_id || localStorage.getItem('system_telegram_chat_id');
+          
+          if (token && chatId) {
             // Format Items list for message
             const itemsStr = cart.map(c => `• <b>${c.equipment.name}</b> (${c.equipment.code}) — <code>${c.qty}</code> ชิ้น`).join('\n');
             
@@ -200,9 +205,9 @@ export default function RequestView({ config, refreshTrigger }: RequestViewProps
               `🏷️ <b>รหัสอ้างอิงคำขอ:</b> <code>${result.id}</code>`;
 
             await sendTelegramNotification(token, chatId, message);
-          } catch (teleErr) {
-            console.warn('Failed to send auto Telegram request notice:', teleErr);
           }
+        } catch (teleErr) {
+          console.warn('Failed to send auto Telegram request notice:', teleErr);
         }
       };
       triggerTelegramNotification();

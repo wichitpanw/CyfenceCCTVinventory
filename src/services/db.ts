@@ -804,22 +804,24 @@ export async function borrowEquipment(
         throw new Error(`การบันทึกรายการยืมล้มเหลว: ${txErr.message}`);
       }
 
-      // Step 3: หักจำนวนคงเหลือ และ อัปเดตสถานะของอุปกรณ์
+      // Step 3: หักจำนวนคงเหลือ และ อัปเดตสถานะของอุปกรณ์ ด้วยระบบตรวจสอบความสอดคล้องกัน (Atomic check)
       const nextAvailable = availableQty - borrowQty;
       const nextStatus = nextAvailable === 0 ? 'borrowed' : 'available';
       
-      const { error: eqErr } = await client
+      const { data: updatedEq, error: eqErr } = await client
         .from('equipment')
         .update({ 
           available_qty: nextAvailable,
           status: nextStatus
         })
-        .eq('id', equipment.id);
+        .eq('id', equipment.id)
+        .gte('available_qty', borrowQty) // ตัวตรวจสอบระดับฐานข้อมูลป้องกันสภาวะแข่งขัน (Race Condition)
+        .select();
 
-      if (eqErr) {
-        console.error('Supabase status update failed, trying to roll back transactional state...');
+      if (eqErr || !updatedEq || updatedEq.length === 0) {
+        console.error('Supabase status update failed (out of stock or race condition), rolling back transactional state...');
         await client.from('transactions').delete().eq('id', newTx.id);
-        throw new Error(`อัปเดตสถานะอุปกรณ์ล้มเหลว: ${eqErr.message}`);
+        throw new Error(eqErr?.message || 'อุปกรณ์มีจำนวนในคลังไม่เพียงพอ หรือมีการแย่งทำรายการเบิกไปก่อนหน้านี้');
       }
 
       return txData[0] as Transaction;
