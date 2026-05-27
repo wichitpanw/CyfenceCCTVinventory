@@ -109,35 +109,12 @@ export default function RequestView({ config, refreshTrigger }: RequestViewProps
 
   const filteredEq = equipments.filter(e => {
     const avail = (e.available_qty ?? 0) > 0;
-    const inCart = cart.find(c => c.equipment.id === e.id);
-    const cartQty = inCart ? inCart.qty : 0;
-    const hasStock = (e.available_qty ?? 0) - cartQty > 0;
     const matchCat = !selectedCategory || e.category === selectedCategory;
     const matchSearch = !searchTerm ||
       e.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       e.code.toLowerCase().includes(searchTerm.toLowerCase());
-    return avail && hasStock && matchCat && matchSearch;
+    return avail && matchCat && matchSearch;
   });
-
-  const selectedEq = equipments.find(e => e.id === selectedEqId);
-  const maxQty = selectedEq
-    ? (selectedEq.available_qty ?? 1) - (cart.find(c => c.equipment.id === selectedEqId)?.qty ?? 0)
-    : 1;
-
-  const addToCart = () => {
-    if (!selectedEq) return;
-    const existing = cart.findIndex(c => c.equipment.id === selectedEqId);
-    if (existing !== -1) {
-      const newCart = [...cart];
-      newCart[existing].qty += borrowQty;
-      setCart(newCart);
-    } else {
-      setCart([...cart, { equipment: selectedEq, qty: borrowQty }]);
-    }
-    setSelectedEqId('');
-    setBorrowQty(1);
-    setSubmitError('');
-  };
 
   const removeFromCart = (idx: number) => {
     const n = [...cart]; n.splice(idx, 1); setCart(n);
@@ -356,63 +333,91 @@ export default function RequestView({ config, refreshTrigger }: RequestViewProps
               <div className="max-h-52 overflow-y-auto space-y-1.5 pr-1">
                 {filteredEq.length === 0 ? (
                   <p className="text-[11px] text-[#86868B] text-center py-4">ไม่พบรายการพัสดุที่ว่าง</p>
-                ) : filteredEq.map(eq => (
-                  <button
-                    key={eq.id}
-                    type="button"
-                    onClick={() => { setSelectedEqId(eq.id === selectedEqId ? '' : eq.id); setBorrowQty(1); }}
-                    className={`w-full flex items-center justify-between p-2.5 rounded-xl border text-left transition ${selectedEqId === eq.id ? 'bg-[#F5F5F7] border-[#000000]' : 'bg-white border-[#E8E8ED] hover:bg-[#F5F5F7]'}`}
-                  >
-                    <div className="min-w-0 flex-1 flex items-center gap-2.5">
-                      {eq.image_url && (
-                        <img 
-                          src={eq.image_url} 
-                          alt={eq.name} 
-                          className="w-8 h-8 object-contain rounded-lg shrink-0 border border-[#E8E8ED] p-0.5 bg-white"
-                          referrerPolicy="no-referrer"
-                        />
-                      )}
-                      <div className="min-w-0 flex-1">
-                        <p className="text-xs font-bold text-[#1D1D1F] truncate">{eq.name}</p>
-                        <p className="text-[10px] text-[#86868B] font-mono">{eq.code} · คลัง {eq.available_qty ?? 0} ชิ้น</p>
+                ) : filteredEq.map(eq => {
+                  const inCart = cart.find(c => c.equipment.id === eq.id);
+                  const inCartQty = inCart ? inCart.qty : 0;
+                  const availableStock = eq.available_qty ?? 0;
+
+                  return (
+                    <div
+                      key={eq.id}
+                      className="w-full flex items-center justify-between p-2.5 rounded-xl border bg-white border-[#E8E8ED] hover:bg-[#F5F5F7] transition gap-3"
+                    >
+                      <div className="min-w-0 flex-1 flex items-center gap-2.5">
+                        {eq.image_url && (
+                          <img 
+                            src={eq.image_url} 
+                            alt={eq.name} 
+                            className="w-8 h-8 object-contain rounded-lg shrink-0 border border-[#E8E8ED] p-0.5 bg-white"
+                            referrerPolicy="no-referrer"
+                          />
+                        )}
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs font-bold text-[#1D1D1F] truncate">{eq.name}</p>
+                          <p className="text-[10px] text-[#86868B] font-mono">
+                            {eq.code} · คลังคงเหลือ {availableStock} ชิ้น
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Inline Selection & Qty Controls */}
+                      <div className="flex items-center gap-2 shrink-0">
+                        {inCart ? (
+                          <div className="flex items-center gap-2 bg-[#F5F5F7] border border-[#E8E8ED] rounded-lg p-0.5 shadow-3xs">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const newCart = [...cart];
+                                const idx = newCart.findIndex(c => c.equipment.id === eq.id);
+                                if (newCart[idx].qty > 1) {
+                                  newCart[idx].qty--;
+                                } else {
+                                  newCart.splice(idx, 1);
+                                }
+                                setCart(newCart);
+                              }}
+                              className="w-6 h-6 rounded-md text-xs font-bold text-black flex items-center justify-center hover:bg-white active:scale-95 transition cursor-pointer"
+                            >
+                              -
+                            </button>
+                            <span className="w-5 text-center text-xs font-extrabold font-mono text-black">
+                              {inCartQty}
+                            </span>
+                            <button
+                              type="button"
+                              disabled={inCartQty >= availableStock}
+                              onClick={() => {
+                                const newCart = [...cart];
+                                const idx = newCart.findIndex(c => c.equipment.id === eq.id);
+                                if (newCart[idx].qty < availableStock) {
+                                  newCart[idx].qty++;
+                                }
+                                setCart(newCart);
+                              }}
+                              className={`w-6 h-6 rounded-md text-xs font-bold flex items-center justify-center transition ${
+                                inCartQty >= availableStock
+                                  ? 'text-gray-300 cursor-not-allowed'
+                                  : 'text-black hover:bg-white active:scale-95 cursor-pointer'
+                              }`}
+                            >
+                              +
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setCart([...cart, { equipment: eq, qty: 1 }]);
+                            }}
+                            className="flex items-center gap-1 px-3 py-1.5 bg-black hover:bg-[#1D1D1F] active:scale-95 text-white rounded-lg text-[10px] font-bold transition shadow-3xs cursor-pointer"
+                          >
+                            <Plus className="h-3 w-3" /> เลือก
+                          </button>
+                        )}
                       </div>
                     </div>
-                    {selectedEqId === eq.id && <CheckCircle className="h-4 w-4 text-[#000000] shrink-0 ml-2" />}
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {/* Qty + Add button */}
-            {selectedEq && (
-              <div className="flex items-center gap-3 pt-2 border-t border-[#E8E8ED] flex-wrap sm:flex-nowrap">
-                <div className="flex items-center gap-2 flex-1 min-w-0">
-                  {selectedEq.image_url && (
-                    <img 
-                      src={selectedEq.image_url} 
-                      alt={selectedEq.name} 
-                      className="w-8 h-8 object-contain rounded-lg shrink-0 border border-[#E8E8ED] p-0.5 bg-white"
-                      referrerPolicy="no-referrer"
-                    />
-                  )}
-                  <span className="text-xs text-[#1D1D1F] font-bold truncate">{selectedEq.name}</span>
-                </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  <button type="button" onClick={() => setBorrowQty(p=>Math.max(1,p-1))}
-                    className="w-8 h-8 bg-[#F5F5F7] border border-[#E8E8ED] rounded-lg text-sm font-bold flex items-center justify-center hover:bg-gray-200 transition">-</button>
-                  <input type="number" min={1} max={maxQty} value={borrowQty}
-                    onChange={e => setBorrowQty(Math.max(1,Math.min(maxQty,Number(e.target.value))))}
-                    className="w-14 text-center text-xs font-bold border border-[#E8E8ED] rounded-lg py-1 px-1 focus:outline-none" />
-                  <button type="button" onClick={() => setBorrowQty(p=>Math.min(maxQty,p+1))}
-                    className="w-8 h-8 bg-[#F5F5F7] border border-[#E8E8ED] rounded-lg text-sm font-bold flex items-center justify-center hover:bg-gray-200 transition">+</button>
-                </div>
-                <button
-                  type="button"
-                  onClick={addToCart}
-                  className="flex items-center gap-1.5 px-4 py-2 bg-[#000000] text-white rounded-xl text-xs font-semibold hover:bg-[#1D1D1F] transition shrink-0"
-                >
-                  <Plus className="h-3.5 w-3.5" /> เพิ่ม
-                </button>
+                  );
+                })}
               </div>
             )}
           </div>
