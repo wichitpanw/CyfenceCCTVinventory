@@ -1,0 +1,503 @@
+/**
+ * RequestView.tsx — หน้ายื่นคำขอเบิกพัสดุ (สาธารณะ ไม่ต้อง Login)
+ */
+import React, { useState, useEffect } from 'react';
+import {
+  ShoppingCart,
+  User,
+  Briefcase,
+  Phone,
+  Calendar,
+  FileText,
+  Search,
+  Plus,
+  Trash2,
+  CheckCircle,
+  AlertCircle,
+  Package,
+  Send,
+  Camera,
+  UploadCloud,
+  X,
+  ClipboardList,
+} from 'lucide-react';
+import { Equipment, BorrowRequestItem, SupabaseConfig } from '../types';
+import { getEquipments, createBorrowRequest } from '../services/db';
+
+interface RequestViewProps {
+  config: SupabaseConfig;
+  refreshTrigger: number;
+}
+
+const COMPANIES = ['NT', 'IQsafe', 'Insider', 'อื่นๆ ระบุ'];
+
+const compressImage = (file: File): Promise<string> =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (ev) => {
+      const img = new Image();
+      img.src = ev.target?.result as string;
+      img.onload = () => {
+        const MAX = 800;
+        let { width, height } = img;
+        if (width > MAX) { height = (height * MAX) / width; width = MAX; }
+        if (height > MAX) { width = (width * MAX) / height; height = MAX; }
+        const canvas = document.createElement('canvas');
+        canvas.width = width; canvas.height = height;
+        const ctx = canvas.getContext('2d')!;
+        ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, width, height);
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', 0.75));
+      };
+      img.onerror = reject;
+    };
+    reader.onerror = reject;
+  });
+
+export default function RequestView({ config, refreshTrigger }: RequestViewProps) {
+  const [equipments, setEquipments] = useState<Equipment[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Cart
+  const [cart, setCart] = useState<{ equipment: Equipment; qty: number }[]>([]);
+  const [selectedEqId, setSelectedEqId] = useState('');
+  const [borrowQty, setBorrowQty] = useState(1);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('');
+
+  // Requester info
+  const [requesterName, setRequesterName] = useState('');
+  const [requesterCompany, setRequesterCompany] = useState(COMPANIES[0]);
+  const [customCompany, setCustomCompany] = useState('');
+  const [requesterContact, setRequesterContact] = useState('');
+
+  // Purpose & Date
+  const [purpose, setPurpose] = useState('');
+  const [dueDate, setDueDate] = useState('');
+
+  // Evidence image
+  const [evidenceImage, setEvidenceImage] = useState('');
+  const [evidenceMode, setEvidenceMode] = useState<'upload' | 'url'>('upload');
+
+  // Submission
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState('');
+  const [successRefCode, setSuccessRefCode] = useState('');
+
+  // Pre-set default due date (7 days)
+  useEffect(() => {
+    const d = new Date(); d.setDate(d.getDate() + 7);
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    setDueDate(`${yyyy}-${mm}-${dd}`);
+  }, []);
+
+  useEffect(() => {
+    getEquipments(config)
+      .then(setEquipments)
+      .finally(() => setLoading(false));
+  }, [config, refreshTrigger]);
+
+  // categories
+  const categories = Array.from(new Set(equipments.map(e => e.category))).sort();
+
+  const filteredEq = equipments.filter(e => {
+    const avail = (e.available_qty ?? 0) > 0;
+    const inCart = cart.find(c => c.equipment.id === e.id);
+    const cartQty = inCart ? inCart.qty : 0;
+    const hasStock = (e.available_qty ?? 0) - cartQty > 0;
+    const matchCat = !selectedCategory || e.category === selectedCategory;
+    const matchSearch = !searchTerm ||
+      e.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      e.code.toLowerCase().includes(searchTerm.toLowerCase());
+    return avail && hasStock && matchCat && matchSearch;
+  });
+
+  const selectedEq = equipments.find(e => e.id === selectedEqId);
+  const maxQty = selectedEq
+    ? (selectedEq.available_qty ?? 1) - (cart.find(c => c.equipment.id === selectedEqId)?.qty ?? 0)
+    : 1;
+
+  const addToCart = () => {
+    if (!selectedEq) return;
+    const existing = cart.findIndex(c => c.equipment.id === selectedEqId);
+    if (existing !== -1) {
+      const newCart = [...cart];
+      newCart[existing].qty += borrowQty;
+      setCart(newCart);
+    } else {
+      setCart([...cart, { equipment: selectedEq, qty: borrowQty }]);
+    }
+    setSelectedEqId('');
+    setBorrowQty(1);
+    setSubmitError('');
+  };
+
+  const removeFromCart = (idx: number) => {
+    const n = [...cart]; n.splice(idx, 1); setCart(n);
+  };
+
+  const handleImageFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try { setEvidenceImage(await compressImage(file)); } catch { setSubmitError('เกิดข้อผิดพลาดในการประมวลผลรูปภาพ'); }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitError('');
+
+    if (cart.length === 0) { setSubmitError('กรุณาเลือกอุปกรณ์ที่ต้องการขอเบิกอย่างน้อย 1 รายการ'); return; }
+    if (!requesterName.trim()) { setSubmitError('กรุณาระบุชื่อ-นามสกุลผู้ยื่นคำขอ'); return; }
+    if (!dueDate) { setSubmitError('กรุณาระบุวันที่ต้องการคืนพัสดุ'); return; }
+
+    const finalCompany = requesterCompany === 'อื่นๆ ระบุ'
+      ? customCompany.trim()
+      : requesterCompany;
+    if (!finalCompany) { setSubmitError('กรุณาระบุชื่อบริษัท'); return; }
+
+    const items: BorrowRequestItem[] = cart.map(c => ({
+      equipment_id: c.equipment.id,
+      equipment_code: c.equipment.code,
+      equipment_name: c.equipment.name,
+      qty: c.qty,
+    }));
+
+    setSubmitting(true);
+    try {
+      const result = await createBorrowRequest(config, {
+        requester_name: requesterName.trim(),
+        requester_company: finalCompany,
+        requester_contact: requesterContact.trim() || undefined,
+        items,
+        purpose: purpose.trim(),
+        requested_due_date: dueDate,
+        evidence_image_url: evidenceImage || undefined,
+      });
+      setSuccessRefCode(result.id);
+    } catch (err: any) {
+      setSubmitError(err?.message || 'ส่งคำขอไม่สำเร็จ โปรดลองใหม่อีกครั้ง');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleReset = () => {
+    setSuccessRefCode('');
+    setCart([]);
+    setRequesterName('');
+    setRequesterCompany(COMPANIES[0]);
+    setCustomCompany('');
+    setRequesterContact('');
+    setPurpose('');
+    setEvidenceImage('');
+    setSubmitError('');
+  };
+
+  // ── Success screen ──────────────────────────────────────────────────────────
+  if (successRefCode) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center space-y-6 py-12 px-4">
+        <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center">
+          <CheckCircle className="w-10 h-10 text-emerald-500" />
+        </div>
+        <div className="space-y-2">
+          <h2 className="text-xl font-bold text-[#1D1D1F]">ส่งคำขอเบิกพัสดุเรียบร้อยแล้ว!</h2>
+          <p className="text-sm text-[#86868B]">ผู้ดูแลระบบจะตรวจสอบและแจ้งผลให้ทราบภายในเร็วๆ นี้</p>
+        </div>
+        <div className="bg-[#F5F5F7] border border-[#E8E8ED] rounded-2xl p-6 w-full max-w-sm space-y-2">
+          <p className="text-[11px] text-[#86868B] uppercase tracking-wider font-semibold">รหัสอ้างอิงคำขอของคุณ</p>
+          <p className="text-base font-mono font-bold text-[#0071E3] break-all">{successRefCode}</p>
+          <p className="text-[10px] text-[#86868B]">กรุณาบันทึกรหัสนี้ไว้สำหรับติดตามสถานะคำขอ</p>
+        </div>
+        <button
+          onClick={handleReset}
+          className="px-8 py-3 bg-[#0071E3] text-white rounded-xl text-sm font-semibold hover:bg-[#0077ED] transition-all"
+        >
+          ยื่นคำขอใหม่
+        </button>
+      </div>
+    );
+  }
+
+  // ── Main form ───────────────────────────────────────────────────────────────
+  return (
+    <div className="space-y-6 text-left" id="request-view-wrapper">
+      {/* Header */}
+      <div>
+        <h2 className="text-sm font-bold font-sans text-slate-900 uppercase tracking-wider flex items-center gap-2">
+          <ClipboardList className="h-4 w-4 text-[#0071E3]" />
+          ยื่นคำขอเบิกพัสดุ
+        </h2>
+        <p className="text-xs text-slate-500 font-sans mt-0.5">
+          กรอกรายละเอียดพัสดุที่ต้องการและข้อมูลผู้ขอ — เจ้าหน้าที่จะดำเนินการอนุมัติภายในเร็วๆ นี้
+        </p>
+      </div>
+
+      <form onSubmit={handleSubmit} className="space-y-5">
+        {/* ── Step 1: Cart ── */}
+        <div className="bg-white border border-[#E8E8ED] rounded-2xl p-5 shadow-[0_4px_20px_rgba(0,0,0,0.04)] space-y-4">
+          <h3 className="text-[11px] font-bold uppercase tracking-wider text-[#1D1D1F] flex items-center gap-2">
+            <ShoppingCart className="h-3.5 w-3.5 text-[#0071E3]" />
+            1. รายการพัสดุที่ต้องการขอเบิก
+          </h3>
+
+          {/* Cart items */}
+          {cart.length > 0 && (
+            <div className="space-y-2">
+              {cart.map((item, idx) => (
+                <div key={idx} className="flex items-center justify-between bg-[#F0F7FF] border border-blue-100 rounded-xl px-3 py-2 gap-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-bold text-[#1D1D1F] truncate">{item.equipment.name}</p>
+                    <p className="text-[10px] text-[#86868B] font-mono">{item.equipment.code}</p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button type="button" onClick={() => { const n=[...cart]; if(n[idx].qty>1)n[idx].qty--; else n.splice(idx,1); setCart(n); }}
+                      className="w-6 h-6 bg-white border border-[#E8E8ED] rounded-lg text-sm font-bold text-[#1D1D1F] flex items-center justify-center hover:bg-gray-50 transition">-</button>
+                    <span className="w-6 text-center text-xs font-bold">{item.qty}</span>
+                    <button type="button" onClick={() => { const n=[...cart]; const avail=(n[idx].equipment.available_qty??1); if(n[idx].qty<avail)n[idx].qty++; setCart(n); }}
+                      className="w-6 h-6 bg-white border border-[#E8E8ED] rounded-lg text-sm font-bold text-[#1D1D1F] flex items-center justify-center hover:bg-gray-50 transition">+</button>
+                    <button type="button" onClick={() => removeFromCart(idx)}
+                      className="w-6 h-6 text-red-400 hover:text-red-600 flex items-center justify-center transition">
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+              <div className="flex justify-between text-[10px] font-semibold text-[#86868B] pt-1 border-t border-[#E8E8ED] px-1">
+                <span>{cart.length} ชนิด</span>
+                <span className="text-[#0071E3] font-extrabold">รวม {cart.reduce((s,i)=>s+i.qty,0)} ชิ้น</span>
+              </div>
+            </div>
+          )}
+
+          {/* Add equipment */}
+          <div className="border border-dashed border-[#C7C7CC] rounded-xl p-4 space-y-3">
+            <p className="text-[10px] text-[#86868B] font-semibold uppercase tracking-wider">เพิ่มรายการพัสดุ</p>
+
+            {/* Category filter */}
+            {categories.length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                <button type="button" onClick={() => setSelectedCategory('')}
+                  className={`text-[10px] px-2.5 py-1 rounded-full border font-semibold transition ${!selectedCategory ? 'bg-[#0071E3] text-white border-[#0071E3]' : 'bg-white text-[#86868B] border-[#E8E8ED] hover:bg-[#F5F5F7]'}`}>
+                  ทั้งหมด
+                </button>
+                {categories.map(cat => (
+                  <button key={cat} type="button" onClick={() => setSelectedCategory(cat)}
+                    className={`text-[10px] px-2.5 py-1 rounded-full border font-semibold transition truncate max-w-[120px] ${selectedCategory===cat ? 'bg-[#0071E3] text-white border-[#0071E3]' : 'bg-white text-[#86868B] border-[#E8E8ED] hover:bg-[#F5F5F7]'}`}>
+                    {cat}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Search + Select */}
+            <div className="relative">
+              <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-[#86868B] pointer-events-none" />
+              <input
+                type="text"
+                placeholder="ค้นหารหัสหรือชื่อพัสดุ..."
+                value={searchTerm}
+                onChange={e => setSearchTerm(e.target.value)}
+                className="w-full pl-8 pr-3 py-2 bg-[#F5F5F7] border border-[#E8E8ED] rounded-xl text-xs focus:outline-none focus:bg-white focus:border-[#0071E3] transition"
+              />
+            </div>
+
+            {loading ? (
+              <p className="text-[11px] text-[#86868B] text-center py-2">กำลังโหลดรายการพัสดุ...</p>
+            ) : (
+              <div className="max-h-52 overflow-y-auto space-y-1.5 pr-1">
+                {filteredEq.length === 0 ? (
+                  <p className="text-[11px] text-[#86868B] text-center py-4">ไม่พบรายการพัสดุที่ว่าง</p>
+                ) : filteredEq.map(eq => (
+                  <button
+                    key={eq.id}
+                    type="button"
+                    onClick={() => { setSelectedEqId(eq.id === selectedEqId ? '' : eq.id); setBorrowQty(1); }}
+                    className={`w-full flex items-center justify-between p-2.5 rounded-xl border text-left transition ${selectedEqId === eq.id ? 'bg-[#E8F2FF] border-[#0071E3]' : 'bg-white border-[#E8E8ED] hover:bg-[#F5F5F7]'}`}
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-bold text-[#1D1D1F] truncate">{eq.name}</p>
+                      <p className="text-[10px] text-[#86868B] font-mono">{eq.code} · คลัง {eq.available_qty ?? 0} ชิ้น</p>
+                    </div>
+                    {selectedEqId === eq.id && <CheckCircle className="h-4 w-4 text-[#0071E3] shrink-0 ml-2" />}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Qty + Add button */}
+            {selectedEq && (
+              <div className="flex items-center gap-3 pt-1 border-t border-[#E8E8ED]">
+                <span className="text-xs text-[#1D1D1F] font-semibold flex-1 truncate">{selectedEq.name}</span>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <button type="button" onClick={() => setBorrowQty(p=>Math.max(1,p-1))}
+                    className="w-7 h-7 bg-[#F5F5F7] border border-[#E8E8ED] rounded-lg text-sm font-bold flex items-center justify-center hover:bg-gray-200 transition">-</button>
+                  <input type="number" min={1} max={maxQty} value={borrowQty}
+                    onChange={e => setBorrowQty(Math.max(1,Math.min(maxQty,Number(e.target.value))))}
+                    className="w-12 text-center text-xs font-bold border border-[#E8E8ED] rounded-lg py-1 focus:outline-none" />
+                  <button type="button" onClick={() => setBorrowQty(p=>Math.min(maxQty,p+1))}
+                    className="w-7 h-7 bg-[#F5F5F7] border border-[#E8E8ED] rounded-lg text-sm font-bold flex items-center justify-center hover:bg-gray-200 transition">+</button>
+                </div>
+                <button
+                  type="button"
+                  onClick={addToCart}
+                  className="flex items-center gap-1.5 px-4 py-2 bg-[#0071E3] text-white rounded-xl text-xs font-semibold hover:bg-[#0077ED] transition shrink-0"
+                >
+                  <Plus className="h-3.5 w-3.5" /> เพิ่ม
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* ── Step 2: Requester info ── */}
+        <div className="bg-white border border-[#E8E8ED] rounded-2xl p-5 shadow-[0_4px_20px_rgba(0,0,0,0.04)] space-y-4">
+          <h3 className="text-[11px] font-bold uppercase tracking-wider text-[#1D1D1F] flex items-center gap-2">
+            <User className="h-3.5 w-3.5 text-[#0071E3]" />
+            2. ข้อมูลผู้ยื่นคำขอ
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Name */}
+            <div>
+              <label className="block text-[10px] font-semibold uppercase tracking-wider text-[#86868B] mb-1.5">ชื่อ-นามสกุล *</label>
+              <div className="relative">
+                <User className="absolute left-3 top-2.5 h-4 w-4 text-[#86868B] pointer-events-none" />
+                <input type="text" value={requesterName} onChange={e=>setRequesterName(e.target.value)}
+                  placeholder="เช่น สมศักดิ์ แสนดี" required
+                  className="w-full pl-9 pr-3 py-2 border border-[#E8E8ED] rounded-xl text-xs focus:outline-none focus:border-[#0071E3] bg-[#F5F5F7] focus:bg-white transition" />
+              </div>
+            </div>
+            {/* Company */}
+            <div>
+              <label className="block text-[10px] font-semibold uppercase tracking-wider text-[#86868B] mb-1.5">บริษัท *</label>
+              <div className="relative">
+                <Briefcase className="absolute left-3 top-2.5 h-4 w-4 text-[#86868B] pointer-events-none" />
+                <select value={requesterCompany} onChange={e=>setRequesterCompany(e.target.value)}
+                  className="w-full pl-9 pr-3 py-2 border border-[#E8E8ED] rounded-xl text-xs focus:outline-none focus:border-[#0071E3] bg-[#F5F5F7] focus:bg-white transition appearance-none">
+                  {COMPANIES.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
+              {requesterCompany === 'อื่นๆ ระบุ' && (
+                <input type="text" value={customCompany} onChange={e=>setCustomCompany(e.target.value)}
+                  placeholder="ระบุชื่อบริษัท..." required
+                  className="mt-2 w-full px-3 py-2 border border-[#E8E8ED] rounded-xl text-xs focus:outline-none focus:border-[#0071E3] bg-white transition" />
+              )}
+            </div>
+            {/* Contact */}
+            <div className="md:col-span-2">
+              <label className="block text-[10px] font-semibold uppercase tracking-wider text-[#86868B] mb-1.5">เบอร์ติดต่อ / อีเมล (ไม่บังคับ)</label>
+              <div className="relative">
+                <Phone className="absolute left-3 top-2.5 h-4 w-4 text-[#86868B] pointer-events-none" />
+                <input type="text" value={requesterContact} onChange={e=>setRequesterContact(e.target.value)}
+                  placeholder="เช่น 081-234-5678 หรือ name@company.com"
+                  className="w-full pl-9 pr-3 py-2 border border-[#E8E8ED] rounded-xl text-xs focus:outline-none focus:border-[#0071E3] bg-[#F5F5F7] focus:bg-white transition" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* ── Step 3: Purpose & Date ── */}
+        <div className="bg-white border border-[#E8E8ED] rounded-2xl p-5 shadow-[0_4px_20px_rgba(0,0,0,0.04)] space-y-4">
+          <h3 className="text-[11px] font-bold uppercase tracking-wider text-[#1D1D1F] flex items-center gap-2">
+            <FileText className="h-3.5 w-3.5 text-[#0071E3]" />
+            3. วัตถุประสงค์และวันที่
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Purpose */}
+            <div className="md:col-span-2">
+              <label className="block text-[10px] font-semibold uppercase tracking-wider text-[#86868B] mb-1.5">วัตถุประสงค์การใช้งาน</label>
+              <div className="relative">
+                <FileText className="absolute left-3 top-2.5 h-4 w-4 text-[#86868B] pointer-events-none" />
+                <textarea rows={2} value={purpose} onChange={e=>setPurpose(e.target.value)}
+                  placeholder="เช่น ใช้ในงานโครงการติดตั้งกล้องโครงการ X ที่..."
+                  className="w-full pl-9 pr-3 py-2 border border-[#E8E8ED] rounded-xl text-xs focus:outline-none focus:border-[#0071E3] bg-[#F5F5F7] focus:bg-white transition resize-none" />
+              </div>
+            </div>
+            {/* Due date */}
+            <div className="md:col-span-2">
+              <label className="block text-[10px] font-semibold uppercase tracking-wider text-[#86868B] mb-1.5">วันที่ต้องการคืนพัสดุ *</label>
+              <div className="relative">
+                <Calendar className="absolute left-3 top-2.5 h-4 w-4 text-[#86868B] pointer-events-none" />
+                <input type="date" value={dueDate} onChange={e=>setDueDate(e.target.value)}
+                  min={new Date().toISOString().split('T')[0]} required
+                  className="w-full pl-9 pr-3 py-2 border border-[#E8E8ED] rounded-xl text-xs focus:outline-none focus:border-[#0071E3] bg-[#F5F5F7] focus:bg-white transition" />
+              </div>
+              <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+                <span className="text-[10px] text-[#86868B]">ระยะแนะนำ:</span>
+                {[7, 14, 30].map(d => (
+                  <button key={d} type="button" onClick={() => {
+                    const dt = new Date(); dt.setDate(dt.getDate()+d);
+                    setDueDate(`${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`);
+                  }} className="text-[10px] px-3 py-1 bg-[#F5F5F7] border border-[#E8E8ED] rounded-full font-semibold hover:bg-[#E8E8ED] transition">{d} วัน</button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* ── Step 4: Evidence Image ── */}
+        <div className="bg-white border border-[#E8E8ED] rounded-2xl p-5 shadow-[0_4px_20px_rgba(0,0,0,0.04)] space-y-3">
+          <div className="flex items-center justify-between">
+            <h3 className="text-[11px] font-bold uppercase tracking-wider text-[#1D1D1F] flex items-center gap-2">
+              <Camera className="h-3.5 w-3.5 text-[#0071E3]" />
+              4. รูปประกอบหลักฐาน <span className="normal-case font-normal text-[#86868B]">(ไม่บังคับ)</span>
+            </h3>
+            <div className="bg-[#F5F5F7] p-0.5 rounded-full flex items-center border border-[#E8E8ED] text-[10px] font-semibold">
+              <button type="button" onClick={() => { setEvidenceMode('upload'); setEvidenceImage(''); }}
+                className={`px-3 py-1 rounded-full transition ${evidenceMode==='upload' ? 'bg-white text-[#1D1D1F] shadow-sm' : 'text-[#86868B]'}`}>อัปโหลดรูป</button>
+              <button type="button" onClick={() => { setEvidenceMode('url'); setEvidenceImage(''); }}
+                className={`px-3 py-1 rounded-full transition ${evidenceMode==='url' ? 'bg-white text-[#1D1D1F] shadow-sm' : 'text-[#86868B]'}`}>แนบลิงก์ URL</button>
+            </div>
+          </div>
+
+          {evidenceMode === 'upload' ? (
+            evidenceImage ? (
+              <div className="relative w-full">
+                <img src={evidenceImage} alt="Evidence" className="w-full max-h-48 object-contain rounded-xl border border-[#E8E8ED]" />
+                <button type="button" onClick={() => setEvidenceImage('')}
+                  className="absolute top-2 right-2 w-7 h-7 bg-white border border-[#E8E8ED] rounded-full flex items-center justify-center shadow hover:bg-red-50 transition">
+                  <X className="h-3.5 w-3.5 text-red-500" />
+                </button>
+              </div>
+            ) : (
+              <label className="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-[#C7C7CC] rounded-xl p-8 cursor-pointer hover:bg-[#F5F5F7] transition">
+                <UploadCloud className="h-8 w-8 text-[#86868B]" />
+                <span className="text-xs font-semibold text-[#86868B]">คลิกที่นี่หรือถ่ายรูปผู้รับพัสดุ</span>
+                <span className="text-[10px] text-[#86868B]">PNG, JPG, WebP (บีบอัดโดยอัตโนมัติ)</span>
+                <input type="file" accept="image/*" capture="environment" onChange={handleImageFile} className="hidden" />
+              </label>
+            )
+          ) : (
+            <input type="url" value={evidenceImage} onChange={e=>setEvidenceImage(e.target.value)}
+              placeholder="https://... URL รูปภาพหลักฐาน"
+              className="w-full px-3 py-2 border border-[#E8E8ED] rounded-xl text-xs focus:outline-none focus:border-[#0071E3] bg-[#F5F5F7] focus:bg-white transition" />
+          )}
+        </div>
+
+        {/* Error */}
+        {submitError && (
+          <div className="flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-xl">
+            <AlertCircle className="h-4 w-4 text-red-500 shrink-0 mt-0.5" />
+            <p className="text-xs text-red-700">{submitError}</p>
+          </div>
+        )}
+
+        {/* Submit */}
+        <button
+          type="submit"
+          disabled={submitting}
+          className="w-full flex items-center justify-center gap-2 py-3.5 bg-[#0071E3] hover:bg-[#0077ED] disabled:bg-[#86868B] text-white rounded-2xl text-sm font-bold transition-all shadow-[0_4px_20px_rgba(0,113,227,0.3)] hover:shadow-[0_6px_24px_rgba(0,113,227,0.4)] active:scale-[0.99]"
+        >
+          {submitting ? (
+            <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> กำลังส่งคำขอ...</>
+          ) : (
+            <><Send className="h-4 w-4" /> ส่งคำขอเบิกพัสดุ ({cart.reduce((s,i)=>s+i.qty,0)} ชิ้น)</>
+          )}
+        </button>
+      </form>
+    </div>
+  );
+}

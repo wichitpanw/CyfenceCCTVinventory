@@ -62,3 +62,29 @@ export interface SystemSettings {
   custom_logo: string;
 }
 
+// --- Approval Workflow Types ---
+
+export interface BorrowRequestItem {
+  equipment_id: string;
+  equipment_code: string;
+  equipment_name: string;
+  qty: number;
+}
+
+export interface BorrowRequest {
+  id: string;
+  requester_name: string;
+  requester_company: string;
+  requester_contact?: string;
+  items: BorrowRequestItem[];
+  purpose: string;
+  requested_due_date: string; // ISO date string (yyyy-MM-dd)
+  evidence_image_url?: string;
+  status: 'pending_approval' | 'approved' | 'rejected' | 'borrowing' | 'returned' | 'cancelled';
+  admin_note?: string;
+  reviewed_by?: string;
+  reviewed_at?: string;
+  transaction_ids?: string[];
+  created_at: string;
+  updated_at: string;
+}

@@ -4,7 +4,7 @@
  */
 
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import { Equipment, Transaction, SupabaseConfig, DashboardStats, SystemSettings } from '../types';
+import { Equipment, Transaction, SupabaseConfig, DashboardStats, SystemSettings, BorrowRequest, BorrowRequestItem } from '../types';
 
 const STORAGE_KEY_CONFIG = 'item_inventory_supabase_config';
 const STORAGE_KEY_EQUIPMENT = 'item_inventory_equipment_data';
@@ -1185,6 +1185,146 @@ export async function saveSystemSettings(config: SupabaseConfig, settings: Omit<
   }
 }
 
+// --- Borrow Request (Approval Workflow) ---
+
+// Get all borrow requests (for Admin)
+export async function getBorrowRequests(config: SupabaseConfig): Promise<BorrowRequest[]> {
+  const client = getSupabaseClient(config);
+  if (client) {
+    try {
+      const { data, error } = await client
+        .from('borrow_requests')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (!error && data) {
+        return data.map((r: any) => ({
+          ...r,
+          items: Array.isArray(r.items) ? r.items : JSON.parse(r.items || '[]'),
+          transaction_ids: Array.isArray(r.transaction_ids) ? r.transaction_ids : JSON.parse(r.transaction_ids || '[]'),
+        })) as BorrowRequest[];
+      }
+      if (error) console.warn('getBorrowRequests error:', error);
+    } catch (e) {
+      console.error('Error fetching borrow_requests:', e);
+    }
+  }
+  // LocalStorage fallback
+  try {
+    const stored = localStorage.getItem('borrow_requests_local');
+    return stored ? JSON.parse(stored) : [];
+  } catch {
+    return [];
+  }
+}
+
+// Create a new borrow request (Public — no auth needed)
+export async function createBorrowRequest(
+  config: SupabaseConfig,
+  req: {
+    requester_name: string;
+    requester_company: string;
+    requester_contact?: string;
+    items: BorrowRequestItem[];
+    purpose: string;
+    requested_due_date: string;
+    evidence_image_url?: string;
+  }
+): Promise<BorrowRequest> {
+  const now = new Date().toISOString();
+  const newReq: BorrowRequest = {
+    id: `req-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+    ...req,
+    status: 'pending_approval',
+    transaction_ids: [],
+    created_at: now,
+    updated_at: now,
+  };
+
+  const client = getSupabaseClient(config);
+  if (client) {
+    try {
+      const { data, error } = await client
+        .from('borrow_requests')
+        .insert([newReq])
+        .select();
+      if (!error && data && data[0]) {
+        const r = data[0] as any;
+        return {
+          ...r,
+          items: Array.isArray(r.items) ? r.items : JSON.parse(r.items || '[]'),
+          transaction_ids: Array.isArray(r.transaction_ids) ? r.transaction_ids : [],
+        } as BorrowRequest;
+      }
+      if (error) throw error;
+    } catch (err: any) {
+      console.error('Error creating borrow_request in Supabase:', err);
+      throw new Error(`ส่งคำขอไม่สำเร็จ: ${err?.message || 'โปรดลองใหม่'}`);
+    }
+  }
+
+  // LocalStorage fallback
+  const stored = localStorage.getItem('borrow_requests_local');
+  const list: BorrowRequest[] = stored ? JSON.parse(stored) : [];
+  list.unshift(newReq);
+  localStorage.setItem('borrow_requests_local', JSON.stringify(list));
+  return newReq;
+}
+
+// Update borrow request status (Admin action)
+export async function updateBorrowRequestStatus(
+  config: SupabaseConfig,
+  id: string,
+  status: BorrowRequest['status'],
+  opts?: {
+    adminNote?: string;
+    reviewedBy?: string;
+    transactionIds?: string[];
+  }
+): Promise<BorrowRequest> {
+  const now = new Date().toISOString();
+  const patch: any = { status, updated_at: now };
+  if (opts?.adminNote !== undefined) patch.admin_note = opts.adminNote;
+  if (opts?.reviewedBy) {
+    patch.reviewed_by = opts.reviewedBy;
+    patch.reviewed_at = now;
+  }
+  if (opts?.transactionIds) patch.transaction_ids = opts.transactionIds;
+
+  const client = getSupabaseClient(config);
+  if (client) {
+    try {
+      const { data, error } = await client
+        .from('borrow_requests')
+        .update(patch)
+        .eq('id', id)
+        .select();
+      if (!error && data && data[0]) {
+        const r = data[0] as any;
+        return {
+          ...r,
+          items: Array.isArray(r.items) ? r.items : JSON.parse(r.items || '[]'),
+          transaction_ids: Array.isArray(r.transaction_ids) ? r.transaction_ids : [],
+        } as BorrowRequest;
+      }
+      if (error) throw error;
+    } catch (err: any) {
+      console.error('Error updating borrow_request status:', err);
+      throw new Error(`อัปเดตสถานะไม่สำเร็จ: ${err?.message}`);
+    }
+  }
+
+  // LocalStorage fallback
+  const stored = localStorage.getItem('borrow_requests_local');
+  const list: BorrowRequest[] = stored ? JSON.parse(stored) : [];
+  const idx = list.findIndex(r => r.id === id);
+  if (idx !== -1) {
+    list[idx] = { ...list[idx], ...patch };
+    localStorage.setItem('borrow_requests_local', JSON.stringify(list));
+    return list[idx];
+  }
+  throw new Error('ไม่พบคำขอที่ต้องการอัปเดต');
+}
+
 // Provide Default SQL Schema setup script for the user
 export const SUPABASE_SQL_SCHEMA = `-- คัดลอกสคริปต์นี้เพื่อไปรันใน SQL Editor ของ Supabase เพื่อตั้งค่าตารางแอปพลิเคชันคลังอุปกรณ์
 -- 1. สร้างตารางอุปกรณ์ (equipment)
@@ -1246,7 +1386,31 @@ alter table system_settings enable row level security;
 create policy "Allow all users full access to system_settings" on system_settings
   for all using (true) with check (true);
 
--- 4. รีเซ็ตและอัปเดตแคชโครงสร้างตารางของ API ในระบบ (PostgREST Schema Cache) สำคัญมาก!
+-- 4. สร้างตารางคำขอเบิกพัสดุ (borrow_requests) — ระบบ Approval Workflow
+create table if not exists borrow_requests (
+  id text primary key,
+  requester_name text not null,
+  requester_company text not null,
+  requester_contact text,
+  items jsonb not null default '[]',
+  purpose text not null,
+  requested_due_date date not null,
+  evidence_image_url text,
+  status text not null default 'pending_approval'
+    check (status in ('pending_approval','approved','rejected','borrowing','returned','cancelled')),
+  admin_note text,
+  reviewed_by text,
+  reviewed_at timestamptz,
+  transaction_ids jsonb default '[]',
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+alter table borrow_requests enable row level security;
+create policy "Allow all users full access to borrow_requests" on borrow_requests
+  for all using (true) with check (true);
+
+-- 5. รีเซ็ตและอัปเดตแคชโครงสร้างตารางของ API ในระบบ (PostgREST Schema Cache) สำคัญมาก!
 NOTIFY pgrst, 'reload schema';
 `;
 
@@ -1296,6 +1460,38 @@ UPDATE equipment SET
 UPDATE transactions SET 
   borrow_qty = COALESCE(borrow_qty, 1);
 
--- 5. แจ้งเตือนระบบควบคุม API (PostgREST) ให้กวาดล้างและรีสตาร์ตโครงสร้างใหม่ทันที (แก้ปัญหา Cache Stale / PGRST204)
+-- 5. สร้างตารางคำขอเบิกพัสดุ ถ้ายังไม่มี (borrow_requests)
+create table if not exists borrow_requests (
+  id text primary key,
+  requester_name text not null,
+  requester_company text not null,
+  requester_contact text,
+  items jsonb not null default '[]',
+  purpose text not null,
+  requested_due_date date not null,
+  evidence_image_url text,
+  status text not null default 'pending_approval'
+    check (status in ('pending_approval','approved','rejected','borrowing','returned','cancelled')),
+  admin_note text,
+  reviewed_by text,
+  reviewed_at timestamptz,
+  transaction_ids jsonb default '[]',
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_policies where policyname = 'Allow all users full access to borrow_requests'
+  ) then
+    alter table borrow_requests enable row level security;
+    create policy "Allow all users full access to borrow_requests" on borrow_requests
+      for all using (true) with check (true);
+  end if;
+end
+$$;
+
+-- 6. แจ้งเตือนระบบควบคุม API (PostgREST) ให้กวาดล้างและรีสตาร์ตโครงสร้างใหม่ทันที (แก้ปัญหา Cache Stale / PGRST204)
 NOTIFY pgrst, 'reload schema';
 `;

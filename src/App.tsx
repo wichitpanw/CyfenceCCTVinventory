@@ -6,10 +6,11 @@ import {
   History as HistoryIcon, 
   Settings, 
   Database,
-  Layers,
-  AlertCircle
+  AlertCircle,
+  ClipboardList,
+  ShieldCheck,
 } from 'lucide-react';
-import { getDbConfig } from './services/db';
+import { getDbConfig, getBorrowRequests } from './services/db';
 import { SupabaseConfig, Transaction } from './types';
 
 // Import Views
@@ -18,6 +19,8 @@ import InventoryView from './components/InventoryView';
 import BorrowReturnView from './components/BorrowReturnView';
 import HistoryView from './components/HistoryView';
 import SupabaseSettingsView from './components/SupabaseSettingsView';
+import RequestView from './components/RequestView';
+import ApprovalView from './components/ApprovalView';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<string>('dashboard');
@@ -50,6 +53,9 @@ export default function App() {
   
   // Handle action link from dashboard to return modal directly
   const [quickReturnTx, setQuickReturnTx] = useState<Transaction | null>(null);
+
+  // Pending approval count for badge
+  const [pendingCount, setPendingCount] = useState(0);
 
   // Load config and global system settings on mount / refresh
   useEffect(() => {
@@ -90,6 +96,18 @@ export default function App() {
     };
     
     fetchGlobalSettings();
+
+    // Load pending approval count for badge
+    const loadPending = async () => {
+      if (config.supabaseUrl && config.supabaseKey) {
+        try {
+          const { getBorrowRequests: fetchReqs } = await import('./services/db');
+          const reqs = await fetchReqs(config);
+          setPendingCount(reqs.filter(r => r.status === 'pending_approval').length);
+        } catch {}
+      }
+    };
+    loadPending();
   }, [refreshTrigger]);
 
   const handleConfigChange = (newConfig: SupabaseConfig) => {
@@ -186,17 +204,20 @@ export default function App() {
                 { id: 'dashboard', name: 'รายงานสรุปภาพรวม', icon: LayoutDashboard },
                 { id: 'inventory', name: 'รายการอุปกรณ์', icon: Package },
                 { id: 'borrow', name: 'ระบบเบิก-คืนพัสดุ', icon: ArrowLeftRight },
+                { id: 'requests', name: 'ยื่นคำขอเบิก', icon: ClipboardList },
+                { id: 'approval', name: 'อนุมัติคำขอ', icon: ShieldCheck, badge: pendingCount },
                 { id: 'history', name: 'ประวัติเบิกจ่าย', icon: HistoryIcon },
                 { id: 'settings', name: 'ตั้งค่าระบบ', icon: Settings },
               ].map(tab => {
                 const IconComp = tab.icon;
                 const isActive = activeTab === tab.id;
+                const badge = (tab as any).badge as number | undefined;
                 
                 return (
                   <button
                     key={tab.id}
                     onClick={() => { setActiveTab(tab.id); handleRefresh(); }}
-                    className={`flex items-center space-x-2.5 px-4 py-3 lg:py-2.5 rounded-xl text-xs font-semibold font-sans transition-all cursor-pointer ${
+                    className={`relative flex items-center space-x-2.5 px-4 py-3 lg:py-2.5 rounded-xl text-xs font-semibold font-sans transition-all cursor-pointer ${
                       isActive 
                         ? 'bg-[#E8F2FF] text-[#0071E3]' 
                         : 'text-[#1D1D1F] hover:bg-[#F5F5F7]'
@@ -204,6 +225,11 @@ export default function App() {
                   >
                     <IconComp className={`h-4 w-4 shrink-0 ${isActive ? 'text-[#0071E3]' : 'text-[#86868B]'}`} />
                     <span className="truncate">{tab.name}</span>
+                    {badge != null && badge > 0 && (
+                      <span className="absolute top-1.5 right-1.5 min-w-[18px] h-[18px] px-1 bg-red-500 text-white text-[9px] font-extrabold rounded-full flex items-center justify-center leading-none">
+                        {badge > 99 ? '99+' : badge}
+                      </span>
+                    )}
                   </button>
                 );
               })}
@@ -243,6 +269,21 @@ export default function App() {
               <HistoryView 
                 config={dbConfig} 
                 refreshTrigger={refreshTrigger} 
+              />
+            )}
+            
+            {activeTab === 'requests' && (
+              <RequestView
+                config={dbConfig}
+                refreshTrigger={refreshTrigger}
+              />
+            )}
+
+            {activeTab === 'approval' && (
+              <ApprovalView
+                config={dbConfig}
+                refreshTrigger={refreshTrigger}
+                onRefresh={handleRefresh}
               />
             )}
             
