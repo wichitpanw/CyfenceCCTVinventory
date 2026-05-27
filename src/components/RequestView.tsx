@@ -29,7 +29,7 @@ interface RequestViewProps {
   refreshTrigger: number;
 }
 
-const COMPANIES = ['NT', 'IQsafe', 'Insider', 'อื่นๆ ระบุ'];
+const COMPANIES = ['IQsafe', 'Insider', 'อื่นๆ ระบุ'];
 
 const compressImage = (file: File): Promise<string> =>
   new Promise((resolve, reject) => {
@@ -249,9 +249,19 @@ export default function RequestView({ config, refreshTrigger }: RequestViewProps
             <div className="space-y-2">
               {cart.map((item, idx) => (
                 <div key={idx} className="flex items-center justify-between bg-[#F0F7FF] border border-blue-100 rounded-xl px-3 py-2 gap-3">
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-bold text-[#1D1D1F] truncate">{item.equipment.name}</p>
-                    <p className="text-[10px] text-[#86868B] font-mono">{item.equipment.code}</p>
+                  <div className="flex-1 min-w-0 flex items-center gap-2.5">
+                    {item.equipment.image_url && (
+                      <img 
+                        src={item.equipment.image_url} 
+                        alt={item.equipment.name} 
+                        className="w-8 h-8 object-contain rounded-lg shrink-0 border border-[#E8E8ED] p-0.5 bg-white"
+                        referrerPolicy="no-referrer"
+                      />
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-bold text-[#1D1D1F] truncate">{item.equipment.name}</p>
+                      <p className="text-[10px] text-[#86868B] font-mono">{item.equipment.code}</p>
+                    </div>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     <button type="button" onClick={() => { const n=[...cart]; if(n[idx].qty>1)n[idx].qty--; else n.splice(idx,1); setCart(n); }}
@@ -318,9 +328,19 @@ export default function RequestView({ config, refreshTrigger }: RequestViewProps
                     onClick={() => { setSelectedEqId(eq.id === selectedEqId ? '' : eq.id); setBorrowQty(1); }}
                     className={`w-full flex items-center justify-between p-2.5 rounded-xl border text-left transition ${selectedEqId === eq.id ? 'bg-[#E8F2FF] border-[#0071E3]' : 'bg-white border-[#E8E8ED] hover:bg-[#F5F5F7]'}`}
                   >
-                    <div className="min-w-0 flex-1">
-                      <p className="text-xs font-bold text-[#1D1D1F] truncate">{eq.name}</p>
-                      <p className="text-[10px] text-[#86868B] font-mono">{eq.code} · คลัง {eq.available_qty ?? 0} ชิ้น</p>
+                    <div className="min-w-0 flex-1 flex items-center gap-2.5">
+                      {eq.image_url && (
+                        <img 
+                          src={eq.image_url} 
+                          alt={eq.name} 
+                          className="w-8 h-8 object-contain rounded-lg shrink-0 border border-[#E8E8ED] p-0.5 bg-white"
+                          referrerPolicy="no-referrer"
+                        />
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs font-bold text-[#1D1D1F] truncate">{eq.name}</p>
+                        <p className="text-[10px] text-[#86868B] font-mono">{eq.code} · คลัง {eq.available_qty ?? 0} ชิ้น</p>
+                      </div>
                     </div>
                     {selectedEqId === eq.id && <CheckCircle className="h-4 w-4 text-[#0071E3] shrink-0 ml-2" />}
                   </button>
@@ -330,16 +350,26 @@ export default function RequestView({ config, refreshTrigger }: RequestViewProps
 
             {/* Qty + Add button */}
             {selectedEq && (
-              <div className="flex items-center gap-3 pt-1 border-t border-[#E8E8ED]">
-                <span className="text-xs text-[#1D1D1F] font-semibold flex-1 truncate">{selectedEq.name}</span>
-                <div className="flex items-center gap-1.5 shrink-0">
+              <div className="flex items-center gap-3 pt-2 border-t border-[#E8E8ED] flex-wrap sm:flex-nowrap">
+                <div className="flex items-center gap-2 flex-1 min-w-0">
+                  {selectedEq.image_url && (
+                    <img 
+                      src={selectedEq.image_url} 
+                      alt={selectedEq.name} 
+                      className="w-8 h-8 object-contain rounded-lg shrink-0 border border-[#E8E8ED] p-0.5 bg-white"
+                      referrerPolicy="no-referrer"
+                    />
+                  )}
+                  <span className="text-xs text-[#1D1D1F] font-bold truncate">{selectedEq.name}</span>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
                   <button type="button" onClick={() => setBorrowQty(p=>Math.max(1,p-1))}
-                    className="w-7 h-7 bg-[#F5F5F7] border border-[#E8E8ED] rounded-lg text-sm font-bold flex items-center justify-center hover:bg-gray-200 transition">-</button>
+                    className="w-8 h-8 bg-[#F5F5F7] border border-[#E8E8ED] rounded-lg text-sm font-bold flex items-center justify-center hover:bg-gray-200 transition">-</button>
                   <input type="number" min={1} max={maxQty} value={borrowQty}
                     onChange={e => setBorrowQty(Math.max(1,Math.min(maxQty,Number(e.target.value))))}
-                    className="w-12 text-center text-xs font-bold border border-[#E8E8ED] rounded-lg py-1 focus:outline-none" />
+                    className="w-14 text-center text-xs font-bold border border-[#E8E8ED] rounded-lg py-1 px-1 focus:outline-none" />
                   <button type="button" onClick={() => setBorrowQty(p=>Math.min(maxQty,p+1))}
-                    className="w-7 h-7 bg-[#F5F5F7] border border-[#E8E8ED] rounded-lg text-sm font-bold flex items-center justify-center hover:bg-gray-200 transition">+</button>
+                    className="w-8 h-8 bg-[#F5F5F7] border border-[#E8E8ED] rounded-lg text-sm font-bold flex items-center justify-center hover:bg-gray-200 transition">+</button>
                 </div>
                 <button
                   type="button"

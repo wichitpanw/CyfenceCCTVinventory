@@ -953,6 +953,39 @@ export async function returnEquipment(
         throw new Error(`คืนเรียบร้อยแต่อัปเดตอุปกรณ์ล้มเหลว: ${eqErr.message}`);
       }
 
+      // Sync: Check if this transaction is associated with any borrow_requests, and update request status to 'returned' if all its transactions are returned
+      try {
+        const { data: relatedReqs, error: reqErr } = await client
+          .from('borrow_requests')
+          .select('*');
+        if (!reqErr && relatedReqs) {
+          for (const req of relatedReqs) {
+            const txIds = Array.isArray(req.transaction_ids) 
+              ? req.transaction_ids 
+              : JSON.parse(req.transaction_ids || '[]');
+            if (txIds.includes(transactionId)) {
+              // Fetch all transactions for this request
+              const { data: requestTxs, error: fetchTxsErr } = await client
+                .from('transactions')
+                .select('status')
+                .in('id', txIds);
+              if (!fetchTxsErr && requestTxs) {
+                // If every transaction has been returned, mark borrow_request as 'returned'
+                const allReturned = requestTxs.every((t: any) => t.status === 'returned');
+                if (allReturned) {
+                  await client
+                    .from('borrow_requests')
+                    .update({ status: 'returned', updated_at: new Date().toISOString() })
+                    .eq('id', req.id);
+                }
+              }
+            }
+          }
+        }
+      } catch (syncErr) {
+        console.warn('Sync warning: Failed to sync return with borrow_request', syncErr);
+      }
+
       return updatedTx[0] as Transaction;
     } catch (err: any) {
       console.error('Error during Supabase return', err);
@@ -1293,6 +1326,62 @@ export async function updateBorrowRequestStatus(
   const client = getSupabaseClient(config);
   if (client) {
     try {
+      // Sync: if status is updated to 'returned', update all associated transactions in Supabase too
+      if (status === 'returned') {
+        try {
+          const { data: currentReq } = await client
+            .from('borrow_requests')
+            .select('transaction_ids')
+            .eq('id', id)
+            .single();
+          if (currentReq) {
+            const txIds = Array.isArray(currentReq.transaction_ids)
+              ? currentReq.transaction_ids
+              : JSON.parse(currentReq.transaction_ids || '[]');
+            if (txIds.length > 0) {
+              const nowStr = new Date().toISOString();
+              // Update all transactions of this request to 'returned'
+              await client
+                .from('transactions')
+                .update({ 
+                  return_date: nowStr, 
+                  condition_on_return: 'คืนผ่านหน้าอนุมัติคำขอ (Admin)', 
+                  status: 'returned' 
+                })
+                .in('id', txIds);
+
+              // Also return quantities to equipment stock for each transaction
+              const { data: txsData } = await client
+                .from('transactions')
+                .select('equipment_id, borrow_qty')
+                .in('id', txIds);
+
+              if (txsData) {
+                for (const tx of txsData) {
+                  const { data: eqData } = await client
+                    .from('equipment')
+                    .select('available_qty, total_qty')
+                    .eq('id', tx.equipment_id)
+                    .single();
+                  if (eqData) {
+                    const nextAvail = Math.min(eqData.total_qty, (eqData.available_qty ?? 0) + (tx.borrow_qty ?? 1));
+                    await client
+                      .from('equipment')
+                      .update({ 
+                        available_qty: nextAvail, 
+                        status: nextAvail > 0 ? 'available' : 'borrowed' 
+                      })
+                      .eq('id', tx.equipment_id);
+                  }
+                }
+              }
+            }
+          }
+        } catch (syncErr) {
+          console.warn('Sync transactions failed in request status update:', syncErr);
+        }
+      }
+
       const { data, error } = await client
         .from('borrow_requests')
         .update(patch)
@@ -1318,6 +1407,37 @@ export async function updateBorrowRequestStatus(
   const list: BorrowRequest[] = stored ? JSON.parse(stored) : [];
   const idx = list.findIndex(r => r.id === id);
   if (idx !== -1) {
+    // Local fallback sync
+    if (status === 'returned') {
+      try {
+        const txIds = list[idx].transaction_ids || [];
+        const localTxsSaved = localStorage.getItem('item_inventory_transactions_data');
+        const localEqSaved = localStorage.getItem('item_inventory_equipment_data');
+        if (localTxsSaved && localEqSaved) {
+          const localTxs = JSON.parse(localTxsSaved);
+          const localEq = JSON.parse(localEqSaved);
+          txIds.forEach((tId: string) => {
+            const tIdx = localTxs.findIndex((x: any) => x.id === tId);
+            if (tIdx !== -1) {
+              localTxs[tIdx].status = 'returned';
+              localTxs[tIdx].return_date = now;
+              localTxs[tIdx].condition_on_return = 'คืนผ่านหน้าอนุมัติคำขอ (Admin)';
+              
+              const eIdx = localEq.findIndex((x: any) => x.id === localTxs[tIdx].equipment_id);
+              if (eIdx !== -1) {
+                const nextAvail = (localEq[eIdx].available_qty ?? 0) + (localTxs[tIdx].borrow_qty ?? 1);
+                localEq[eIdx].available_qty = nextAvail;
+                localEq[eIdx].status = nextAvail > 0 ? 'available' : 'borrowed';
+              }
+            }
+          });
+          localStorage.setItem('item_inventory_transactions_data', JSON.stringify(localTxs));
+          localStorage.setItem('item_inventory_equipment_data', JSON.stringify(localEq));
+        }
+      } catch (e) {
+        console.warn('Local storage sync returned fail', e);
+      }
+    }
     list[idx] = { ...list[idx], ...patch };
     localStorage.setItem('borrow_requests_local', JSON.stringify(list));
     return list[idx];
