@@ -299,15 +299,25 @@ export default function SupabaseSettingsView({
                         custom_logo: customLogo,
                         custom_pin: adminPinInput
                       });
-                    } catch (syncErr) {
-                      console.warn('Failed to sync PIN to Supabase:', syncErr);
+                      
+                      setPinSaveSuccess(true);
+                      setTimeout(() => setPinSaveSuccess(false), 2000);
+                      onRefreshAll();
+                    } catch (syncErr: any) {
+                      console.error('Failed to sync PIN to Supabase:', syncErr);
+                      alert(
+                        `⚠️ บันทึกในบราวเซอร์เครื่องนี้สำเร็จ! แต่ไม่สามารถซิงค์ไปยัง Supabase Cloud ได้ค่ะ\n\n` +
+                        `สาเหตุ: ตาราง system_settings บน Supabase ของคุณยังไม่มีคอลัมน์ 'custom_pin' เพื่อเก็บรหัสผ่าน\n\n` +
+                        `💡 วิธีแก้ปัญหาใน 10 วินาที:\n` +
+                        `1. เข้าไปที่หน้าเว็บ Supabase Dashboard ของคุณ\n` +
+                        `2. ไปที่เมนู "SQL Editor" ทางด้านซ้าย\n` +
+                        `3. วางคำสั่ง SQL ต่อไปนี้ลงไปแล้วกด "Run" เพื่ออัปเกรดตารางค่ะ:\n\n` +
+                        `ALTER TABLE system_settings ADD COLUMN IF NOT EXISTS custom_pin text;\n` +
+                        `NOTIFY pgrst, 'reload schema';`
+                      );
                     }
                   };
                   savePinToSupabase();
-
-                  setPinSaveSuccess(true);
-                  setTimeout(() => setPinSaveSuccess(false), 2000);
-                  onRefreshAll();
                 }}
                 className="px-4 py-1.5 bg-[#0071E3] hover:bg-[#0077ED] text-white font-sans font-semibold text-xs rounded-xl shadow-md shadow-apple-primary/10 transition-all cursor-pointer"
               >
