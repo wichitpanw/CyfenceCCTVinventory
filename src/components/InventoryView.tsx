@@ -20,7 +20,9 @@ import {
   Wrench,
   HelpCircle,
   FileImage,
-  SlidersHorizontal
+  SlidersHorizontal,
+  LayoutGrid,
+  List
 } from 'lucide-react';
 import { Equipment, SupabaseConfig } from '../types';
 import { getEquipments, addEquipment, updateEquipment, deleteEquipment } from '../services/db';
@@ -108,6 +110,7 @@ export default function InventoryView({ config, refreshTrigger, onRefresh }: Inv
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedStatus, setSelectedStatus] = useState('all');
+  const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
   
   // Form State
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -478,6 +481,34 @@ export default function InventoryView({ config, refreshTrigger, onRefresh }: Inv
             <option value="broken">ชำรุดเสียหาย (Broken)</option>
           </select>
         </div>
+
+        {/* View Toggle */}
+        <div className="flex items-center bg-[#F5F5F7] p-1 rounded-xl border border-[#E8E8ED] shrink-0" id="view-toggle">
+          <button
+            type="button"
+            onClick={() => setViewMode('grid')}
+            className={`p-1.5 rounded-lg transition-all cursor-pointer ${
+              viewMode === 'grid'
+                ? 'bg-white text-black shadow-xs'
+                : 'text-[#86868B] hover:text-[#1D1D1F]'
+            }`}
+            title="แสดงผลแบบการ์ดตาราง"
+          >
+            <LayoutGrid className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            onClick={() => setViewMode('table')}
+            className={`p-1.5 rounded-lg transition-all cursor-pointer ${
+              viewMode === 'table'
+                ? 'bg-white text-black shadow-xs'
+                : 'text-[#86868B] hover:text-[#1D1D1F]'
+            }`}
+            title="แสดงผลแบบตารางรายการ"
+          >
+            <List className="h-4 w-4" />
+          </button>
+        </div>
       </div>
 
       {loading ? (
@@ -491,7 +522,7 @@ export default function InventoryView({ config, refreshTrigger, onRefresh }: Inv
           <h4 className="text-sm font-bold font-sans text-[#1D1D1F] tracking-tight">ไม่พบรายการพัสดุที่ตรงกับเงื่อนไข</h4>
           <p className="text-xs text-[#86868B] font-sans mt-1">กรุณาลองปรับเปลี่ยนขอบเขตคำค้นหา หรือกด "ลงทะเบียนสิ่งของใหม่"</p>
         </div>
-      ) : (
+      ) : viewMode === 'grid' ? (
         /* Equipment Grid */
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5" id="inventory-grid">
           {filteredItems.map(item => (
@@ -530,13 +561,13 @@ export default function InventoryView({ config, refreshTrigger, onRefresh }: Inv
                     item.status === 'maintenance' ? 'อยู่ระหว่างซ่อม' : 'ขัดข้อง/ชำรุด'
                   }
                 </span>
-
+ 
                 {/* Code on bottom left */}
                 <div className="absolute bottom-3 left-3 bg-[#1D1D1F]/80 backdrop-blur-xs text-white px-2 py-0.5 rounded-md text-[9px] font-mono select-all">
                   {item.code}
                 </div>
               </div>
-
+ 
               {/* Card Contents */}
               <div className="p-4 flex-1 flex flex-col justify-between">
                 <div className="space-y-2">
@@ -548,18 +579,18 @@ export default function InventoryView({ config, refreshTrigger, onRefresh }: Inv
                   <h3 className="text-xs font-bold font-sans text-[#1D1D1F] leading-snug line-clamp-2 min-h-[32px] text-left">
                     {item.name}
                   </h3>
-
+ 
                   <div className="flex items-start gap-1 pb-1">
                     <MapPin className="h-3.5 w-3.5 text-[#86868B] shrink-0 mt-0.5" />
                     <span className="text-[11px] text-[#86868B] line-clamp-1">{item.location}</span>
                   </div>
-
+ 
                   {item.description && (
                     <div className="bg-[#F5F5F7] p-2.5 rounded-xl text-[10px] text-[#86868B] min-h-[44px] line-clamp-2 leading-relaxed">
                       {item.description}
                     </div>
                   )}
-
+ 
                   {/* Stock Quantities Badges */}
                   <div className="grid grid-cols-2 gap-2 pt-2 border-t border-[#E8E8ED]/40">
                     <div className="bg-[#E5F9E0]/50 text-[#1E7F28] rounded-xl p-2 text-[10px] flex items-center justify-between font-sans">
@@ -579,7 +610,7 @@ export default function InventoryView({ config, refreshTrigger, onRefresh }: Inv
                     )}
                   </div>
                 </div>
-
+ 
                 {/* Operations Footer */}
                 <div className="flex items-center justify-between border-t border-[#E8E8ED]/40 pt-3 mt-3 shrink-0">
                   <div className="text-[9px] font-mono text-[#86868B]">
@@ -612,6 +643,103 @@ export default function InventoryView({ config, refreshTrigger, onRefresh }: Inv
               </div>
             </div>
           ))}
+        </div>
+      ) : (
+        /* Equipment Table View */
+        <div className="overflow-x-auto bg-white border border-[#E8E8ED] rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.02)]" id="inventory-table-container">
+          <table className="min-w-full divide-y divide-[#E8E8ED] table-auto">
+            <thead className="bg-[#F5F5F7]">
+              <tr>
+                <th scope="col" className="px-4 py-3 text-[10.5px] font-bold text-slate-500 uppercase tracking-wider text-left font-sans whitespace-nowrap w-16">ภาพ</th>
+                <th scope="col" className="px-4 py-3 text-[10.5px] font-bold text-slate-500 uppercase tracking-wider text-left font-sans whitespace-nowrap w-24">รหัส</th>
+                <th scope="col" className="px-4 py-3 text-[10.5px] font-bold text-slate-500 uppercase tracking-wider text-left font-sans whitespace-nowrap">ชื่อพัสดุอุปกรณ์</th>
+                <th scope="col" className="px-4 py-3 text-[10.5px] font-bold text-slate-500 uppercase tracking-wider text-left font-sans whitespace-nowrap">หมวดหมู่</th>
+                <th scope="col" className="px-4 py-3 text-[10.5px] font-bold text-slate-500 uppercase tracking-wider text-left font-sans whitespace-nowrap">ตำแหน่งที่เก็บ</th>
+                <th scope="col" className="px-4 py-3 text-[10.5px] font-bold text-slate-500 uppercase tracking-wider text-center font-sans whitespace-nowrap w-28">พร้อมใช้ / ทั้งหมด</th>
+                <th scope="col" className="px-4 py-3 text-[10.5px] font-bold text-slate-500 uppercase tracking-wider text-center font-sans whitespace-nowrap w-24">สถานะ</th>
+                <th scope="col" className="px-4 py-3 text-[10.5px] font-bold text-slate-500 uppercase tracking-wider text-center font-sans whitespace-nowrap w-24">จัดการ</th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-[#E8E8ED]">
+              {filteredItems.map(item => (
+                <tr key={item.id} className="hover:bg-[#F5F5F7]/40 transition-colors">
+                  {/* Thumbnail */}
+                  <td className="px-4 py-2.5 whitespace-nowrap">
+                    <div className="w-10 h-10 rounded-lg bg-[#F5F5F7] border border-[#E8E8ED] flex items-center justify-center p-1 overflow-hidden shrink-0">
+                      <img src={item.image_url} alt={item.name} className="w-full h-full object-contain" referrerPolicy="no-referrer" />
+                    </div>
+                  </td>
+                  {/* Code */}
+                  <td className="px-4 py-2.5 whitespace-nowrap text-xs font-mono font-bold text-slate-650">
+                    <span className="bg-[#F5F5F7] px-2 py-0.5 rounded-md border border-[#E8E8ED] select-all">
+                      {item.code}
+                    </span>
+                  </td>
+                  {/* Name */}
+                  <td className="px-4 py-2.5 text-xs font-bold text-[#1D1D1F] max-w-xs truncate" title={item.name}>
+                    {item.name}
+                  </td>
+                  {/* Category */}
+                  <td className="px-4 py-2.5 whitespace-nowrap text-[10px] text-slate-550 font-bold">
+                    {item.category}
+                  </td>
+                  {/* Location */}
+                  <td className="px-4 py-2.5 text-xs text-slate-500 truncate max-w-44" title={item.location}>
+                    {item.location}
+                  </td>
+                  {/* Stock */}
+                  <td className="px-4 py-2.5 whitespace-nowrap text-center text-xs font-semibold font-sans">
+                    <span className="bg-[#E5F9E0]/50 text-[#1E7F28] px-2 py-0.5 rounded-full font-bold">
+                      {item.available_qty ?? 0}
+                    </span>
+                    <span className="text-slate-400 font-normal"> / {item.total_qty ?? 1}</span>
+                  </td>
+                  {/* Status */}
+                  <td className="px-4 py-2.5 whitespace-nowrap text-center">
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold font-sans ${
+                      item.status === 'available'
+                        ? 'bg-[#E5F9E0] text-[#1E7F28]'
+                        : item.status === 'borrowed'
+                          ? 'bg-[#F5F5F7] text-[#000000]'
+                          : item.status === 'maintenance'
+                            ? 'bg-[#FEF3D6] text-[#B76E00]'
+                            : 'bg-[#FEEBEB] text-[#D12B2B]'
+                    }`}>
+                      {
+                        item.status === 'available' ? 'พร้อมใช้งาน' :
+                        item.status === 'borrowed' ? 'ถูกเบิกไป' :
+                        item.status === 'maintenance' ? 'อยู่ระหว่างซ่อม' : 'ขัดข้อง/ชำรุด'
+                      }
+                    </span>
+                  </td>
+                  {/* Actions */}
+                  <td className="px-4 py-2.5 whitespace-nowrap text-center">
+                    <div className="flex items-center justify-center space-x-1">
+                      <button
+                        onClick={() => handleOpenEditForm(item)}
+                        className="p-1 bg-[#F5F5F7] text-[#1D1D1F] hover:bg-[#E8E8ED] rounded-full transition cursor-pointer"
+                        title="แก้ไขข้อมูลพัสดุ"
+                      >
+                        <Edit3 className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteClick(item.id, item.name)}
+                        disabled={item.status === 'borrowed'}
+                        className={`p-1 rounded-full transition ${
+                          item.status === 'borrowed'
+                            ? 'bg-[#F5F5F7] text-[#C5C5C7] cursor-not-allowed'
+                            : 'bg-[#FEEBEB] text-[#D12B2B] hover:bg-[#FCD7D7] cursor-pointer'
+                        }`}
+                        title={item.status === 'borrowed' ? 'ไม่สามารถลบเพราะมีรายการยืมค้างอยู่' : 'ลบจากคลัง'}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
 
