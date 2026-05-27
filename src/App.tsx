@@ -31,10 +31,10 @@ export default function App() {
   const [adminPin, setAdminPin] = useState('');
   const [adminPinError, setAdminPinError] = useState(false);
   const [showAdminPinModal, setShowAdminPinModal] = useState(false);
+  const [targetPin, setTargetPin] = useState(() => localStorage.getItem('system_admin_sidebar_pin') || '888888');
 
   const handleAdminPinKeyPress = (num: string) => {
     setAdminPinError(false);
-    const targetPin = localStorage.getItem('system_admin_sidebar_pin') || '888888';
     if (adminPin.length < 6) {
       const nextPin = adminPin + num;
       setAdminPin(nextPin);
@@ -120,6 +120,7 @@ export default function App() {
             }
             if (settings.custom_pin) {
               localStorage.setItem('system_admin_sidebar_pin', settings.custom_pin);
+              setTargetPin(settings.custom_pin);
             }
           }
         } catch (e) {
