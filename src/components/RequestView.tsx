@@ -296,7 +296,7 @@ export default function RequestView({ config, refreshTrigger }: RequestViewProps
                 </button>
                 {categories.map(cat => (
                   <button key={cat} type="button" onClick={() => setSelectedCategory(cat)}
-                    className={`text-[10px] px-2.5 py-1 rounded-full border font-semibold transition truncate max-w-[120px] ${selectedCategory===cat ? 'bg-[#0071E3] text-white border-[#0071E3]' : 'bg-white text-[#86868B] border-[#E8E8ED] hover:bg-[#F5F5F7]'}`}>
+                    className={`text-[10px] px-2.5 py-1 rounded-full border font-semibold transition ${selectedCategory===cat ? 'bg-[#0071E3] text-white border-[#0071E3]' : 'bg-white text-[#86868B] border-[#E8E8ED] hover:bg-[#F5F5F7]'}`}>
                     {cat}
                   </button>
                 ))}

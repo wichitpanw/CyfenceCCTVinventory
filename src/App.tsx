@@ -24,7 +24,7 @@ import ApprovalView from './components/ApprovalView';
 import RequestStatusView from './components/RequestStatusView';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<string>('dashboard');
+  const [activeTab, setActiveTab] = useState<string>('requests');
   
   // PIN gates for Admin Sidebar lock (6-digit)
   const [isAdminUnlocked, setIsAdminUnlocked] = useState(() => sessionStorage.getItem('admin_sidebar_unlocked') === 'true');

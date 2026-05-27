@@ -103,6 +103,9 @@ export default function ApprovalView({ config, refreshTrigger, onRefresh }: Appr
   const [actionLoading, setActionLoading] = useState<Record<string, boolean>>({});
   const [actionError, setActionError] = useState<Record<string, string>>({});
   const [actionSuccess, setActionSuccess] = useState<Record<string, string>>({});
+  
+  // Custom reviewer name
+  const [reviewerName, setReviewerName] = useState('Admin');
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -131,7 +134,7 @@ export default function ApprovalView({ config, refreshTrigger, onRefresh }: Appr
     setCardLoading(req.id, true);
     setCardError(req.id, '');
     try {
-      await updateBorrowRequestStatus(config, req.id, 'approved', { reviewedBy: 'Admin' });
+      await updateBorrowRequestStatus(config, req.id, 'approved', { reviewedBy: reviewerName.trim() || 'Admin' });
       setCardSuccess(req.id, '✅ อนุมัติคำขอเรียบร้อยแล้ว');
       await loadData();
       onRefresh();
@@ -148,7 +151,7 @@ export default function ApprovalView({ config, refreshTrigger, onRefresh }: Appr
     try {
       await updateBorrowRequestStatus(config, req.id, 'rejected', {
         adminNote: rejectNote[req.id] || '',
-        reviewedBy: 'Admin',
+        reviewedBy: reviewerName.trim() || 'Admin',
       });
       setCardSuccess(req.id, '❌ ปฏิเสธคำขอเรียบร้อยแล้ว');
       setShowRejectInput(p => ({ ...p, [req.id]: false }));
@@ -182,7 +185,7 @@ export default function ApprovalView({ config, refreshTrigger, onRefresh }: Appr
       }
       await updateBorrowRequestStatus(config, req.id, 'borrowing', {
         transactionIds: txIds,
-        reviewedBy: 'Admin',
+        reviewedBy: reviewerName.trim() || 'Admin',
       });
       setCardSuccess(req.id, '📦 จ่ายพัสดุออกจากคลังเรียบร้อย — ระบบสร้างประวัติการเบิกแล้ว');
       await loadData();
@@ -198,7 +201,7 @@ export default function ApprovalView({ config, refreshTrigger, onRefresh }: Appr
     setCardLoading(req.id, true);
     setCardError(req.id, '');
     try {
-      await updateBorrowRequestStatus(config, req.id, 'returned', { reviewedBy: 'Admin' });
+      await updateBorrowRequestStatus(config, req.id, 'returned', { reviewedBy: reviewerName.trim() || 'Admin' });
       setCardSuccess(req.id, '🔄 บันทึกการรับคืนพัสดุแล้ว');
       await loadData();
       onRefresh();
@@ -290,6 +293,28 @@ export default function ApprovalView({ config, refreshTrigger, onRefresh }: Appr
             <p className="text-[10px] text-slate-500 font-semibold mt-0.5">{s.label}</p>
           </div>
         ))}
+      </div>
+
+      {/* Reviewer / Approver name input */}
+      <div className="bg-white border border-[#E8E8ED] p-4.5 rounded-2xl shadow-[0_4px_16px_rgba(0,0,0,0.02)] flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-left">
+        <div className="space-y-1">
+          <h4 className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+            <User className="h-4 w-4 text-[#0071E3]" /> ชื่อผู้ดำเนินการอนุมัติคำขอ (Approver Name)
+          </h4>
+          <p className="text-[10px] text-slate-450 leading-relaxed font-sans font-semibold">
+            ระบุรายชื่อผู้อนุมัติสำหรับลงบันทึกในตารางประวัติและการรับมอบพัสดุ (เช่น สมชาย ใจดี / Admin)
+          </p>
+        </div>
+        <div className="shrink-0">
+          <input
+            type="text"
+            value={reviewerName}
+            onChange={(e) => setReviewerName(e.target.value)}
+            className="w-full sm:w-56 px-3.5 py-2 border border-[#E8E8ED] rounded-xl text-xs font-bold font-sans focus:outline-hidden focus:border-[#0071E3] bg-[#F5F5F7]/80 focus:bg-white transition-all text-slate-800"
+            placeholder="เช่น สมชาย / Admin"
+            required
+          />
+        </div>
       </div>
 
       {/* Filter tabs */}
