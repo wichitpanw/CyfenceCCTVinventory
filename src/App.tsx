@@ -21,9 +21,38 @@ import HistoryView from './components/HistoryView';
 import SupabaseSettingsView from './components/SupabaseSettingsView';
 import RequestView from './components/RequestView';
 import ApprovalView from './components/ApprovalView';
+import RequestStatusView from './components/RequestStatusView';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<string>('dashboard');
+  
+  // PIN gates for Admin Sidebar lock (6-digit)
+  const [isAdminUnlocked, setIsAdminUnlocked] = useState(() => sessionStorage.getItem('admin_sidebar_unlocked') === 'true');
+  const [adminPin, setAdminPin] = useState('');
+  const [adminPinError, setAdminPinError] = useState(false);
+  const [showAdminPinModal, setShowAdminPinModal] = useState(false);
+
+  const handleAdminPinKeyPress = (num: string) => {
+    setAdminPinError(false);
+    if (adminPin.length < 6) {
+      const nextPin = adminPin + num;
+      setAdminPin(nextPin);
+      if (nextPin === '888888') {
+        setTimeout(() => {
+          sessionStorage.setItem('admin_sidebar_unlocked', 'true');
+          setIsAdminUnlocked(true);
+          setAdminPin('');
+          setShowAdminPinModal(false);
+        }, 200);
+      } else if (nextPin.length === 6) {
+        setTimeout(() => {
+          setAdminPinError(true);
+          setTimeout(() => setAdminPin(''), 600);
+        }, 150);
+      }
+    }
+  };
+
   // Initialize config SYNCHRONOUSLY so child components never render with
   // useLocalStorage:true (which would flash seed data) before useEffect fires.
   const [dbConfig, setDbConfig] = useState<SupabaseConfig>(() => {
@@ -169,8 +198,8 @@ export default function App() {
             </div>
           </div>
 
-          {/* Database Mode status pill indicator */}
-          <div className="flex items-center space-x-2 shrink-0 select-none">
+          {/* Database Mode status pill indicator & Settings Button */}
+          <div className="flex items-center space-x-3 shrink-0 select-none">
             {(!dbConfig.supabaseUrl || !dbConfig.supabaseKey) ? (
               <div className="badge-apple badge-apple-red cursor-pointer animate-pulse" onClick={() => setActiveTab('settings')}>
                 <AlertCircle className="h-3.5 w-3.5 shrink-0" />
@@ -182,6 +211,19 @@ export default function App() {
                 <span>เชื่อมต่อระบบ Supabase DB เรียบร้อย</span>
               </div>
             )}
+            
+            {/* Top-right Settings Gear button */}
+            <button
+              onClick={() => setActiveTab('settings')}
+              className={`p-2 rounded-xl border transition-all cursor-pointer ${
+                activeTab === 'settings'
+                  ? 'bg-[#E8F2FF] border-blue-200 text-[#0071E3]'
+                  : 'bg-white border-[#E8E8ED] text-[#86868B] hover:bg-[#F5F5F7] hover:text-[#1D1D1F]'
+              }`}
+              title="ตั้งค่าระบบ"
+            >
+              <Settings className="w-4.5 h-4.5" />
+            </button>
           </div>
         </div>
       </header>
@@ -204,6 +246,7 @@ export default function App() {
               <div className="flex flex-col gap-1">
                 {[
                   { id: 'requests', name: 'ยื่นคำขอเบิกพัสดุ', icon: ClipboardList },
+                  { id: 'request_status', name: 'รายการรอยืนยัน', icon: Package },
                 ].map(tab => {
                   const IconComp = tab.icon;
                   const isActive = activeTab === tab.id;
@@ -234,39 +277,63 @@ export default function App() {
                 <ShieldCheck className="h-3 w-3" />
                 <span className="hidden lg:inline">เมนูบริหารคลัง</span>
               </h4>
-              <div className="flex flex-col gap-1">
-                {[
-                  { id: 'dashboard', name: 'รายงานสรุปภาพรวม', icon: LayoutDashboard },
-                  { id: 'inventory', name: 'รายการอุปกรณ์', icon: Package },
-                  { id: 'borrow', name: 'ระบบเบิก-คืนพัสดุ', icon: ArrowLeftRight },
-                  { id: 'approval', name: 'อนุมัติคำขอ', icon: ShieldCheck, badge: pendingCount },
-                  { id: 'history', name: 'ประวัติเบิกจ่าย', icon: HistoryIcon },
-                  { id: 'settings', name: 'ตั้งค่าระบบ', icon: Settings },
-                ].map(tab => {
-                  const IconComp = tab.icon;
-                  const isActive = activeTab === tab.id;
-                  const badge = (tab as any).badge as number | undefined;
-                  return (
-                    <button
-                      key={tab.id}
-                      onClick={() => { setActiveTab(tab.id); handleRefresh(); }}
-                      className={`relative flex items-center space-x-2.5 px-4 py-2.5 rounded-xl text-xs font-semibold font-sans transition-all cursor-pointer ${
-                        isActive
-                          ? 'bg-[#E8F2FF] text-[#0071E3]'
-                          : 'text-[#1D1D1F] hover:bg-[#F5F5F7]'
-                      }`}
-                    >
-                      <IconComp className={`h-4 w-4 shrink-0 ${isActive ? 'text-[#0071E3]' : 'text-[#86868B]'}`} />
-                      <span className="truncate">{tab.name}</span>
-                      {badge != null && badge > 0 && (
-                        <span className="absolute top-1.5 right-1.5 min-w-[18px] h-[18px] px-1 bg-red-500 text-white text-[9px] font-extrabold rounded-full flex items-center justify-center leading-none">
-                          {badge > 99 ? '99+' : badge}
-                        </span>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
+
+              {!isAdminUnlocked ? (
+                /* Locked State: single locked button to unlock */
+                <button
+                  onClick={() => setShowAdminPinModal(true)}
+                  className="w-full flex items-center justify-center gap-2 p-4 bg-[#F5F5F7] border border-dashed border-[#C7C7CC] hover:bg-[#E8E8ED] hover:border-[#86868B] text-[#86868B] hover:text-[#1D1D1F] rounded-xl text-xs font-bold transition-all cursor-pointer"
+                >
+                  <ShieldCheck className="h-4 w-4 shrink-0" />
+                  <span>ปลดล็อกเมนูผู้ดูแลระบบ (6 หลัก)</span>
+                </button>
+              ) : (
+                /* Unlocked State: render full menu */
+                <div className="flex flex-col gap-1">
+                  {[
+                    { id: 'dashboard', name: 'รายงานสรุปภาพรวม', icon: LayoutDashboard },
+                    { id: 'inventory', name: 'รายการอุปกรณ์', icon: Package },
+                    { id: 'borrow', name: 'ระบบเบิก-คืนพัสดุ', icon: ArrowLeftRight },
+                    { id: 'approval', name: 'อนุมัติคำขอ', icon: ShieldCheck, badge: pendingCount },
+                    { id: 'history', name: 'ประวัติเบิกจ่าย', icon: HistoryIcon },
+                  ].map(tab => {
+                    const IconComp = tab.icon;
+                    const isActive = activeTab === tab.id;
+                    const badge = (tab as any).badge as number | undefined;
+                    return (
+                      <button
+                        key={tab.id}
+                        onClick={() => { setActiveTab(tab.id); handleRefresh(); }}
+                        className={`relative flex items-center space-x-2.5 px-4 py-2.5 rounded-xl text-xs font-semibold font-sans transition-all cursor-pointer ${
+                          isActive
+                            ? 'bg-[#E8F2FF] text-[#0071E3]'
+                            : 'text-[#1D1D1F] hover:bg-[#F5F5F7]'
+                        }`}
+                      >
+                        <IconComp className={`h-4 w-4 shrink-0 ${isActive ? 'text-[#0071E3]' : 'text-[#86868B]'}`} />
+                        <span className="truncate">{tab.name}</span>
+                        {badge != null && badge > 0 && (
+                          <span className="absolute top-1.5 right-1.5 min-w-[18px] h-[18px] px-1 bg-red-500 text-white text-[9px] font-extrabold rounded-full flex items-center justify-center leading-none">
+                            {badge > 99 ? '99+' : badge}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                  
+                  {/* Option to lock again */}
+                  <button
+                    onClick={() => {
+                      sessionStorage.removeItem('admin_sidebar_unlocked');
+                      setIsAdminUnlocked(false);
+                      setActiveTab('requests');
+                    }}
+                    className="mt-2 text-[10px] text-red-500 hover:text-red-700 font-bold text-center w-full py-1 hover:underline cursor-pointer"
+                  >
+                    🔒 ล็อกหน้าผู้ดูแลระบบ
+                  </button>
+                </div>
+              )}
             </div>
 
           </nav>
@@ -315,6 +382,13 @@ export default function App() {
               />
             )}
 
+            {activeTab === 'request_status' && (
+              <RequestStatusView
+                config={dbConfig}
+                refreshTrigger={refreshTrigger}
+              />
+            )}
+
             {activeTab === 'approval' && (
               <ApprovalView
                 config={dbConfig}
@@ -339,6 +413,56 @@ export default function App() {
             )}
           </div>
         </div>
+
+        {/* 6-Digit Admin Sidebar PIN Entry Modal popup */}
+        {showAdminPinModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden bg-slate-900/40 backdrop-blur-md">
+            <div className="absolute inset-0" onClick={() => setShowAdminPinModal(false)} />
+            <div className="bg-white rounded-3xl w-full max-w-xs mx-4 overflow-hidden shadow-2xl z-10 text-center border border-[#E8E8ED] p-8 space-y-6 animate-in zoom-in-95 duration-200">
+              <div className={`mx-auto w-16 h-16 rounded-full flex items-center justify-center transition-all duration-300 ${adminPinError ? 'bg-red-50 text-red-500 scale-105' : 'bg-blue-50 text-[#0071E3]'}`}>
+                <ShieldCheck className="w-7 h-7" />
+              </div>
+              <div>
+                <h2 className="text-base font-bold text-[#1D1D1F]">ระบบผู้ดูแลระบบถูกล็อก</h2>
+                <p className="text-xs text-[#86868B] mt-1">กรุณากรอก PIN 6 หลักเพื่อเข้าใช้งานเมนูบริหารคลัง</p>
+              </div>
+              
+              {/* PIN dots (6 dots) */}
+              <div className="flex justify-center gap-2.5">
+                {[0,1,2,3,4,5].map(i => (
+                  <div key={i} className={`w-3.5 h-3.5 rounded-full border-2 transition-all duration-200 ${
+                    adminPin.length > i
+                      ? adminPinError ? 'bg-red-500 border-red-500' : 'bg-[#0071E3] border-[#0071E3]'
+                      : 'border-[#C7C7CC]'
+                  }`} />
+                ))}
+              </div>
+              {adminPinError && <p className="text-xs text-red-500 font-bold -mt-2">รหัส PIN ไม่ถูกต้อง</p>}
+              
+              {/* Keypad */}
+              <div className="grid grid-cols-3 gap-2">
+                {[['1','2','3'],['4','5','6'],['7','8','9'],['','0','⌫']].flat().map((key, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => key === '⌫' ? setAdminPin(p=>p.slice(0,-1)) : key ? handleAdminPinKeyPress(key) : undefined}
+                    className={`h-11 rounded-xl text-sm font-bold transition-all active:scale-95 ${
+                      key
+                        ? 'bg-[#F5F5F7] text-[#1D1D1F] hover:bg-[#E8E8ED] border border-[#E8E8ED] cursor-pointer'
+                        : 'pointer-events-none'
+                    }`}
+                  >{key}</button>
+                ))}
+              </div>
+              <button
+                onClick={() => setShowAdminPinModal(false)}
+                className="text-xs text-slate-400 hover:text-slate-600 font-semibold cursor-pointer w-full text-center"
+              >
+                ยกเลิก
+              </button>
+            </div>
+          </div>
+        )}
       </main>
 
       {/* Humble Footer info */}
