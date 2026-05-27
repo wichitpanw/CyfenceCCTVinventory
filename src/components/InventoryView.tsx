@@ -403,7 +403,7 @@ export default function InventoryView({ config, refreshTrigger, onRefresh }: Inv
         
         <button
           onClick={handleOpenCreateForm}
-          className="flex items-center justify-center space-x-1.5 bg-[#0071E3] hover:bg-[#0077ED] active:scale-95 text-white font-sans font-semibold text-xs py-2.5 px-4 rounded-full transition-all duration-200 self-start md:self-auto cursor-pointer shadow-sm hover:shadow-md"
+          className="flex items-center justify-center space-x-1.5 bg-[#000000] hover:bg-[#1D1D1F] active:scale-95 text-white font-sans font-semibold text-xs py-2.5 px-4 rounded-full transition-all duration-200 self-start md:self-auto cursor-pointer shadow-sm hover:shadow-md"
           id="btn-add-item"
         >
           <Plus className="h-4 w-4" />
@@ -421,7 +421,7 @@ export default function InventoryView({ config, refreshTrigger, onRefresh }: Inv
             placeholder="ค้นหาตามรหัส, ชื่อสิ่งของ หรือตำแหน่ง..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-[#F5F5F7] border border-transparent text-xs font-sans text-[#1D1D1F] placeholder-[#86868B] focus:outline-hidden focus:bg-white focus:border-[#0071E3] focus:ring-4 focus:ring-[#0071E3]/10 transition-all duration-200"
+            className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-[#F5F5F7] border border-transparent text-xs font-sans text-[#1D1D1F] placeholder-[#86868B] focus:outline-hidden focus:bg-white focus:border-[#000000] focus:ring-4 focus:ring-[#000000]/10 transition-all duration-200"
           />
         </div>
 
@@ -430,7 +430,7 @@ export default function InventoryView({ config, refreshTrigger, onRefresh }: Inv
           <div 
             className={`flex items-center justify-center w-10 h-10 rounded-full border transition-all duration-200 cursor-pointer ${
               selectedCategory !== 'all'
-                ? 'bg-[#E8F2FF] border-[#0071E3] text-[#0071E3]'
+                ? 'bg-[#F5F5F7] border-[#000000] text-[#000000]'
                 : 'bg-[#F5F5F7] border-[#E8E8ED] text-[#86868B] hover:bg-[#E8E8ED] hover:text-[#1D1D1F]'
             }`}
             title={`หมวดหมู่พัสดุ: ${selectedCategory === 'all' ? 'ทั้งหมด' : selectedCategory}`}
@@ -454,7 +454,7 @@ export default function InventoryView({ config, refreshTrigger, onRefresh }: Inv
           <div 
             className={`flex items-center justify-center w-10 h-10 rounded-full border transition-all duration-200 cursor-pointer ${
               selectedStatus !== 'all'
-                ? 'bg-[#E8F2FF] border-[#0071E3] text-[#0071E3]'
+                ? 'bg-[#F5F5F7] border-[#000000] text-[#000000]'
                 : 'bg-[#F5F5F7] border-[#E8E8ED] text-[#86868B] hover:bg-[#E8E8ED] hover:text-[#1D1D1F]'
             }`}
             title={`สถานะพัสดุ: ${
@@ -482,7 +482,7 @@ export default function InventoryView({ config, refreshTrigger, onRefresh }: Inv
 
       {loading ? (
         <div className="flex flex-col items-center justify-center py-20" id="inventory-loading">
-          <div className="animate-spin rounded-full h-8 w-8 border-2 border-[#E8E8ED] border-t-[#0071E3] mb-3"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-2 border-[#E8E8ED] border-t-[#000000] mb-3"></div>
           <p className="text-[#86868B] font-sans text-xs">กำลังสแกนวิเคราะห์รายการพัสดุ...</p>
         </div>
       ) : filteredItems.length === 0 ? (
@@ -497,7 +497,7 @@ export default function InventoryView({ config, refreshTrigger, onRefresh }: Inv
           {filteredItems.map(item => (
             <div 
               key={item.id} 
-              className="bg-white border border-[#E8E8ED] overflow-hidden shadow-[0_8px_30px_rgba(0,0,0,0.02)] hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] hover:border-[#0071E3]/30 transition-all duration-300 flex flex-col group rounded-2xl"
+              className="bg-white border border-[#E8E8ED] overflow-hidden shadow-[0_8px_30px_rgba(0,0,0,0.02)] hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] hover:border-[#000000]/30 transition-all duration-300 flex flex-col group rounded-2xl"
               id={`item-card-${item.id}`}
             >
               {/* Card Image Area */}
@@ -514,14 +514,14 @@ export default function InventoryView({ config, refreshTrigger, onRefresh }: Inv
                   item.status === 'available'
                     ? 'bg-[#E5F9E0] text-[#1E7F28]'
                     : item.status === 'borrowed'
-                      ? 'bg-[#E8F2FF] text-[#0071E3]'
+                      ? 'bg-[#F5F5F7] text-[#000000]'
                       : item.status === 'maintenance'
                         ? 'bg-[#FEF3D6] text-[#B76E00]'
                         : 'bg-[#FEEBEB] text-[#D12B2B]'
                 }`}>
                   <span className={`w-1.5 h-1.5 rounded-full mr-1.5 ${
                     item.status === 'available' ? 'bg-[#1E7F28]' :
-                    item.status === 'borrowed' ? 'bg-[#0071E3]' :
+                    item.status === 'borrowed' ? 'bg-[#000000]' :
                     item.status === 'maintenance' ? 'bg-[#B76E00]' : 'bg-[#D12B2B]'
                   }`}></span>
                   {
@@ -540,7 +540,7 @@ export default function InventoryView({ config, refreshTrigger, onRefresh }: Inv
               {/* Card Contents */}
               <div className="p-4 flex-1 flex flex-col justify-between">
                 <div className="space-y-2">
-                  <div className="flex items-center gap-1.5 text-[9px] font-bold text-[#0071E3] font-sans tracking-wider uppercase">
+                  <div className="flex items-center gap-1.5 text-[9px] font-bold text-[#000000] font-sans tracking-wider uppercase">
                     <Tag className="h-3 w-3" />
                     <span>{item.category}</span>
                   </div>
@@ -669,7 +669,7 @@ export default function InventoryView({ config, refreshTrigger, onRefresh }: Inv
                     className={`w-full px-3.5 py-2.5 rounded-xl border text-xs font-sans transition-all duration-200 focus:outline-hidden ${
                       formMode === 'edit' 
                         ? 'bg-[#F5F5F7] text-[#86868B] border-transparent cursor-not-allowed font-mono' 
-                        : 'bg-[#F5F5F7] border-transparent focus:bg-white focus:border-[#0071E3] focus:ring-4 focus:ring-[#0071E3]/10 text-[#1D1D1F]'
+                        : 'bg-[#F5F5F7] border-transparent focus:bg-white focus:border-[#000000] focus:ring-4 focus:ring-[#000000]/10 text-[#1D1D1F]'
                     }`}
                     placeholder="รหัสเฉพาะตน เช่น EQ-2026-050"
                   />
@@ -687,7 +687,7 @@ export default function InventoryView({ config, refreshTrigger, onRefresh }: Inv
                     <select
                       value={category}
                       onChange={(e) => setCategory(e.target.value)}
-                      className="w-full px-3.5 py-2.5 bg-[#F5F5F7] border border-transparent rounded-xl text-xs font-sans text-[#1D1D1F] focus:outline-hidden focus:bg-white focus:border-[#0071E3] focus:ring-4 focus:ring-[#0071E3]/10 transition-all duration-200 appearance-none cursor-pointer"
+                      className="w-full px-3.5 py-2.5 bg-[#F5F5F7] border border-transparent rounded-xl text-xs font-sans text-[#1D1D1F] focus:outline-hidden focus:bg-white focus:border-[#000000] focus:ring-4 focus:ring-[#000000]/10 transition-all duration-200 appearance-none cursor-pointer"
                     >
                       {CATEGORIES.map((cat) => (
                         <option key={cat} value={cat}>
@@ -707,7 +707,7 @@ export default function InventoryView({ config, refreshTrigger, onRefresh }: Inv
                     required
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    className="w-full px-3.5 py-2.5 bg-[#F5F5F7] border border-transparent rounded-xl text-xs font-sans text-[#1D1D1F] placeholder-[#86868B] focus:outline-hidden focus:bg-white focus:border-[#0071E3] focus:ring-4 focus:ring-[#0071E3]/10 transition-all duration-200"
+                    className="w-full px-3.5 py-2.5 bg-[#F5F5F7] border border-transparent rounded-xl text-xs font-sans text-[#1D1D1F] placeholder-[#86868B] focus:outline-hidden focus:bg-white focus:border-[#000000] focus:ring-4 focus:ring-[#000000]/10 transition-all duration-200"
                     placeholder="ระบุชื่อเรียกอุปกรณ์ เช่น กล้อง Dome HIKVISION 4MP"
                   />
                 </div>
@@ -725,7 +725,7 @@ export default function InventoryView({ config, refreshTrigger, onRefresh }: Inv
                         min={1}
                         value={totalQty}
                         onChange={(e) => setTotalQty(Math.max(1, Number(e.target.value)))}
-                        className="w-full px-3 py-2 bg-[#F5F5F7] border border-transparent rounded-xl text-xs font-sans text-[#1D1D1F] focus:outline-hidden focus:bg-white focus:border-[#0071E3] transition-all duration-200 font-bold text-center"
+                        className="w-full px-3 py-2 bg-[#F5F5F7] border border-transparent rounded-xl text-xs font-sans text-[#1D1D1F] focus:outline-hidden focus:bg-white focus:border-[#000000] transition-all duration-200 font-bold text-center"
                       />
                     </div>
                     <div className="space-y-1">
@@ -735,7 +735,7 @@ export default function InventoryView({ config, refreshTrigger, onRefresh }: Inv
                         min={0}
                         value={maintenanceQty}
                         onChange={(e) => setMaintenanceQty(Math.max(0, Number(e.target.value)))}
-                        className="w-full px-3 py-2 bg-[#F5F5F7] border border-transparent rounded-xl text-xs font-sans text-[#1D1D1F] focus:outline-hidden focus:bg-white focus:border-[#0071E3] transition-all duration-200 text-center"
+                        className="w-full px-3 py-2 bg-[#F5F5F7] border border-transparent rounded-xl text-xs font-sans text-[#1D1D1F] focus:outline-hidden focus:bg-white focus:border-[#000000] transition-all duration-200 text-center"
                       />
                     </div>
                     <div className="space-y-1">
@@ -745,7 +745,7 @@ export default function InventoryView({ config, refreshTrigger, onRefresh }: Inv
                         min={0}
                         value={brokenQty}
                         onChange={(e) => setBrokenQty(Math.max(0, Number(e.target.value)))}
-                        className="w-full px-3 py-2 bg-[#F5F5F7] border border-transparent rounded-xl text-xs font-sans text-[#1D1D1F] focus:outline-hidden focus:bg-white focus:border-[#0071E3] transition-all duration-200 text-center"
+                        className="w-full px-3 py-2 bg-[#F5F5F7] border border-transparent rounded-xl text-xs font-sans text-[#1D1D1F] focus:outline-hidden focus:bg-white focus:border-[#000000] transition-all duration-200 text-center"
                       />
                     </div>
                   </div>
@@ -762,7 +762,7 @@ export default function InventoryView({ config, refreshTrigger, onRefresh }: Inv
                         id="location-select"
                         value={location}
                         onChange={(e) => setLocation(e.target.value)}
-                        className="w-full pl-3.5 pr-8 py-2.5 bg-[#F5F5F7] border border-transparent rounded-xl text-xs font-sans text-[#1D1D1F] focus:outline-hidden focus:bg-white focus:border-[#0071E3] focus:ring-4 focus:ring-[#0071E3]/10 transition-all duration-200 appearance-none cursor-pointer"
+                        className="w-full pl-3.5 pr-8 py-2.5 bg-[#F5F5F7] border border-transparent rounded-xl text-xs font-sans text-[#1D1D1F] focus:outline-hidden focus:bg-white focus:border-[#000000] focus:ring-4 focus:ring-[#000000]/10 transition-all duration-200 appearance-none cursor-pointer"
                       >
                         <option value="">-- กรุณาเลือกสถานที่เก็บ --</option>
                         {locationsList.map((loc) => (
@@ -779,7 +779,7 @@ export default function InventoryView({ config, refreshTrigger, onRefresh }: Inv
                       className={`px-3 py-2.5 text-xs font-bold font-sans rounded-xl border transition-all duration-200 cursor-pointer flex items-center gap-1 shrink-0 ${
                         showAddLocation
                           ? 'bg-[#FEEBEB] border-transparent text-[#D12B2B] hover:bg-[#FCD7D7]'
-                          : 'bg-[#E8F2FF] border-transparent text-[#0071E3] hover:bg-[#D4E8FF]'
+                          : 'bg-[#F5F5F7] border-transparent text-[#000000] hover:bg-[#D4E8FF]'
                       }`}
                     >
                       {showAddLocation ? 'ปิดช่อง' : 'เพิ่มสถานที่'}
@@ -797,7 +797,7 @@ export default function InventoryView({ config, refreshTrigger, onRefresh }: Inv
                           value={newLocationInput}
                           onChange={(e) => setNewLocationInput(e.target.value)}
                           placeholder="เช่น ตึก B ชั้น 3 ข้างห้องไอที"
-                          className="flex-1 px-3 py-2 bg-white border border-[#E8E8ED] rounded-lg text-xs font-sans text-[#1D1D1F] placeholder-[#86868B] focus:outline-hidden focus:border-[#0071E3] transition-all"
+                          className="flex-1 px-3 py-2 bg-white border border-[#E8E8ED] rounded-lg text-xs font-sans text-[#1D1D1F] placeholder-[#86868B] focus:outline-hidden focus:border-[#000000] transition-all"
                         />
                         <button
                           type="button"
@@ -817,7 +817,7 @@ export default function InventoryView({ config, refreshTrigger, onRefresh }: Inv
                               setShowAddLocation(false);
                             }
                           }}
-                          className="px-4 py-2 bg-[#0071E3] hover:bg-[#0077ED] text-white font-bold font-sans text-xs rounded-lg shadow-xs cursor-pointer select-none disabled:opacity-40"
+                          className="px-4 py-2 bg-[#000000] hover:bg-[#1D1D1F] text-white font-bold font-sans text-xs rounded-lg shadow-xs cursor-pointer select-none disabled:opacity-40"
                         >
                           บันทึก
                         </button>
@@ -833,7 +833,7 @@ export default function InventoryView({ config, refreshTrigger, onRefresh }: Inv
                     rows={3}
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
-                    className="w-full px-3.5 py-2.5 bg-[#F5F5F7] border border-transparent rounded-xl text-xs font-sans text-[#1D1D1F] placeholder-[#86868B] focus:outline-hidden focus:bg-white focus:border-[#0071E3] focus:ring-4 focus:ring-[#0071E3]/10 transition-all duration-200"
+                    className="w-full px-3.5 py-2.5 bg-[#F5F5F7] border border-transparent rounded-xl text-xs font-sans text-[#1D1D1F] placeholder-[#86868B] focus:outline-hidden focus:bg-white focus:border-[#000000] focus:ring-4 focus:ring-[#000000]/10 transition-all duration-200"
                     placeholder="เช่น คุณสมบัติทางเทคนิค หมายเลขประจำเครื่อง (S/N) หรือข้อมูลสำคัญในการดูแล"
                   />
                 </div>
@@ -883,7 +883,7 @@ export default function InventoryView({ config, refreshTrigger, onRefresh }: Inv
                         onDrop={handleDrop}
                         className={`border border-dashed rounded-2xl p-5 text-center flex flex-col items-center justify-center transition-all ${
                           dragActive 
-                            ? 'border-[#0071E3] bg-[#E8F2FF]/40' 
+                            ? 'border-[#000000] bg-[#F5F5F7]/40' 
                             : imageUrl && imageUrl.startsWith('data:image')
                               ? 'border-[#1E7F28] bg-[#E5F9E0]/5'
                               : 'border-[#C5C5C7] hover:border-[#86868B] bg-[#F5F5F7]/30'
@@ -909,7 +909,7 @@ export default function InventoryView({ config, refreshTrigger, onRefresh }: Inv
                             <span className="text-[9px] font-sans font-semibold text-[#1E7F28] bg-[#E5F9E0] px-2.5 py-0.5 rounded-full">
                               ✓ พร้อมบันทึกภาพอัปโหลดแล้ว
                             </span>
-                            <label className="text-[10px] font-sans text-[#0071E3] hover:underline cursor-pointer font-bold">
+                            <label className="text-[10px] font-sans text-[#000000] hover:underline cursor-pointer font-bold">
                               เปลี่ยนรูปภาพใหม่...
                               <input 
                                 type="file" 
@@ -921,10 +921,10 @@ export default function InventoryView({ config, refreshTrigger, onRefresh }: Inv
                           </div>
                         ) : (
                           <>
-                            <FileImage className={`h-8 w-8 mb-2 ${dragActive ? 'text-[#0071E3] animate-pulse' : 'text-[#86868B]'}`} />
+                            <FileImage className={`h-8 w-8 mb-2 ${dragActive ? 'text-[#000000] animate-pulse' : 'text-[#86868B]'}`} />
                             <p className="text-xs font-sans text-[#1D1D1F] select-none">
                               ลากรูปภาพมาวางที่นี่ หรือ{' '}
-                              <label className="text-[#0071E3] hover:underline cursor-pointer font-bold">
+                              <label className="text-[#000000] hover:underline cursor-pointer font-bold">
                                 เลือกไฟล์จากเครื่อง
                                 <input 
                                   type="file" 
@@ -953,7 +953,7 @@ export default function InventoryView({ config, refreshTrigger, onRefresh }: Inv
                         type="url"
                         value={imageUrl && !imageUrl.startsWith('data:image') ? imageUrl : ''}
                         onChange={(e) => setImageUrl(e.target.value)}
-                        className="w-full px-3.5 py-2.5 bg-[#F5F5F7] border border-transparent rounded-xl text-xs font-sans text-[#1D1D1F] placeholder-[#86868B] focus:outline-hidden focus:bg-white focus:border-[#0071E3] focus:ring-4 focus:ring-[#0071E3]/10 transition-all duration-200"
+                        className="w-full px-3.5 py-2.5 bg-[#F5F5F7] border border-transparent rounded-xl text-xs font-sans text-[#1D1D1F] placeholder-[#86868B] focus:outline-hidden focus:bg-white focus:border-[#000000] focus:ring-4 focus:ring-[#000000]/10 transition-all duration-200"
                         placeholder="กรอก URL รูปภาพ เช่น https://images.unsplash.com/..."
                       />
                       
@@ -1006,7 +1006,7 @@ export default function InventoryView({ config, refreshTrigger, onRefresh }: Inv
                 </button>
                 <button
                   onClick={handleSubmit}
-                  className="px-5 py-2 bg-[#0071E3] hover:bg-[#0077ED] active:scale-95 text-white font-sans font-semibold text-xs rounded-full shadow-sm hover:shadow-md transition-all cursor-pointer"
+                  className="px-5 py-2 bg-[#000000] hover:bg-[#1D1D1F] active:scale-95 text-white font-sans font-semibold text-xs rounded-full shadow-sm hover:shadow-md transition-all cursor-pointer"
                 >
                   {formMode === 'create' ? 'ลงทะเบียนพัสดุ' : 'บันทึกการเปลี่ยนแปลง'}
                 </button>

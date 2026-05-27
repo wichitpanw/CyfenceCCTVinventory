@@ -200,7 +200,7 @@ export default function HistoryView({ config, refreshTrigger }: HistoryViewProps
             placeholder="ค้นหาข้อมูลประวัติด้วย ชื่อผู้เบิก, ฝ่าย, หรือชื่อ/รหัสพัสดุอุปกรณ์..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 bg-[#F5F5F7] border border-transparent rounded-xl text-xs font-sans focus:outline-hidden focus:bg-white focus:border-[#0071E3] focus:ring-4 focus:ring-[#0071E3]/10 transition-all font-semibold text-[#1D1D1F] placeholder:text-[#86868B]"
+            className="w-full pl-10 pr-4 py-2.5 bg-[#F5F5F7] border border-transparent rounded-xl text-xs font-sans focus:outline-hidden focus:bg-white focus:border-[#000000] focus:ring-4 focus:ring-[#000000]/10 transition-all font-semibold text-[#1D1D1F] placeholder:text-[#86868B]"
           />
         </div>
 
@@ -209,7 +209,7 @@ export default function HistoryView({ config, refreshTrigger }: HistoryViewProps
           <div 
             className={`flex items-center justify-center w-10 h-10 rounded-full border transition-all duration-200 cursor-pointer ${
               statusFilter !== 'all'
-                ? 'bg-[#E8F2FF] border-[#0071E3] text-[#0071E3]'
+                ? 'bg-[#F5F5F7] border-[#000000] text-[#000000]'
                 : 'bg-[#F5F5F7] border-[#E8E8ED] text-[#86868B] hover:bg-[#E8E8ED] hover:text-[#1D1D1F]'
             }`}
             title={`กรองสถานะ: ${

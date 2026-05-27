@@ -239,12 +239,12 @@ export default function RequestView({ config, refreshTrigger }: RequestViewProps
         </div>
         <div className="bg-[#F5F5F7] border border-[#E8E8ED] rounded-2xl p-6 w-full max-w-sm space-y-2">
           <p className="text-[11px] text-[#86868B] uppercase tracking-wider font-semibold">รหัสอ้างอิงคำขอของคุณ</p>
-          <p className="text-base font-mono font-bold text-[#0071E3] break-all">{successRefCode}</p>
+          <p className="text-base font-mono font-bold text-[#000000] break-all">{successRefCode}</p>
           <p className="text-[10px] text-[#86868B]">กรุณาบันทึกรหัสนี้ไว้สำหรับติดตามสถานะคำขอ</p>
         </div>
         <button
           onClick={handleReset}
-          className="px-8 py-3 bg-[#0071E3] text-white rounded-xl text-sm font-semibold hover:bg-[#0077ED] transition-all"
+          className="px-8 py-3 bg-[#000000] text-white rounded-xl text-sm font-semibold hover:bg-[#1D1D1F] transition-all"
         >
           ยื่นคำขอใหม่
         </button>
@@ -258,7 +258,7 @@ export default function RequestView({ config, refreshTrigger }: RequestViewProps
       {/* Header */}
       <div>
         <h2 className="text-sm font-bold font-sans text-slate-900 uppercase tracking-wider flex items-center gap-2">
-          <ClipboardList className="h-4 w-4 text-[#0071E3]" />
+          <ClipboardList className="h-4 w-4 text-[#000000]" />
           ยื่นคำขอเบิกพัสดุ
         </h2>
         <p className="text-xs text-slate-500 font-sans mt-0.5">
@@ -270,7 +270,7 @@ export default function RequestView({ config, refreshTrigger }: RequestViewProps
         {/* ── Step 1: Cart ── */}
         <div className="bg-white border border-[#E8E8ED] rounded-2xl p-5 shadow-[0_4px_20px_rgba(0,0,0,0.04)] space-y-4">
           <h3 className="text-[11px] font-bold uppercase tracking-wider text-[#1D1D1F] flex items-center gap-2">
-            <ShoppingCart className="h-3.5 w-3.5 text-[#0071E3]" />
+            <ShoppingCart className="h-3.5 w-3.5 text-[#000000]" />
             1. รายการพัสดุที่ต้องการขอเบิก
           </h3>
 
@@ -308,7 +308,7 @@ export default function RequestView({ config, refreshTrigger }: RequestViewProps
               ))}
               <div className="flex justify-between text-[10px] font-semibold text-[#86868B] pt-1 border-t border-[#E8E8ED] px-1">
                 <span>{cart.length} ชนิด</span>
-                <span className="text-[#0071E3] font-extrabold">รวม {cart.reduce((s,i)=>s+i.qty,0)} ชิ้น</span>
+                <span className="text-[#000000] font-extrabold">รวม {cart.reduce((s,i)=>s+i.qty,0)} ชิ้น</span>
               </div>
             </div>
           )}
@@ -321,12 +321,12 @@ export default function RequestView({ config, refreshTrigger }: RequestViewProps
             {categories.length > 0 && (
               <div className="flex flex-nowrap overflow-x-auto gap-1.5 pb-2 -mx-1 px-1 [&::-webkit-scrollbar]:h-1 [&::-webkit-scrollbar-thumb]:bg-[#E8E8ED] [&::-webkit-scrollbar-thumb]:rounded-full">
                 <button type="button" onClick={() => setSelectedCategory('')}
-                  className={`text-[10px] px-3 py-1.5 rounded-full border font-semibold transition shrink-0 whitespace-nowrap ${!selectedCategory ? 'bg-[#0071E3] text-white border-[#0071E3]' : 'bg-white text-[#86868B] border-[#E8E8ED] hover:bg-[#F5F5F7]'}`}>
+                  className={`text-[10px] px-3 py-1.5 rounded-full border font-semibold transition shrink-0 whitespace-nowrap ${!selectedCategory ? 'bg-[#000000] text-white border-[#000000]' : 'bg-white text-[#86868B] border-[#E8E8ED] hover:bg-[#F5F5F7]'}`}>
                   ทั้งหมด
                 </button>
                 {categories.map(cat => (
                   <button key={cat} type="button" onClick={() => setSelectedCategory(cat)}
-                    className={`text-[10px] px-3 py-1.5 rounded-full border font-semibold transition shrink-0 whitespace-nowrap ${selectedCategory===cat ? 'bg-[#0071E3] text-white border-[#0071E3]' : 'bg-white text-[#86868B] border-[#E8E8ED] hover:bg-[#F5F5F7]'}`}>
+                    className={`text-[10px] px-3 py-1.5 rounded-full border font-semibold transition shrink-0 whitespace-nowrap ${selectedCategory===cat ? 'bg-[#000000] text-white border-[#000000]' : 'bg-white text-[#86868B] border-[#E8E8ED] hover:bg-[#F5F5F7]'}`}>
                     {cat}
                   </button>
                 ))}
@@ -341,7 +341,7 @@ export default function RequestView({ config, refreshTrigger }: RequestViewProps
                 placeholder="ค้นหารหัสหรือชื่อพัสดุ..."
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
-                className="w-full pl-8 pr-3 py-2 bg-[#F5F5F7] border border-[#E8E8ED] rounded-xl text-xs focus:outline-none focus:bg-white focus:border-[#0071E3] transition"
+                className="w-full pl-8 pr-3 py-2 bg-[#F5F5F7] border border-[#E8E8ED] rounded-xl text-xs focus:outline-none focus:bg-white focus:border-[#000000] transition"
               />
             </div>
 
@@ -356,7 +356,7 @@ export default function RequestView({ config, refreshTrigger }: RequestViewProps
                     key={eq.id}
                     type="button"
                     onClick={() => { setSelectedEqId(eq.id === selectedEqId ? '' : eq.id); setBorrowQty(1); }}
-                    className={`w-full flex items-center justify-between p-2.5 rounded-xl border text-left transition ${selectedEqId === eq.id ? 'bg-[#E8F2FF] border-[#0071E3]' : 'bg-white border-[#E8E8ED] hover:bg-[#F5F5F7]'}`}
+                    className={`w-full flex items-center justify-between p-2.5 rounded-xl border text-left transition ${selectedEqId === eq.id ? 'bg-[#F5F5F7] border-[#000000]' : 'bg-white border-[#E8E8ED] hover:bg-[#F5F5F7]'}`}
                   >
                     <div className="min-w-0 flex-1 flex items-center gap-2.5">
                       {eq.image_url && (
@@ -372,7 +372,7 @@ export default function RequestView({ config, refreshTrigger }: RequestViewProps
                         <p className="text-[10px] text-[#86868B] font-mono">{eq.code} · คลัง {eq.available_qty ?? 0} ชิ้น</p>
                       </div>
                     </div>
-                    {selectedEqId === eq.id && <CheckCircle className="h-4 w-4 text-[#0071E3] shrink-0 ml-2" />}
+                    {selectedEqId === eq.id && <CheckCircle className="h-4 w-4 text-[#000000] shrink-0 ml-2" />}
                   </button>
                 ))}
               </div>
@@ -404,7 +404,7 @@ export default function RequestView({ config, refreshTrigger }: RequestViewProps
                 <button
                   type="button"
                   onClick={addToCart}
-                  className="flex items-center gap-1.5 px-4 py-2 bg-[#0071E3] text-white rounded-xl text-xs font-semibold hover:bg-[#0077ED] transition shrink-0"
+                  className="flex items-center gap-1.5 px-4 py-2 bg-[#000000] text-white rounded-xl text-xs font-semibold hover:bg-[#1D1D1F] transition shrink-0"
                 >
                   <Plus className="h-3.5 w-3.5" /> เพิ่ม
                 </button>
@@ -416,7 +416,7 @@ export default function RequestView({ config, refreshTrigger }: RequestViewProps
         {/* ── Step 2: Requester info ── */}
         <div className="bg-white border border-[#E8E8ED] rounded-2xl p-5 shadow-[0_4px_20px_rgba(0,0,0,0.04)] space-y-4">
           <h3 className="text-[11px] font-bold uppercase tracking-wider text-[#1D1D1F] flex items-center gap-2">
-            <User className="h-3.5 w-3.5 text-[#0071E3]" />
+            <User className="h-3.5 w-3.5 text-[#000000]" />
             2. ข้อมูลผู้ยื่นคำขอ
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -427,7 +427,7 @@ export default function RequestView({ config, refreshTrigger }: RequestViewProps
                 <User className="absolute left-3 top-2.5 h-4 w-4 text-[#86868B] pointer-events-none" />
                 <input type="text" value={requesterName} onChange={e=>setRequesterName(e.target.value)}
                   placeholder="เช่น สมศักดิ์ แสนดี" required
-                  className="w-full pl-9 pr-3 py-2 border border-[#E8E8ED] rounded-xl text-xs focus:outline-none focus:border-[#0071E3] bg-[#F5F5F7] focus:bg-white transition" />
+                  className="w-full pl-9 pr-3 py-2 border border-[#E8E8ED] rounded-xl text-xs focus:outline-none focus:border-[#000000] bg-[#F5F5F7] focus:bg-white transition" />
               </div>
             </div>
             {/* Company */}
@@ -436,14 +436,14 @@ export default function RequestView({ config, refreshTrigger }: RequestViewProps
               <div className="relative">
                 <Briefcase className="absolute left-3 top-2.5 h-4 w-4 text-[#86868B] pointer-events-none" />
                 <select value={requesterCompany} onChange={e=>setRequesterCompany(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2 border border-[#E8E8ED] rounded-xl text-xs focus:outline-none focus:border-[#0071E3] bg-[#F5F5F7] focus:bg-white transition appearance-none">
+                  className="w-full pl-9 pr-3 py-2 border border-[#E8E8ED] rounded-xl text-xs focus:outline-none focus:border-[#000000] bg-[#F5F5F7] focus:bg-white transition appearance-none">
                   {COMPANIES.map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
               </div>
               {requesterCompany === 'อื่นๆ ระบุ' && (
                 <input type="text" value={customCompany} onChange={e=>setCustomCompany(e.target.value)}
                   placeholder="ระบุชื่อบริษัท..." required
-                  className="mt-2 w-full px-3 py-2 border border-[#E8E8ED] rounded-xl text-xs focus:outline-none focus:border-[#0071E3] bg-white transition" />
+                  className="mt-2 w-full px-3 py-2 border border-[#E8E8ED] rounded-xl text-xs focus:outline-none focus:border-[#000000] bg-white transition" />
               )}
             </div>
             {/* Contact */}
@@ -453,7 +453,7 @@ export default function RequestView({ config, refreshTrigger }: RequestViewProps
                 <Phone className="absolute left-3 top-2.5 h-4 w-4 text-[#86868B] pointer-events-none" />
                 <input type="text" value={requesterContact} onChange={e=>setRequesterContact(e.target.value)}
                   placeholder="เช่น 081-234-5678 หรือ name@company.com"
-                  className="w-full pl-9 pr-3 py-2 border border-[#E8E8ED] rounded-xl text-xs focus:outline-none focus:border-[#0071E3] bg-[#F5F5F7] focus:bg-white transition" />
+                  className="w-full pl-9 pr-3 py-2 border border-[#E8E8ED] rounded-xl text-xs focus:outline-none focus:border-[#000000] bg-[#F5F5F7] focus:bg-white transition" />
               </div>
             </div>
           </div>
@@ -462,7 +462,7 @@ export default function RequestView({ config, refreshTrigger }: RequestViewProps
         {/* ── Step 3: Purpose & Date ── */}
         <div className="bg-white border border-[#E8E8ED] rounded-2xl p-5 shadow-[0_4px_20px_rgba(0,0,0,0.04)] space-y-4">
           <h3 className="text-[11px] font-bold uppercase tracking-wider text-[#1D1D1F] flex items-center gap-2">
-            <FileText className="h-3.5 w-3.5 text-[#0071E3]" />
+            <FileText className="h-3.5 w-3.5 text-[#000000]" />
             3. วัตถุประสงค์และวันที่
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -473,7 +473,7 @@ export default function RequestView({ config, refreshTrigger }: RequestViewProps
                 <FileText className="absolute left-3 top-2.5 h-4 w-4 text-[#86868B] pointer-events-none" />
                 <textarea rows={2} value={purpose} onChange={e=>setPurpose(e.target.value)}
                   placeholder="เช่น ใช้ในงานโครงการติดตั้งกล้องโครงการ X ที่..."
-                  className="w-full pl-9 pr-3 py-2 border border-[#E8E8ED] rounded-xl text-xs focus:outline-none focus:border-[#0071E3] bg-[#F5F5F7] focus:bg-white transition resize-none" />
+                  className="w-full pl-9 pr-3 py-2 border border-[#E8E8ED] rounded-xl text-xs focus:outline-none focus:border-[#000000] bg-[#F5F5F7] focus:bg-white transition resize-none" />
               </div>
             </div>
             {/* Due date */}
@@ -483,7 +483,7 @@ export default function RequestView({ config, refreshTrigger }: RequestViewProps
                 <Calendar className="absolute left-3 top-2.5 h-4 w-4 text-[#86868B] pointer-events-none" />
                 <input type="date" value={dueDate} onChange={e=>setDueDate(e.target.value)}
                   min={new Date().toISOString().split('T')[0]} required
-                  className="w-full pl-9 pr-3 py-2 border border-[#E8E8ED] rounded-xl text-xs focus:outline-none focus:border-[#0071E3] bg-[#F5F5F7] focus:bg-white transition" />
+                  className="w-full pl-9 pr-3 py-2 border border-[#E8E8ED] rounded-xl text-xs focus:outline-none focus:border-[#000000] bg-[#F5F5F7] focus:bg-white transition" />
               </div>
               <div className="flex items-center gap-1.5 mt-2 flex-wrap">
                 <span className="text-[10px] text-[#86868B]">ระยะแนะนำ:</span>
@@ -502,7 +502,7 @@ export default function RequestView({ config, refreshTrigger }: RequestViewProps
         <div className="bg-white border border-[#E8E8ED] rounded-2xl p-5 shadow-[0_4px_20px_rgba(0,0,0,0.04)] space-y-3">
           <div className="flex items-center justify-between">
             <h3 className="text-[11px] font-bold uppercase tracking-wider text-[#1D1D1F] flex items-center gap-2">
-              <Camera className="h-3.5 w-3.5 text-[#0071E3]" />
+              <Camera className="h-3.5 w-3.5 text-[#000000]" />
               4. รูปประกอบหลักฐาน <span className="normal-case font-normal text-[#86868B]">(ไม่บังคับ)</span>
             </h3>
             <div className="bg-[#F5F5F7] p-0.5 rounded-full flex items-center border border-[#E8E8ED] text-[10px] font-semibold">
@@ -533,7 +533,7 @@ export default function RequestView({ config, refreshTrigger }: RequestViewProps
           ) : (
             <input type="url" value={evidenceImage} onChange={e=>setEvidenceImage(e.target.value)}
               placeholder="https://... URL รูปภาพหลักฐาน"
-              className="w-full px-3 py-2 border border-[#E8E8ED] rounded-xl text-xs focus:outline-none focus:border-[#0071E3] bg-[#F5F5F7] focus:bg-white transition" />
+              className="w-full px-3 py-2 border border-[#E8E8ED] rounded-xl text-xs focus:outline-none focus:border-[#000000] bg-[#F5F5F7] focus:bg-white transition" />
           )}
         </div>
 
@@ -549,7 +549,7 @@ export default function RequestView({ config, refreshTrigger }: RequestViewProps
         <button
           type="submit"
           disabled={submitting}
-          className="w-full flex items-center justify-center gap-2 py-3.5 bg-[#0071E3] hover:bg-[#0077ED] disabled:bg-[#86868B] text-white rounded-2xl text-sm font-bold transition-all shadow-[0_4px_20px_rgba(0,113,227,0.3)] hover:shadow-[0_6px_24px_rgba(0,113,227,0.4)] active:scale-[0.99]"
+          className="w-full flex items-center justify-center gap-2 py-3.5 bg-[#000000] hover:bg-[#1D1D1F] disabled:bg-[#86868B] text-white rounded-2xl text-sm font-bold transition-all shadow-[0_4px_20px_rgba(0,113,227,0.3)] hover:shadow-[0_6px_24px_rgba(0,113,227,0.4)] active:scale-[0.99]"
         >
           {submitting ? (
             <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> กำลังส่งคำขอ...</>

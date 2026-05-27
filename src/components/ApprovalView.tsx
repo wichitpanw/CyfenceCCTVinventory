@@ -183,7 +183,7 @@ export default function ApprovalView({ config, refreshTrigger, onRefresh }: Appr
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h2 className="text-sm font-bold font-sans text-slate-900 uppercase tracking-wider flex items-center gap-2">
-            <ShieldCheck className="h-4 w-4 text-[#0071E3]" />
+            <ShieldCheck className="h-4 w-4 text-[#000000]" />
             หน้าอนุมัติคำขอเบิกพัสดุ
           </h2>
           <p className="text-xs text-slate-500 font-sans mt-0.5">ตรวจสอบและอนุมัติ / ปฏิเสธ / จ่ายพัสดุออกจากคลัง</p>
@@ -225,7 +225,7 @@ export default function ApprovalView({ config, refreshTrigger, onRefresh }: Appr
             onClick={() => setFilterStatus(val)}
             className={`flex-1 min-w-fit px-3 py-2 rounded-xl text-xs font-semibold transition-all ${
               filterStatus === val
-                ? 'bg-white text-[#0071E3] shadow-sm'
+                ? 'bg-white text-[#000000] shadow-sm'
                 : 'text-[#86868B] hover:text-[#1D1D1F]'
             }`}
           >{label}{val === 'pending_approval' && pending > 0 ? ` (${pending})` : ''}</button>
@@ -235,7 +235,7 @@ export default function ApprovalView({ config, refreshTrigger, onRefresh }: Appr
       {/* Request Cards */}
       {loading ? (
         <div className="flex items-center justify-center py-16">
-          <div className="w-7 h-7 border-3 border-[#0071E3] border-t-transparent rounded-full animate-spin" />
+          <div className="w-7 h-7 border-3 border-[#000000] border-t-transparent rounded-full animate-spin" />
         </div>
       ) : filtered.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16 gap-3 text-center">
@@ -294,7 +294,7 @@ export default function ApprovalView({ config, refreshTrigger, onRefresh }: Appr
                               <p className="text-xs font-bold text-[#1D1D1F]">{item.equipment_name}</p>
                               <p className="text-[10px] text-[#86868B] font-mono">{item.equipment_code}</p>
                             </div>
-                            <span className="text-xs font-extrabold text-[#0071E3]">{item.qty} ชิ้น</span>
+                            <span className="text-xs font-extrabold text-[#000000]">{item.qty} ชิ้น</span>
                           </div>
                         ))}
                       </div>
@@ -391,7 +391,7 @@ export default function ApprovalView({ config, refreshTrigger, onRefresh }: Appr
                           type="button"
                           disabled={isLoading}
                           onClick={() => handleDispatch(req)}
-                          className="w-full flex items-center justify-center gap-1.5 py-3 bg-[#0071E3] hover:bg-[#0077ED] disabled:bg-slate-300 text-white rounded-xl text-xs font-bold transition-all shadow-[0_4px_16px_rgba(0,113,227,0.25)]"
+                          className="w-full flex items-center justify-center gap-1.5 py-3 bg-[#000000] hover:bg-[#1D1D1F] disabled:bg-slate-300 text-white rounded-xl text-xs font-bold transition-all shadow-[0_4px_16px_rgba(0,113,227,0.25)]"
                         >
                           {isLoading ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Truck className="h-4 w-4" />}
                           ยืนยันจ่ายพัสดุออกจากคลัง — สร้างประวัติเบิกทันที

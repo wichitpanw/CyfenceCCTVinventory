@@ -197,7 +197,7 @@ export default function App() {
             )}
             <div>
               <h1 className="text-md font-extrabold tracking-tight font-sans text-[#1D1D1F] flex items-center gap-2">
-                {systemTitle} <span className="text-[#0071E3] font-bold font-sans text-[10px] bg-[#E8F2FF] px-2 py-0.5 rounded-full">{systemVersion}</span>
+                {systemTitle} <span className="text-[#000000] font-bold font-sans text-[10px] bg-[#F5F5F7] px-2 py-0.5 rounded-full">{systemVersion}</span>
               </h1>
               <p className="text-[9px] text-[#86868B] font-medium leading-normal">{systemDesc}</p>
             </div>
@@ -222,7 +222,7 @@ export default function App() {
               onClick={() => setActiveTab('settings')}
               className={`p-2 rounded-xl border transition-all cursor-pointer ${
                 activeTab === 'settings'
-                  ? 'bg-[#E8F2FF] border-blue-200 text-[#0071E3]'
+                  ? 'bg-[#F5F5F7] border-blue-200 text-[#000000]'
                   : 'bg-white border-[#E8E8ED] text-[#86868B] hover:bg-[#F5F5F7] hover:text-[#1D1D1F]'
               }`}
               title="ตั้งค่าระบบ"
@@ -244,7 +244,7 @@ export default function App() {
 
             {/* ── Section 1: สำหรับบริษัทผู้ขอเบิก ── */}
             <div>
-              <h4 className="text-[10px] font-sans text-[#0071E3] uppercase tracking-wider font-extrabold mb-2 px-3 text-left flex items-center gap-1.5">
+              <h4 className="text-[10px] font-sans text-[#000000] uppercase tracking-wider font-extrabold mb-2 px-3 text-left flex items-center gap-1.5">
                 <ClipboardList className="h-3 w-3" />
                 <span className="hidden lg:inline">สำหรับบริษัทผู้ขอเบิก</span>
               </h4>
@@ -261,11 +261,11 @@ export default function App() {
                       onClick={() => { setActiveTab(tab.id); handleRefresh(); }}
                       className={`relative flex items-center space-x-2.5 px-4 py-2.5 rounded-xl text-xs font-semibold font-sans transition-all cursor-pointer ${
                         isActive
-                          ? 'bg-[#E8F2FF] text-[#0071E3]'
+                          ? 'bg-[#F5F5F7] text-[#000000]'
                           : 'text-[#1D1D1F] hover:bg-[#F5F5F7]'
                       }`}
                     >
-                      <IconComp className={`h-4 w-4 shrink-0 ${isActive ? 'text-[#0071E3]' : 'text-[#86868B]'}`} />
+                      <IconComp className={`h-4 w-4 shrink-0 ${isActive ? 'text-[#000000]' : 'text-[#86868B]'}`} />
                       <span className="truncate">{tab.name}</span>
                     </button>
                   );
@@ -311,11 +311,11 @@ export default function App() {
                         onClick={() => { setActiveTab(tab.id); handleRefresh(); }}
                         className={`relative flex items-center space-x-2.5 px-4 py-2.5 rounded-xl text-xs font-semibold font-sans transition-all cursor-pointer ${
                           isActive
-                            ? 'bg-[#E8F2FF] text-[#0071E3]'
+                            ? 'bg-[#F5F5F7] text-[#000000]'
                             : 'text-[#1D1D1F] hover:bg-[#F5F5F7]'
                         }`}
                       >
-                        <IconComp className={`h-4 w-4 shrink-0 ${isActive ? 'text-[#0071E3]' : 'text-[#86868B]'}`} />
+                        <IconComp className={`h-4 w-4 shrink-0 ${isActive ? 'text-[#000000]' : 'text-[#86868B]'}`} />
                         <span className="truncate">{tab.name}</span>
                         {badge != null && badge > 0 && (
                           <span className="absolute top-1.5 right-1.5 min-w-[18px] h-[18px] px-1 bg-red-500 text-white text-[9px] font-extrabold rounded-full flex items-center justify-center leading-none">
@@ -425,7 +425,7 @@ export default function App() {
           <div className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden bg-slate-900/40 backdrop-blur-md">
             <div className="absolute inset-0" onClick={() => setShowAdminPinModal(false)} />
             <div className="bg-white rounded-3xl w-full max-w-xs mx-4 overflow-hidden shadow-2xl z-10 text-center border border-[#E8E8ED] p-8 space-y-6 animate-in zoom-in-95 duration-200">
-              <div className={`mx-auto w-16 h-16 rounded-full flex items-center justify-center transition-all duration-300 ${adminPinError ? 'bg-red-50 text-red-500 scale-105' : 'bg-blue-50 text-[#0071E3]'}`}>
+              <div className={`mx-auto w-16 h-16 rounded-full flex items-center justify-center transition-all duration-300 ${adminPinError ? 'bg-red-50 text-red-500 scale-105' : 'bg-blue-50 text-[#000000]'}`}>
                 <ShieldCheck className="w-7 h-7" />
               </div>
               <div>
@@ -438,7 +438,7 @@ export default function App() {
                 {[0,1,2,3,4,5].map(i => (
                   <div key={i} className={`w-3.5 h-3.5 rounded-full border-2 transition-all duration-200 ${
                     adminPin.length > i
-                      ? adminPinError ? 'bg-red-500 border-red-500' : 'bg-[#0071E3] border-[#0071E3]'
+                      ? adminPinError ? 'bg-red-500 border-red-500' : 'bg-[#000000] border-[#000000]'
                       : 'border-[#C7C7CC]'
                   }`} />
                 ))}

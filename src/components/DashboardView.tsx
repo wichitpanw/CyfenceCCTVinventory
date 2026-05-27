@@ -140,7 +140,7 @@ export default function DashboardView({ config, onNavigate, onQuickReturn, refre
   const totalActiveBorrowedItems = departmentChartData.reduce((sum, item) => sum + item.value, 0);
 
   const DEPT_COLORS = [
-    '#0071E3', // Apple Blue
+    '#000000', // Apple Blue
     '#34C759', // Apple Green
     '#FF9500', // Apple Orange
     '#AF52DE', // Apple Purple
@@ -155,18 +155,18 @@ export default function DashboardView({ config, onNavigate, onQuickReturn, refre
       {/* Global premium loading overlay to prevent Cumulative Layout Shift (CLS) and ensure dimensions are calculated beforehand */}
       {loading && (
         <div className="absolute inset-0 bg-[#F5F5F7]/60 backdrop-blur-xs flex flex-col items-center justify-center z-50 rounded-2xl transition-all duration-300" id="dashboard-loading-overlay">
-          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#0071E3] mb-3"></div>
+          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#000000] mb-3"></div>
           <p className="text-xs text-[#86868B] font-sans font-semibold">กำลังดึงข้อมูลแดชบอร์ด...</p>
         </div>
       )}
 
       {/* If connected to live Supabase but empty database, show a nice welcoming helper banner */}
       {!loading && !config.useLocalStorage && equipments.length === 0 && (
-        <div className="bg-[#E8F2FF] border border-[#0071E3]/20 rounded-2xl p-5 text-[#1D1D1F] text-left shadow-xs relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-[#0071E3]/5 rounded-full -mr-10 -mt-10" />
+        <div className="bg-[#F5F5F7] border border-[#000000]/20 rounded-2xl p-5 text-[#1D1D1F] text-left shadow-xs relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-[#000000]/5 rounded-full -mr-10 -mt-10" />
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 relative z-10">
             <div className="space-y-1">
-              <span className="bg-[#0071E3] text-white text-[9px] font-sans font-black tracking-widest px-2.5 py-0.5 rounded-full uppercase">
+              <span className="bg-[#000000] text-white text-[9px] font-sans font-black tracking-widest px-2.5 py-0.5 rounded-full uppercase">
                 Supabase LIVE (เชื่อมสำเร็จ)
               </span>
               <h3 className="text-xs font-sans font-extrabold text-[#1D1D1F] mt-1.5">
@@ -179,7 +179,7 @@ export default function DashboardView({ config, onNavigate, onQuickReturn, refre
             
             <button
               onClick={() => onNavigate('settings')}
-              className="bg-[#0071E3] hover:bg-[#0077ED] text-white font-sans font-extrabold text-xs py-2 px-4 rounded-xl shadow-xs cursor-pointer transition-all flex items-center gap-1.5 shrink-0"
+              className="bg-[#000000] hover:bg-[#1D1D1F] text-white font-sans font-extrabold text-xs py-2 px-4 rounded-xl shadow-xs cursor-pointer transition-all flex items-center gap-1.5 shrink-0"
             >
               <Database className="h-4 w-4" />
               <span>ก้าวไปหน้าเติมข้อมูลเริ่มต้น ➔</span>
@@ -193,12 +193,12 @@ export default function DashboardView({ config, onNavigate, onQuickReturn, refre
         {/* Card 1: Total Items */}
         <div 
           onClick={() => onNavigate('inventory')}
-          className="bg-white border border-[#E8E8ED] p-5 rounded-2xl flex flex-col justify-center relative overflow-hidden transition-all duration-300 cursor-pointer group hover:border-[#0071E3] hover:shadow-[0_8px_30px_rgba(0,0,0,0.04)] hover:-translate-y-0.5"
+          className="bg-white border border-[#E8E8ED] p-5 rounded-2xl flex flex-col justify-center relative overflow-hidden transition-all duration-300 cursor-pointer group hover:border-[#000000] hover:shadow-[0_8px_30px_rgba(0,0,0,0.04)] hover:-translate-y-0.5"
           id="kpi-total-items"
         >
-          <div className="absolute top-0 right-0 w-16 h-16 bg-[#E8F2FF] rounded-full -mr-6 -mt-6 transition-transform group-hover:scale-110 duration-500" />
+          <div className="absolute top-0 right-0 w-16 h-16 bg-[#F5F5F7] rounded-full -mr-6 -mt-6 transition-transform group-hover:scale-110 duration-500" />
           <div className="flex items-center space-x-3.5 relative z-10">
-            <div className="p-3 bg-[#E8F2FF] text-[#0071E3] rounded-2xl group-hover:bg-[#0071E3] group-hover:text-white transition-all duration-300">
+            <div className="p-3 bg-[#F5F5F7] text-[#000000] rounded-2xl group-hover:bg-[#000000] group-hover:text-white transition-all duration-300">
               <Package className="h-5 w-5" />
             </div>
             <div>
@@ -206,7 +206,7 @@ export default function DashboardView({ config, onNavigate, onQuickReturn, refre
               <h3 className="text-2xl font-sans font-extrabold text-[#1D1D1F] mt-0.5">{stats?.totalItems || 0} ชิ้น</h3>
             </div>
           </div>
-          <p className="text-[11px] text-[#0071E3] font-bold mt-4 flex items-center group-hover:translate-x-1 transition-transform duration-300">
+          <p className="text-[11px] text-[#000000] font-bold mt-4 flex items-center group-hover:translate-x-1 transition-transform duration-300">
             ดูรายการอุปกรณ์ทั้งหมด &rarr;
           </p>
         </div>
@@ -214,7 +214,7 @@ export default function DashboardView({ config, onNavigate, onQuickReturn, refre
         {/* Card 2: Active / Overdue Borrows */}
         <div 
           onClick={() => onNavigate('borrow')}
-          className="bg-white border border-[#E8E8ED] p-5 rounded-2xl flex flex-col justify-center relative overflow-hidden transition-all duration-300 cursor-pointer group hover:border-[#0071E3] hover:shadow-[0_8px_30px_rgba(0,0,0,0.04)] hover:-translate-y-0.5"
+          className="bg-white border border-[#E8E8ED] p-5 rounded-2xl flex flex-col justify-center relative overflow-hidden transition-all duration-300 cursor-pointer group hover:border-[#000000] hover:shadow-[0_8px_30px_rgba(0,0,0,0.04)] hover:-translate-y-0.5"
           id="kpi-borrowed-items"
         >
           <div className="absolute top-0 right-0 w-16 h-16 bg-[#FFF2E0] rounded-full -mr-6 -mt-6 transition-transform group-hover:scale-110 duration-500" />
@@ -229,7 +229,7 @@ export default function DashboardView({ config, onNavigate, onQuickReturn, refre
               </h3>
             </div>
           </div>
-          <div className="mt-4 flex items-center justify-between text-[11px] text-[#0071E3] font-bold">
+          <div className="mt-4 flex items-center justify-between text-[11px] text-[#000000] font-bold">
             <span className="group-hover:translate-x-1 transition-transform duration-300">ทำรายการเพิ่มหรือส่งคืน &rarr;</span>
             {stats && stats.overdueBorrows > 0 && (
               <span className="bg-[#FFEBEA] text-[#FF3B30] font-bold px-2.5 py-0.5 rounded-full text-[10px] border border-[#FF3B30]/10 animate-pulse flex items-center gap-1">
@@ -242,7 +242,7 @@ export default function DashboardView({ config, onNavigate, onQuickReturn, refre
         {/* Card 3: Ready / Maintenance */}
         <div 
           onClick={() => onNavigate('inventory')}
-          className="bg-white border border-[#E8E8ED] p-5 rounded-2xl flex flex-col justify-center relative overflow-hidden transition-all duration-300 cursor-pointer group hover:border-[#0071E3] hover:shadow-[0_8px_30px_rgba(0,0,0,0.04)] hover:-translate-y-0.5"
+          className="bg-white border border-[#E8E8ED] p-5 rounded-2xl flex flex-col justify-center relative overflow-hidden transition-all duration-300 cursor-pointer group hover:border-[#000000] hover:shadow-[0_8px_30px_rgba(0,0,0,0.04)] hover:-translate-y-0.5"
           id="kpi-available-items"
         >
           <div className="absolute top-0 right-0 w-16 h-16 bg-[#EAF9EE] rounded-full -mr-6 -mt-6 transition-transform group-hover:scale-110 duration-500" />
@@ -263,7 +263,7 @@ export default function DashboardView({ config, onNavigate, onQuickReturn, refre
         {/* Card 4: Critical Maintain Items */}
         <div 
           onClick={() => onNavigate('inventory')}
-          className="bg-white border border-[#E8E8ED] p-5 rounded-2xl flex flex-col justify-center relative overflow-hidden transition-all duration-300 cursor-pointer group hover:border-[#0071E3] hover:shadow-[0_8px_30px_rgba(0,0,0,0.04)] hover:-translate-y-0.5"
+          className="bg-white border border-[#E8E8ED] p-5 rounded-2xl flex flex-col justify-center relative overflow-hidden transition-all duration-300 cursor-pointer group hover:border-[#000000] hover:shadow-[0_8px_30px_rgba(0,0,0,0.04)] hover:-translate-y-0.5"
           id="kpi-maintenance-items"
         >
           <div className="absolute top-0 right-0 w-16 h-16 bg-[#FFEBEA] rounded-full -mr-6 -mt-6 transition-transform group-hover:scale-110 duration-500" />
@@ -290,7 +290,7 @@ export default function DashboardView({ config, onNavigate, onQuickReturn, refre
         <div className="lg:col-span-5 bg-white p-5 border border-[#E8E8ED] rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.04)] flex flex-col" id="chart-pie">
           <div className="flex items-center justify-between mb-4">
             <h4 className="text-xs font-bold text-[#86868B] uppercase tracking-wider flex items-center gap-2">
-              <Layers className="h-4 w-4 text-[#0071E3]" /> สัดส่วนพัสดุที่ถูกยืมแยกตามหน่วยงาน/บริษัท
+              <Layers className="h-4 w-4 text-[#000000]" /> สัดส่วนพัสดุที่ถูกยืมแยกตามหน่วยงาน/บริษัท
             </h4>
           </div>
           <div className="flex-1 flex flex-col justify-center min-h-[220px]">
@@ -362,7 +362,7 @@ export default function DashboardView({ config, onNavigate, onQuickReturn, refre
         {/* Category breakdown (Horizontal Bar Chart) */}
         <div className="lg:col-span-7 bg-white p-5 border border-[#E8E8ED] rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.04)]" id="chart-bar">
           <h4 className="text-xs font-bold text-[#86868B] uppercase tracking-wider flex items-center gap-2 mb-4">
-            <Package className="h-4 w-4 text-[#0071E3]" /> ปริมาณอุปกรณ์คงเหลือแยกตามหมวดหมู่
+            <Package className="h-4 w-4 text-[#000000]" /> ปริมาณอุปกรณ์คงเหลือแยกตามหมวดหมู่
           </h4>
           <div ref={barContainerRef} className="h-56">
             {categoryChartData.length === 0 ? (
@@ -398,7 +398,7 @@ export default function DashboardView({ config, onNavigate, onQuickReturn, refre
                   }}
                   formatter={(value: any) => [`${value} ชิ้น`, 'คงเหลือในคลัง']}
                 />
-                <Bar dataKey="value" fill="#0071E3" radius={[0, 8, 8, 0]} barSize={12} name="จำนวนคงเหลือ" />
+                <Bar dataKey="value" fill="#000000" radius={[0, 8, 8, 0]} barSize={12} name="จำนวนคงเหลือ" />
               </BarChart>
             ) : null}
           </div>
@@ -411,11 +411,11 @@ export default function DashboardView({ config, onNavigate, onQuickReturn, refre
         <div className="lg:col-span-8 bg-white p-5 border border-[#E8E8ED] rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.04)] flex flex-col" id="recent-transactions">
           <div className="flex items-center justify-between mb-4">
             <h4 className="text-xs font-bold text-[#86868B] uppercase tracking-wider flex items-center gap-2">
-              <History className="h-4 w-4 text-[#0071E3]" /> รายการเดินคลังล่าสุด (เบิก-คืน)
+              <History className="h-4 w-4 text-[#000000]" /> รายการเดินคลังล่าสุด (เบิก-คืน)
             </h4>
             <button 
               onClick={() => onNavigate('history')}
-              className="text-xs text-[#0071E3] hover:text-[#0077ED] font-bold transition-all"
+              className="text-xs text-[#000000] hover:text-[#1D1D1F] font-bold transition-all"
             >
               ดูประวัติทั้งหมด &rarr;
             </button>
@@ -437,7 +437,7 @@ export default function DashboardView({ config, onNavigate, onQuickReturn, refre
                             ? 'bg-[#EAF9EE] text-[#34C759]'
                             : tx.status === 'overdue'
                               ? 'bg-[#FFEBEA] text-[#FF3B30]'
-                              : 'bg-[#E8F2FF] text-[#0071E3]'
+                              : 'bg-[#F5F5F7] text-[#000000]'
                         }`}>
                           {tx.status === 'returned' ? (
                             <ArrowDownLeft className="h-4 w-4" />
@@ -475,7 +475,7 @@ export default function DashboardView({ config, onNavigate, onQuickReturn, refre
                         {tx.status !== 'returned' && (
                           <button
                             onClick={() => onQuickReturn(tx)}
-                            className="text-[10px] bg-[#F5F5F7] text-[#1D1D1F] border border-[#E8E8ED] hover:bg-[#E8F2FF] hover:text-[#0071E3] hover:border-transparent font-extrabold px-3 py-1.5 rounded-full transition-all cursor-pointer"
+                            className="text-[10px] bg-[#F5F5F7] text-[#1D1D1F] border border-[#E8E8ED] hover:bg-[#F5F5F7] hover:text-[#000000] hover:border-transparent font-extrabold px-3 py-1.5 rounded-full transition-all cursor-pointer"
                           >
                             ทำรายการคืน
                           </button>

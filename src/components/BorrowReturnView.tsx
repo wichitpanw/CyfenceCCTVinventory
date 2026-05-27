@@ -881,7 +881,7 @@ export default function BorrowReturnView({ config, refreshTrigger, onRefresh, qu
                         onClick={() => setSelectedEqId(item.id)}
                         className={`p-3 border rounded-xl flex items-center justify-between gap-3 cursor-pointer transition select-none text-left duration-200 ${
                           isSecSelected
-                            ? 'bg-apple-blue-bg border-apple-blue shadow-xs scale-[1.01] hover:bg-[#E8F2FF]/80'
+                            ? 'bg-apple-blue-bg border-apple-blue shadow-xs scale-[1.01] hover:bg-[#F5F5F7]/80'
                             : isInCart
                               ? 'bg-apple-gray/50 border-apple-border opacity-95 hover:bg-apple-gray'
                               : 'bg-white hover:bg-apple-gray border-apple-border'
@@ -1166,7 +1166,7 @@ export default function BorrowReturnView({ config, refreshTrigger, onRefresh, qu
                         className={`w-full py-2 px-3 rounded-xl text-xs font-bold font-sans transition-all flex items-center justify-center space-x-1.5 cursor-pointer active:scale-98 ${
                           isOverdue 
                             ? 'bg-rose-500 hover:bg-rose-600 text-white shadow-md shadow-rose-500/10' 
-                            : 'bg-apple-primary hover:bg-[#0077ED] text-white shadow-md shadow-apple-primary/10'
+                            : 'bg-apple-primary hover:bg-[#1D1D1F] text-white shadow-md shadow-apple-primary/10'
                         }`}
                       >
                         <ArrowDownLeft className="h-4 w-4" />
@@ -1281,7 +1281,7 @@ export default function BorrowReturnView({ config, refreshTrigger, onRefresh, qu
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 bg-apple-primary hover:bg-[#0077ED] text-white font-sans font-semibold text-xs rounded-xl shadow-md shadow-apple-primary/10 hover:shadow-lg hover:shadow-apple-primary/20 transition-all cursor-pointer active:scale-98"
+                  className="px-5 py-2 bg-apple-primary hover:bg-[#1D1D1F] text-white font-sans font-semibold text-xs rounded-xl shadow-md shadow-apple-primary/10 hover:shadow-lg hover:shadow-apple-primary/20 transition-all cursor-pointer active:scale-98"
                 >
                   ยืนยันการรับของคืนพัสดุ
                 </button>

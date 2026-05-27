@@ -348,7 +348,7 @@ export default function SupabaseSettingsView({
                   };
                   savePinToSupabase();
                 }}
-                className="px-4 py-1.5 bg-[#0071E3] hover:bg-[#0077ED] text-white font-sans font-semibold text-xs rounded-xl shadow-md shadow-apple-primary/10 transition-all cursor-pointer"
+                className="px-4 py-1.5 bg-[#000000] hover:bg-[#1D1D1F] text-white font-sans font-semibold text-xs rounded-xl shadow-md shadow-apple-primary/10 transition-all cursor-pointer"
               >
                 {pinSaveSuccess ? 'บันทึกแล้ว ✓' : 'บันทึก PIN'}
               </button>
@@ -452,7 +452,7 @@ export default function SupabaseSettingsView({
                     alert(`บันทึกในบราวเซอร์สำเร็จ แต่ไม่สามารถซิงค์ไปยัง Supabase ได้ค่ะ: ${e?.message}`);
                   }
                 }}
-                className="px-4 py-1.5 bg-[#0071E3] hover:bg-[#0077ED] text-white font-sans font-semibold text-xs rounded-xl shadow-md transition-all cursor-pointer"
+                className="px-4 py-1.5 bg-[#000000] hover:bg-[#1D1D1F] text-white font-sans font-semibold text-xs rounded-xl shadow-md transition-all cursor-pointer"
               >
                 {telegramSaveSuccess ? 'บันทึกแล้ว ✓' : '💾 บันทึกตั้งค่า Telegram'}
               </button>
@@ -480,7 +480,7 @@ export default function SupabaseSettingsView({
               <div className="flex-1 space-y-2 text-center sm:text-left">
                 <div className="flex flex-wrap gap-2 justify-center sm:justify-start">
                   {/* Trigger File Input */}
-                  <label className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-apple-primary hover:bg-[#0077ED] text-white rounded-xl text-xs font-semibold font-sans cursor-pointer shadow-md shadow-apple-primary/10 hover:shadow-lg hover:shadow-apple-primary/20 transition active:scale-98">
+                  <label className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-apple-primary hover:bg-[#1D1D1F] text-white rounded-xl text-xs font-semibold font-sans cursor-pointer shadow-md shadow-apple-primary/10 hover:shadow-lg hover:shadow-apple-primary/20 transition active:scale-98">
                     <Upload className="h-3.5 w-3.5" />
                     <span>อัปโหลดภาพ</span>
                     <input 
@@ -589,7 +589,7 @@ export default function SupabaseSettingsView({
                 setProfileSaveSuccess(true);
                 setTimeout(() => setProfileSaveSuccess(false), 2500);
               }}
-              className="flex items-center space-x-1.5 bg-apple-primary hover:bg-[#0077ED] text-white font-sans font-bold text-xs py-2 px-4 rounded-xl shadow-md shadow-apple-primary/10 hover:shadow-lg hover:shadow-apple-primary/20 transition active:scale-98 cursor-pointer"
+              className="flex items-center space-x-1.5 bg-apple-primary hover:bg-[#1D1D1F] text-white font-sans font-bold text-xs py-2 px-4 rounded-xl shadow-md shadow-apple-primary/10 hover:shadow-lg hover:shadow-apple-primary/20 transition active:scale-98 cursor-pointer"
             >
               {profileSaveSuccess ? (
                 <>
@@ -692,7 +692,7 @@ export default function SupabaseSettingsView({
             <button
               type="button"
               onClick={handleSaveSettings}
-              className="flex items-center space-x-1 bg-apple-primary hover:bg-[#0077ED] text-white font-sans font-bold text-xs py-2 px-4 rounded-xl shadow-md shadow-apple-primary/10 hover:shadow-lg hover:shadow-apple-primary/20 transition active:scale-98 cursor-pointer"
+              className="flex items-center space-x-1 bg-apple-primary hover:bg-[#1D1D1F] text-white font-sans font-bold text-xs py-2 px-4 rounded-xl shadow-md shadow-apple-primary/10 hover:shadow-lg hover:shadow-apple-primary/20 transition active:scale-98 cursor-pointer"
             >
               {saveSuccess ? (
                 <>
