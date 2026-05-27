@@ -1218,6 +1218,28 @@ export async function saveSystemSettings(config: SupabaseConfig, settings: Omit<
   }
 }
 
+// Send Telegram Notification
+export async function sendTelegramNotification(token: string, chatId: string, message: string): Promise<boolean> {
+  try {
+    const url = `https://api.telegram.org/bot${token}/sendMessage`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        chat_id: chatId,
+        text: message,
+        parse_mode: 'HTML'
+      })
+    });
+    return response.ok;
+  } catch (e) {
+    console.error('Failed to send Telegram notification:', e);
+    return false;
+  }
+}
+
 // --- Borrow Request (Approval Workflow) ---
 
 // Get all borrow requests (for Admin)
@@ -1500,6 +1522,8 @@ create table if not exists system_settings (
   version varchar(50),
   custom_logo text,
   custom_pin text,
+  telegram_bot_token text,
+  telegram_chat_id text,
   updated_at timestamptz default now()
 );
 
@@ -1556,8 +1580,14 @@ create table if not exists system_settings (
   version varchar(50),
   custom_logo text,
   custom_pin text,
+  telegram_bot_token text,
+  telegram_chat_id text,
   updated_at timestamptz default now()
 );
+
+-- เพิ่มคอลัมน์การแจ้งเตือน Telegram ในตารางการตั้งค่าระบบที่มีอยู่แล้ว
+ALTER TABLE system_settings ADD COLUMN IF NOT EXISTS telegram_bot_token text;
+ALTER TABLE system_settings ADD COLUMN IF NOT EXISTS telegram_chat_id text;
 
 -- การเปิดสิทธิ์ RLS สำหรับตารางตั้งค่าระบบ
 alter table system_settings enable row level security;

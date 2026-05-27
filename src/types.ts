@@ -61,6 +61,8 @@ export interface SystemSettings {
   version: string;
   custom_logo: string;
   custom_pin?: string;
+  telegram_bot_token?: string;
+  telegram_chat_id?: string;
 }
 
 // --- Approval Workflow Types ---

@@ -177,6 +177,36 @@ export default function RequestView({ config, refreshTrigger }: RequestViewProps
         evidence_image_url: evidenceImage || undefined,
       });
       setSuccessRefCode(result.id);
+
+      // Async Telegram Notification trigger
+      const triggerTelegramNotification = async () => {
+        const token = localStorage.getItem('system_telegram_bot_token');
+        const chatId = localStorage.getItem('system_telegram_chat_id');
+        if (token && chatId) {
+          try {
+            const { sendTelegramNotification } = await import('../services/db');
+            
+            // Format Items list for message
+            const itemsStr = cart.map(c => `• <b>${c.equipment.name}</b> (${c.equipment.code}) — <code>${c.qty}</code> ชิ้น`).join('\n');
+            
+            const message = 
+              `<b>🔔 มีคำขอเสนอเบิกพัสดุใหม่เข้ามาในระบบ!</b>\n\n` +
+              `👤 <b>ผู้ยื่นคำขอ:</b> ${requesterName.trim()}\n` +
+              `🏢 <b>บริษัท/สังกัด:</b> ${finalCompany}\n` +
+              `📞 <b>เบอร์ติดต่อ:</b> ${requesterContact.trim() || 'ไม่ระบุ'}\n\n` +
+              `📦 <b>รายการพัสดุที่ขอเบิก:</b>\n${itemsStr}\n\n` +
+              `📝 <b>วัตถุประสงค์สถานที่ขอไป:</b>\n${purpose.trim() || 'ไม่ระบุ'}\n\n` +
+              `📅 <b>กำหนดคืนพัสดุ:</b> ${new Date(dueDate).toLocaleDateString('th-TH')}\n` +
+              `🏷️ <b>รหัสอ้างอิงคำขอ:</b> <code>${result.id}</code>`;
+
+            await sendTelegramNotification(token, chatId, message);
+          } catch (teleErr) {
+            console.warn('Failed to send auto Telegram request notice:', teleErr);
+          }
+        }
+      };
+      triggerTelegramNotification();
+
     } catch (err: any) {
       setSubmitError(err?.message || 'ส่งคำขอไม่สำเร็จ โปรดลองใหม่อีกครั้ง');
     } finally {

@@ -88,6 +88,35 @@ export default function SupabaseSettingsView({
   const [adminPinInput, setAdminPinInput] = useState(() => localStorage.getItem('system_admin_sidebar_pin') || '888888');
   const [pinSaveSuccess, setPinSaveSuccess] = useState(false);
 
+  // Telegram Notifications States
+  const [telegramToken, setTelegramToken] = useState(() => localStorage.getItem('system_telegram_bot_token') || '');
+  const [telegramChatId, setTelegramChatId] = useState(() => localStorage.getItem('system_telegram_chat_id') || '');
+  const [telegramTestStatus, setTelegramTestStatus] = useState<{ success: boolean; message: string } | null>(null);
+  const [telegramTesting, setTelegramTesting] = useState(false);
+  const [telegramSaveSuccess, setTelegramSaveSuccess] = useState(false);
+
+  useEffect(() => {
+    const fetchTelegramSettings = async () => {
+      try {
+        const { getSystemSettings } = await import('../services/db');
+        const settings = await getSystemSettings(config);
+        if (settings) {
+          if (settings.telegram_bot_token) {
+            setTelegramToken(settings.telegram_bot_token);
+            localStorage.setItem('system_telegram_bot_token', settings.telegram_bot_token);
+          }
+          if (settings.telegram_chat_id) {
+            setTelegramChatId(settings.telegram_chat_id);
+            localStorage.setItem('system_telegram_chat_id', settings.telegram_chat_id);
+          }
+        }
+      } catch (e) {
+        console.warn('Failed to load settings in SupabaseSettingsView:', e);
+      }
+    };
+    fetchTelegramSettings();
+  }, [config]);
+
   const handleKeyPress = (num: string) => {
     setPinError(false);
     if (pin.length < 4) {
@@ -322,6 +351,110 @@ export default function SupabaseSettingsView({
                 className="px-4 py-1.5 bg-[#0071E3] hover:bg-[#0077ED] text-white font-sans font-semibold text-xs rounded-xl shadow-md shadow-apple-primary/10 transition-all cursor-pointer"
               >
                 {pinSaveSuccess ? 'บันทึกแล้ว ✓' : 'บันทึก PIN'}
+              </button>
+            </div>
+          </div>
+
+          {/* Telegram Notification Settings Card */}
+          <div className="p-5 bg-blue-50/20 rounded-2xl border border-blue-100/50 space-y-4 text-left">
+            <div className="space-y-1">
+              <h4 className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                🔔 ตั้งค่าการแจ้งเตือน Telegram (Telegram Notification)
+              </h4>
+              <p className="text-[10px] text-slate-400 leading-relaxed font-sans font-semibold">
+                ระบุ Token และ Chat ID ของบอท Telegram เพื่อแจ้งเตือนแอดมินแบบเรียลไทม์ทันทีที่มีรายการขอยื่นเบิกใหม่เข้ามาในระบบค่ะ
+              </p>
+            </div>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-[9px] font-sans font-bold text-slate-500 uppercase tracking-wider mb-1.5">Telegram Bot Token *</label>
+                <input
+                  type="password"
+                  value={telegramToken}
+                  onChange={(e) => setTelegramToken(e.target.value.trim())}
+                  className="w-full px-3.5 py-2 border border-[#E8E8ED] rounded-xl text-xs font-mono focus:outline-hidden focus:border-apple-primary bg-white transition-all text-slate-850"
+                  placeholder="เช่น 123456789:ABCdefGhI..."
+                />
+              </div>
+
+              <div>
+                <label className="block text-[9px] font-sans font-bold text-slate-500 uppercase tracking-wider mb-1.5">Telegram Chat ID / Group ID *</label>
+                <input
+                  type="text"
+                  value={telegramChatId}
+                  onChange={(e) => setTelegramChatId(e.target.value.trim())}
+                  className="w-full px-3.5 py-2 border border-[#E8E8ED] rounded-xl text-xs font-mono focus:outline-hidden focus:border-apple-primary bg-white transition-all text-slate-850"
+                  placeholder="เช่น -100123456789 หรือ 98765432"
+                />
+              </div>
+            </div>
+
+            {telegramTestStatus && (
+              <div className={`p-3.5 rounded-xl border text-[10.5px] leading-relaxed font-sans ${
+                telegramTestStatus.success ? 'bg-emerald-50 border-emerald-150 text-emerald-800' : 'bg-rose-50 border-rose-100 text-rose-800'
+              }`}>
+                {telegramTestStatus.message}
+              </div>
+            )}
+
+            <div className="flex flex-wrap gap-2 pt-2 border-t border-[#E8E8ED]/60 justify-end">
+              <button
+                type="button"
+                disabled={telegramTesting || !telegramToken || !telegramChatId}
+                onClick={async () => {
+                  setTelegramTesting(true);
+                  setTelegramTestStatus(null);
+                  try {
+                    const { sendTelegramNotification } = await import('../services/db');
+                    const message = `<b>🔔 ทดสอบการแจ้งเตือนระบบคลังพัสดุสำเร็จ!</b>\n\nการเชื่อมโยงระบบบอท Telegram กับ <b>${systemTitle}</b> ทำงานได้สมบูรณ์แบบเรียบร้อยแล้วค่ะ 🕶️💙`;
+                    const ok = await sendTelegramNotification(telegramToken, telegramChatId, message);
+                    if (ok) {
+                      setTelegramTestStatus({ success: true, message: '✅ ส่งข้อความทดสอบไปยัง Telegram สำเร็จแล้ว! กรุณาตรวจสอบในห้องแชทของท่านค่ะ' });
+                    } else {
+                      setTelegramTestStatus({ success: false, message: '❌ ไม่สามารถส่งข้อความได้ กรุณาตรวจสอบความถูกต้องของ Bot Token และ Chat ID หรือความพร้อมใช้งานของบอท (ต้องแอดบอทเข้าห้องแชทและกด /start ก่อนนะคะ)' });
+                    }
+                  } catch (e: any) {
+                    setTelegramTestStatus({ success: false, message: `เกิดข้อผิดพลาด: ${e?.message || 'ระบบขัดข้อง'}` });
+                  } finally {
+                    setTelegramTesting(false);
+                  }
+                }}
+                className="px-4 py-1.5 border border-[#E8E8ED] bg-[#F5F5F7] hover:bg-[#E8E8ED] text-slate-700 font-sans font-semibold text-xs rounded-xl transition-all cursor-pointer disabled:opacity-50"
+              >
+                {telegramTesting ? 'กำลังทดสอบ...' : '⚡ ทดสอบส่งข้อความ'}
+              </button>
+
+              <button
+                type="button"
+                onClick={async () => {
+                  // Save locally
+                  localStorage.setItem('system_telegram_bot_token', telegramToken);
+                  localStorage.setItem('system_telegram_chat_id', telegramChatId);
+
+                  // Sync to Supabase!
+                  try {
+                    const { saveSystemSettings } = await import('../services/db');
+                    await saveSystemSettings(config, {
+                      title: systemTitle,
+                      description: systemDesc,
+                      version: systemVersion,
+                      custom_logo: customLogo,
+                      custom_pin: localStorage.getItem('system_admin_sidebar_pin') || undefined,
+                      telegram_bot_token: telegramToken || undefined,
+                      telegram_chat_id: telegramChatId || undefined
+                    });
+                    setTelegramSaveSuccess(true);
+                    setTimeout(() => setTelegramSaveSuccess(false), 2000);
+                    onRefreshAll();
+                  } catch (e: any) {
+                    console.error('Failed to sync Telegram settings to Supabase:', e);
+                    alert(`บันทึกในบราวเซอร์สำเร็จ แต่ไม่สามารถซิงค์ไปยัง Supabase ได้ค่ะ: ${e?.message}`);
+                  }
+                }}
+                className="px-4 py-1.5 bg-[#0071E3] hover:bg-[#0077ED] text-white font-sans font-semibold text-xs rounded-xl shadow-md transition-all cursor-pointer"
+              >
+                {telegramSaveSuccess ? 'บันทึกแล้ว ✓' : '💾 บันทึกตั้งค่า Telegram'}
               </button>
             </div>
           </div>
