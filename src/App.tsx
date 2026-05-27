@@ -193,48 +193,84 @@ export default function App() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6" id="layout-view-grid">
           
           {/* Main Left-side Sidebar Menu Nav (Desktop) / Top nav (Mobile) */}
-          <nav className="lg:col-span-3 bg-white/80 backdrop-blur-md border border-[#E8E8ED] rounded-2xl p-4 h-fit" id="sidebar-navigation">
-            <h4 className="hidden lg:block text-[10px] font-sans text-[#86868B] uppercase tracking-wider font-extrabold mb-4 px-3 text-left">
-              เมนูบริหารคลัง
-            </h4>
+          <nav className="lg:col-span-3 bg-white/80 backdrop-blur-md border border-[#E8E8ED] rounded-2xl p-4 h-fit space-y-4" id="sidebar-navigation">
 
-            {/* Desktop and Mobile responsive grid/flex layout */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:flex lg:flex-col gap-1.5 pb-1 lg:pb-0" id="nav-pills-holder">
-              {[
-                { id: 'dashboard', name: 'รายงานสรุปภาพรวม', icon: LayoutDashboard },
-                { id: 'inventory', name: 'รายการอุปกรณ์', icon: Package },
-                { id: 'borrow', name: 'ระบบเบิก-คืนพัสดุ', icon: ArrowLeftRight },
-                { id: 'requests', name: 'ยื่นคำขอเบิก', icon: ClipboardList },
-                { id: 'approval', name: 'อนุมัติคำขอ', icon: ShieldCheck, badge: pendingCount },
-                { id: 'history', name: 'ประวัติเบิกจ่าย', icon: HistoryIcon },
-                { id: 'settings', name: 'ตั้งค่าระบบ', icon: Settings },
-              ].map(tab => {
-                const IconComp = tab.icon;
-                const isActive = activeTab === tab.id;
-                const badge = (tab as any).badge as number | undefined;
-                
-                return (
-                  <button
-                    key={tab.id}
-                    onClick={() => { setActiveTab(tab.id); handleRefresh(); }}
-                    className={`relative flex items-center space-x-2.5 px-4 py-3 lg:py-2.5 rounded-xl text-xs font-semibold font-sans transition-all cursor-pointer ${
-                      isActive 
-                        ? 'bg-[#E8F2FF] text-[#0071E3]' 
-                        : 'text-[#1D1D1F] hover:bg-[#F5F5F7]'
-                    } ${tab.id === 'settings' ? 'col-span-2 sm:col-span-1' : ''}`}
-                  >
-                    <IconComp className={`h-4 w-4 shrink-0 ${isActive ? 'text-[#0071E3]' : 'text-[#86868B]'}`} />
-                    <span className="truncate">{tab.name}</span>
-                    {badge != null && badge > 0 && (
-                      <span className="absolute top-1.5 right-1.5 min-w-[18px] h-[18px] px-1 bg-red-500 text-white text-[9px] font-extrabold rounded-full flex items-center justify-center leading-none">
-                        {badge > 99 ? '99+' : badge}
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
+            {/* ── Section 1: สำหรับบริษัทผู้ขอเบิก ── */}
+            <div>
+              <h4 className="text-[10px] font-sans text-[#0071E3] uppercase tracking-wider font-extrabold mb-2 px-3 text-left flex items-center gap-1.5">
+                <ClipboardList className="h-3 w-3" />
+                <span className="hidden lg:inline">สำหรับบริษัทผู้ขอเบิก</span>
+              </h4>
+              <div className="flex flex-col gap-1">
+                {[
+                  { id: 'requests', name: 'ยื่นคำขอเบิกพัสดุ', icon: ClipboardList },
+                ].map(tab => {
+                  const IconComp = tab.icon;
+                  const isActive = activeTab === tab.id;
+                  return (
+                    <button
+                      key={tab.id}
+                      onClick={() => { setActiveTab(tab.id); handleRefresh(); }}
+                      className={`relative flex items-center space-x-2.5 px-4 py-2.5 rounded-xl text-xs font-semibold font-sans transition-all cursor-pointer ${
+                        isActive
+                          ? 'bg-[#E8F2FF] text-[#0071E3]'
+                          : 'text-[#1D1D1F] hover:bg-[#F5F5F7]'
+                      }`}
+                    >
+                      <IconComp className={`h-4 w-4 shrink-0 ${isActive ? 'text-[#0071E3]' : 'text-[#86868B]'}`} />
+                      <span className="truncate">{tab.name}</span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
+
+            {/* ── Divider ── */}
+            <div className="border-t border-[#E8E8ED]" />
+
+            {/* ── Section 2: เมนูบริหารคลัง (Admin) ── */}
+            <div>
+              <h4 className="text-[10px] font-sans text-[#86868B] uppercase tracking-wider font-extrabold mb-2 px-3 text-left flex items-center gap-1.5">
+                <ShieldCheck className="h-3 w-3" />
+                <span className="hidden lg:inline">เมนูบริหารคลัง</span>
+              </h4>
+              <div className="flex flex-col gap-1">
+                {[
+                  { id: 'dashboard', name: 'รายงานสรุปภาพรวม', icon: LayoutDashboard },
+                  { id: 'inventory', name: 'รายการอุปกรณ์', icon: Package },
+                  { id: 'borrow', name: 'ระบบเบิก-คืนพัสดุ', icon: ArrowLeftRight },
+                  { id: 'approval', name: 'อนุมัติคำขอ', icon: ShieldCheck, badge: pendingCount },
+                  { id: 'history', name: 'ประวัติเบิกจ่าย', icon: HistoryIcon },
+                  { id: 'settings', name: 'ตั้งค่าระบบ', icon: Settings },
+                ].map(tab => {
+                  const IconComp = tab.icon;
+                  const isActive = activeTab === tab.id;
+                  const badge = (tab as any).badge as number | undefined;
+                  return (
+                    <button
+                      key={tab.id}
+                      onClick={() => { setActiveTab(tab.id); handleRefresh(); }}
+                      className={`relative flex items-center space-x-2.5 px-4 py-2.5 rounded-xl text-xs font-semibold font-sans transition-all cursor-pointer ${
+                        isActive
+                          ? 'bg-[#E8F2FF] text-[#0071E3]'
+                          : 'text-[#1D1D1F] hover:bg-[#F5F5F7]'
+                      }`}
+                    >
+                      <IconComp className={`h-4 w-4 shrink-0 ${isActive ? 'text-[#0071E3]' : 'text-[#86868B]'}`} />
+                      <span className="truncate">{tab.name}</span>
+                      {badge != null && badge > 0 && (
+                        <span className="absolute top-1.5 right-1.5 min-w-[18px] h-[18px] px-1 bg-red-500 text-white text-[9px] font-extrabold rounded-full flex items-center justify-center leading-none">
+                          {badge > 99 ? '99+' : badge}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
           </nav>
+
 
           {/* Active Screen Frame Area (Right-side Panel view) */}
           <div className="lg:col-span-9" id="active-screen-frame">
