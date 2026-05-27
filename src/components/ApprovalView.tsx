@@ -1,5 +1,5 @@
 /**
- * ApprovalView.tsx — Admin Approval Panel (PIN-gated: 8888)
+ * ApprovalView.tsx — Admin Approval Panel
  */
 import React, { useState, useEffect, useCallback } from 'react';
 import {
@@ -9,19 +9,14 @@ import {
   Package,
   ChevronDown,
   ChevronUp,
-  User,
-  Briefcase,
   Calendar,
-  FileText,
   AlertCircle,
   RefreshCw,
   Filter,
-  Lock,
   CheckCircle2,
   XOctagon,
   Truck,
   RotateCcw,
-  Phone,
   Image as ImageIcon,
   ShieldCheck,
 } from 'lucide-react';
@@ -50,46 +45,7 @@ const STATUS_LABELS: Record<BorrowRequest['status'], { label: string; color: str
   cancelled: { label: 'ยกเลิก', color: 'text-slate-500', bg: 'bg-slate-50 border-slate-200', icon: <XOctagon className="h-3.5 w-3.5" /> },
 };
 
-const ADMIN_PIN = '8888';
-
 export default function ApprovalView({ config, refreshTrigger, onRefresh }: ApprovalViewProps) {
-  // ── PIN Gate ────────────────────────────────────────────────────────────────
-  const [pin, setPin] = useState('');
-  const [pinError, setPinError] = useState(false);
-  const [isUnlocked, setIsUnlocked] = useState(() =>
-    sessionStorage.getItem('admin_approval_unlocked') === 'true'
-  );
-
-  const handlePinKey = useCallback((num: string) => {
-    setPinError(false);
-    if (pin.length < 4) {
-      const next = pin + num;
-      setPin(next);
-      if (next === ADMIN_PIN) {
-        setTimeout(() => {
-          sessionStorage.setItem('admin_approval_unlocked', 'true');
-          setIsUnlocked(true);
-        }, 200);
-      } else if (next.length === 4) {
-        setTimeout(() => {
-          setPinError(true);
-          setTimeout(() => setPin(''), 600);
-        }, 150);
-      }
-    }
-  }, [pin]);
-
-  useEffect(() => {
-    if (isUnlocked) return;
-    const handler = (e: KeyboardEvent) => {
-      if (e.key >= '0' && e.key <= '9') handlePinKey(e.key);
-      else if (e.key === 'Backspace') setPin(p => p.slice(0, -1));
-      else if (e.key === 'Escape') setPin('');
-    };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
-  }, [handlePinKey, isUnlocked]);
-
   // ── Data ────────────────────────────────────────────────────────────────────
   const [requests, setRequests] = useState<BorrowRequest[]>([]);
   const [equipments, setEquipments] = useState<Equipment[]>([]);
@@ -103,9 +59,6 @@ export default function ApprovalView({ config, refreshTrigger, onRefresh }: Appr
   const [actionLoading, setActionLoading] = useState<Record<string, boolean>>({});
   const [actionError, setActionError] = useState<Record<string, string>>({});
   const [actionSuccess, setActionSuccess] = useState<Record<string, string>>({});
-  
-  // Custom reviewer name
-  const [reviewerName, setReviewerName] = useState('Admin');
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -123,7 +76,9 @@ export default function ApprovalView({ config, refreshTrigger, onRefresh }: Appr
     }
   }, [config]);
 
-  useEffect(() => { if (isUnlocked) loadData(); }, [loadData, refreshTrigger, isUnlocked]);
+  useEffect(() => {
+    loadData();
+  }, [loadData, refreshTrigger]);
 
   const setCardLoading = (id: string, val: boolean) => setActionLoading(p => ({ ...p, [id]: val }));
   const setCardError = (id: string, msg: string) => setActionError(p => ({ ...p, [id]: msg }));
@@ -134,7 +89,7 @@ export default function ApprovalView({ config, refreshTrigger, onRefresh }: Appr
     setCardLoading(req.id, true);
     setCardError(req.id, '');
     try {
-      await updateBorrowRequestStatus(config, req.id, 'approved', { reviewedBy: reviewerName.trim() || 'Admin' });
+      await updateBorrowRequestStatus(config, req.id, 'approved', { reviewedBy: 'Admin' });
       setCardSuccess(req.id, '✅ อนุมัติคำขอเรียบร้อยแล้ว');
       await loadData();
       onRefresh();
@@ -151,7 +106,7 @@ export default function ApprovalView({ config, refreshTrigger, onRefresh }: Appr
     try {
       await updateBorrowRequestStatus(config, req.id, 'rejected', {
         adminNote: rejectNote[req.id] || '',
-        reviewedBy: reviewerName.trim() || 'Admin',
+        reviewedBy: 'Admin',
       });
       setCardSuccess(req.id, '❌ ปฏิเสธคำขอเรียบร้อยแล้ว');
       setShowRejectInput(p => ({ ...p, [req.id]: false }));
@@ -185,7 +140,7 @@ export default function ApprovalView({ config, refreshTrigger, onRefresh }: Appr
       }
       await updateBorrowRequestStatus(config, req.id, 'borrowing', {
         transactionIds: txIds,
-        reviewedBy: reviewerName.trim() || 'Admin',
+        reviewedBy: 'Admin',
       });
       setCardSuccess(req.id, '📦 จ่ายพัสดุออกจากคลังเรียบร้อย — ระบบสร้างประวัติการเบิกแล้ว');
       await loadData();
@@ -201,7 +156,7 @@ export default function ApprovalView({ config, refreshTrigger, onRefresh }: Appr
     setCardLoading(req.id, true);
     setCardError(req.id, '');
     try {
-      await updateBorrowRequestStatus(config, req.id, 'returned', { reviewedBy: reviewerName.trim() || 'Admin' });
+      await updateBorrowRequestStatus(config, req.id, 'returned', { reviewedBy: 'Admin' });
       setCardSuccess(req.id, '🔄 บันทึกการรับคืนพัสดุแล้ว');
       await loadData();
       onRefresh();
@@ -218,48 +173,6 @@ export default function ApprovalView({ config, refreshTrigger, onRefresh }: Appr
   const borrowing = requests.filter(r => r.status === 'borrowing').length;
 
   const filtered = filterStatus === 'all' ? requests : requests.filter(r => r.status === filterStatus);
-
-  // ── PIN Gate Screen ──────────────────────────────────────────────────────────
-  if (!isUnlocked) {
-    const PIN_KEYS = [['1','2','3'],['4','5','6'],['7','8','9'],['','0','⌫']];
-    return (
-      <div className="max-w-xs mx-auto my-12 bg-white p-8 rounded-3xl border border-[#E8E8ED] shadow-[0_20px_60px_rgba(0,0,0,0.08)] text-center space-y-6">
-        <div className={`mx-auto w-16 h-16 rounded-full flex items-center justify-center transition-all duration-300 ${pinError ? 'bg-red-50 text-red-500 scale-105' : 'bg-blue-50 text-[#0071E3]'}`}>
-          <Lock className="w-7 h-7" />
-        </div>
-        <div>
-          <h2 className="text-base font-bold text-[#1D1D1F]">หน้าอนุมัติคำขอ</h2>
-          <p className="text-xs text-[#86868B] mt-1">กรุณากรอก PIN ผู้ดูแลระบบ</p>
-        </div>
-        {/* PIN dots */}
-        <div className="flex justify-center gap-3">
-          {[0,1,2,3].map(i => (
-            <div key={i} className={`w-4 h-4 rounded-full border-2 transition-all duration-200 ${
-              pin.length > i
-                ? pinError ? 'bg-red-500 border-red-500' : 'bg-[#0071E3] border-[#0071E3]'
-                : 'border-[#C7C7CC]'
-            }`} />
-          ))}
-        </div>
-        {pinError && <p className="text-xs text-red-500 font-medium -mt-2">PIN ไม่ถูกต้อง</p>}
-        {/* Keypad */}
-        <div className="grid grid-cols-3 gap-2">
-          {PIN_KEYS.flat().map((key, i) => (
-            <button
-              key={i}
-              type="button"
-              onClick={() => key === '⌫' ? setPin(p=>p.slice(0,-1)) : key ? handlePinKey(key) : undefined}
-              className={`h-12 rounded-2xl text-base font-bold transition-all active:scale-95 ${
-                key
-                  ? 'bg-[#F5F5F7] text-[#1D1D1F] hover:bg-[#E8E8ED] border border-[#E8E8ED]'
-                  : 'pointer-events-none'
-              }`}
-            >{key}</button>
-          ))}
-        </div>
-      </div>
-    );
-  }
 
   // ── Main Admin Panel ─────────────────────────────────────────────────────────
   return (
@@ -293,28 +206,6 @@ export default function ApprovalView({ config, refreshTrigger, onRefresh }: Appr
             <p className="text-[10px] text-slate-500 font-semibold mt-0.5">{s.label}</p>
           </div>
         ))}
-      </div>
-
-      {/* Reviewer / Approver name input */}
-      <div className="bg-white border border-[#E8E8ED] p-4.5 rounded-2xl shadow-[0_4px_16px_rgba(0,0,0,0.02)] flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-left">
-        <div className="space-y-1">
-          <h4 className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-            <User className="h-4 w-4 text-[#0071E3]" /> ชื่อผู้ดำเนินการอนุมัติคำขอ (Approver Name)
-          </h4>
-          <p className="text-[10px] text-slate-450 leading-relaxed font-sans font-semibold">
-            ระบุรายชื่อผู้อนุมัติสำหรับลงบันทึกในตารางประวัติและการรับมอบพัสดุ (เช่น สมชาย ใจดี / Admin)
-          </p>
-        </div>
-        <div className="shrink-0">
-          <input
-            type="text"
-            value={reviewerName}
-            onChange={(e) => setReviewerName(e.target.value)}
-            className="w-full sm:w-56 px-3.5 py-2 border border-[#E8E8ED] rounded-xl text-xs font-bold font-sans focus:outline-hidden focus:border-[#0071E3] bg-[#F5F5F7]/80 focus:bg-white transition-all text-slate-800"
-            placeholder="เช่น สมชาย / Admin"
-            required
-          />
-        </div>
       </div>
 
       {/* Filter tabs */}
