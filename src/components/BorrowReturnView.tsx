@@ -778,11 +778,11 @@ export default function BorrowReturnView({ config, refreshTrigger, onRefresh, qu
               {/* Category Filter Buttons */}
               <div className="mb-4 space-y-2 shrink-0">
                 <span className="text-[10px] font-bold text-apple-gray-dark uppercase tracking-wider block">กรองด่วนตามหมวดหมู่:</span>
-                <div className="flex flex-wrap gap-1.5">
+                <div className="flex flex-nowrap overflow-x-auto gap-1.5 pb-2 -mx-1 px-1 [&::-webkit-scrollbar]:h-1 [&::-webkit-scrollbar-thumb]:bg-[#E8E8ED] [&::-webkit-scrollbar-thumb]:rounded-full">
                   <button
                     type="button"
                     onClick={() => setSelectedCategory('')}
-                    className={`text-[10px] px-3.5 py-1.5 rounded-full border-0 transition-all duration-300 cursor-pointer ${
+                    className={`text-[10px] px-3.5 py-1.5 rounded-full border-0 transition-all duration-300 cursor-pointer shrink-0 whitespace-nowrap ${
                       !selectedCategory
                         ? 'bg-apple-dark text-white font-semibold shadow-xs'
                         : 'bg-apple-gray text-apple-gray-dark hover:bg-[#E8E8ED] hover:text-apple-dark font-semibold'
@@ -795,7 +795,7 @@ export default function BorrowReturnView({ config, refreshTrigger, onRefresh, qu
                       key={cat}
                       type="button"
                       onClick={() => setSelectedCategory(cat)}
-                      className={`text-[10px] px-3.5 py-1.5 rounded-full border-0 transition-all duration-300 cursor-pointer ${
+                      className={`text-[10px] px-3.5 py-1.5 rounded-full border-0 transition-all duration-300 cursor-pointer shrink-0 whitespace-nowrap ${
                         selectedCategory === cat
                           ? 'bg-apple-dark text-white font-semibold shadow-xs'
                           : 'bg-apple-gray text-apple-gray-dark hover:bg-[#E8E8ED] hover:text-apple-dark font-semibold'

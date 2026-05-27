@@ -289,14 +289,14 @@ export default function RequestView({ config, refreshTrigger }: RequestViewProps
 
             {/* Category filter */}
             {categories.length > 0 && (
-              <div className="flex flex-wrap gap-1.5">
+              <div className="flex flex-nowrap overflow-x-auto gap-1.5 pb-2 -mx-1 px-1 [&::-webkit-scrollbar]:h-1 [&::-webkit-scrollbar-thumb]:bg-[#E8E8ED] [&::-webkit-scrollbar-thumb]:rounded-full">
                 <button type="button" onClick={() => setSelectedCategory('')}
-                  className={`text-[10px] px-2.5 py-1 rounded-full border font-semibold transition ${!selectedCategory ? 'bg-[#0071E3] text-white border-[#0071E3]' : 'bg-white text-[#86868B] border-[#E8E8ED] hover:bg-[#F5F5F7]'}`}>
+                  className={`text-[10px] px-3 py-1.5 rounded-full border font-semibold transition shrink-0 whitespace-nowrap ${!selectedCategory ? 'bg-[#0071E3] text-white border-[#0071E3]' : 'bg-white text-[#86868B] border-[#E8E8ED] hover:bg-[#F5F5F7]'}`}>
                   ทั้งหมด
                 </button>
                 {categories.map(cat => (
                   <button key={cat} type="button" onClick={() => setSelectedCategory(cat)}
-                    className={`text-[10px] px-2.5 py-1 rounded-full border font-semibold transition ${selectedCategory===cat ? 'bg-[#0071E3] text-white border-[#0071E3]' : 'bg-white text-[#86868B] border-[#E8E8ED] hover:bg-[#F5F5F7]'}`}>
+                    className={`text-[10px] px-3 py-1.5 rounded-full border font-semibold transition shrink-0 whitespace-nowrap ${selectedCategory===cat ? 'bg-[#0071E3] text-white border-[#0071E3]' : 'bg-white text-[#86868B] border-[#E8E8ED] hover:bg-[#F5F5F7]'}`}>
                     {cat}
                   </button>
                 ))}
