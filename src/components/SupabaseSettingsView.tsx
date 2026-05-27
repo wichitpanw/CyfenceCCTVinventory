@@ -84,6 +84,10 @@ export default function SupabaseSettingsView({
     return sessionStorage.getItem('supabase_settings_unlocked') === 'true';
   });
 
+  // Local state for custom Admin 6-digit PIN
+  const [adminPinInput, setAdminPinInput] = useState(() => localStorage.getItem('system_admin_sidebar_pin') || '888888');
+  const [pinSaveSuccess, setPinSaveSuccess] = useState(false);
+
   const handleKeyPress = (num: string) => {
     setPinError(false);
     if (pin.length < 4) {
@@ -241,10 +245,6 @@ export default function SupabaseSettingsView({
       </div>
     );
   }
-
-  // Local state for custom Admin 6-digit PIN
-  const [adminPinInput, setAdminPinInput] = useState(() => localStorage.getItem('system_admin_sidebar_pin') || '888888');
-  const [pinSaveSuccess, setPinSaveSuccess] = useState(false);
 
   return (
     <div className="max-w-3xl mx-auto space-y-6 text-left w-full animate-fade-in" id="settings-root-container">
