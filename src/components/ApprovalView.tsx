@@ -99,6 +99,8 @@ export default function ApprovalView({ config, refreshTrigger, onRefresh }: Appr
   const [dispatchImageMode, setDispatchImageMode] = useState<Record<string, 'upload' | 'url'>>({});
   const [uploadErrors, setUploadErrors] = useState<Record<string, string>>({});
   const [showDispatchInput, setShowDispatchInput] = useState<Record<string, boolean>>({});
+  const [showReturnInput, setShowReturnInput] = useState<Record<string, boolean>>({});
+  const [returnerNames, setReturnerNames] = useState<Record<string, string>>({});
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -197,12 +199,19 @@ export default function ApprovalView({ config, refreshTrigger, onRefresh }: Appr
     }
   };
 
-  const handleMarkReturned = async (req: BorrowRequest) => {
+  const handleMarkReturned = async (req: BorrowRequest, returnerName: string) => {
     setCardLoading(req.id, true);
     setCardError(req.id, '');
     try {
-      await updateBorrowRequestStatus(config, req.id, 'returned', { reviewedBy: 'Admin' });
+      const currentApprover = req.reviewed_by || 'Admin';
+      const cleanReturner = returnerName.trim() || 'Admin';
+      const combinedReviewer = `${currentApprover} | ผู้รับคืน: ${cleanReturner}`;
+
+      await updateBorrowRequestStatus(config, req.id, 'returned', { 
+        reviewedBy: combinedReviewer 
+      });
       setCardSuccess(req.id, '🔄 บันทึกการรับคืนพัสดุแล้ว');
+      setShowReturnInput(p => ({ ...p, [req.id]: false }));
       await loadData();
       onRefresh();
     } catch (e: any) {
@@ -366,6 +375,46 @@ export default function ApprovalView({ config, refreshTrigger, onRefresh }: Appr
                       <div className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2">
                         <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">หมายเหตุ Admin</p>
                         <p className="text-xs text-slate-700">{req.admin_note}</p>
+                      </div>
+                    )}
+
+                    {/* Review Info (Approver / Returner) */}
+                    {req.reviewed_by && (
+                      <div className="bg-[#F5F5F7] border border-[#E8E8ED] rounded-xl px-3 py-2.5 space-y-1 text-xs">
+                        {req.status === 'rejected' ? (
+                          <p className="text-[#D12B2B]">
+                            <span className="font-bold text-[#86868B]">ผู้ปฏิเสธคำขอ:</span> {req.reviewed_by}
+                          </p>
+                        ) : (
+                          <>
+                            {req.reviewed_by.includes(' | ผู้รับคืน: ') ? (
+                              <>
+                                <p className="text-emerald-700">
+                                  <span className="font-bold text-[#86868B]">ผู้อนุมัติคำขอ:</span> {req.reviewed_by.split(' | ผู้รับคืน: ')[0]}
+                                </p>
+                                <p className="text-slate-700">
+                                  <span className="font-bold text-[#86868B]">ผู้บันทึกรับคืนพัสดุ:</span> {req.reviewed_by.split(' | ผู้รับคืน: ')[1]}
+                                </p>
+                              </>
+                            ) : (
+                              <>
+                                <p className="text-emerald-700">
+                                  <span className="font-bold text-[#86868B]">ผู้อนุมัติคำขอ:</span> {req.reviewed_by}
+                                </p>
+                                {req.status === 'returned' && (
+                                  <p className="text-slate-700">
+                                    <span className="font-bold text-[#86868B]">ผู้บันทึกรับคืนพัสดุ:</span> Admin (อัตโนมัติ)
+                                  </p>
+                                )}
+                              </>
+                            )}
+                          </>
+                        )}
+                        {req.reviewed_at && (
+                          <p className="text-[9px] text-[#86868B] font-mono">
+                            อัปเดตล่าสุด: {new Date(req.reviewed_at).toLocaleString('th-TH')}
+                          </p>
+                        )}
                       </div>
                     )}
 
@@ -583,15 +632,42 @@ export default function ApprovalView({ config, refreshTrigger, onRefresh }: Appr
                       )}
 
                       {req.status === 'borrowing' && (
-                        <button
-                          type="button"
-                          disabled={isLoading}
-                          onClick={() => handleMarkReturned(req)}
-                          className="w-full flex items-center justify-center gap-1.5 py-3 bg-slate-700 hover:bg-slate-800 disabled:bg-slate-300 text-white rounded-xl text-xs font-bold transition-all"
-                        >
-                          {isLoading ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <RotateCcw className="h-4 w-4" />}
-                          บันทึกรับคืนพัสดุ
-                        </button>
+                        <>
+                          <button
+                            type="button"
+                            disabled={isLoading}
+                            onClick={() => setShowReturnInput(p => ({ ...p, [req.id]: !p[req.id] }))}
+                            className="w-full flex items-center justify-center gap-1.5 py-3 bg-slate-700 hover:bg-slate-800 disabled:bg-slate-300 text-white rounded-xl text-xs font-bold transition-all cursor-pointer"
+                          >
+                            <RotateCcw className="h-4 w-4" />
+                            {showReturnInput[req.id] ? 'ยกเลิกการคืนพัสดุ' : 'บันทึกรับคืนพัสดุ'}
+                          </button>
+
+                          {showReturnInput[req.id] && (
+                            <div className="space-y-2 mt-2 bg-[#F5F5F7] p-3.5 rounded-xl border border-[#E8E8ED] animate-in fade-in slide-in-from-top-1 duration-200">
+                              <label className="block text-[10px] font-sans font-bold text-[#86868B] uppercase tracking-wider">
+                                ชื่อผู้ทำรายการรับคืนพัสดุ *
+                              </label>
+                              <input
+                                type="text"
+                                placeholder="กรอกชื่อผู้รับคืน เช่น แอดมินวิชัย"
+                                value={returnerNames[req.id] || ''}
+                                onChange={e => setReturnerNames(p => ({ ...p, [req.id]: e.target.value }))}
+                                className="w-full px-3 py-2 bg-white border border-[#E8E8ED] rounded-xl text-xs font-sans text-black focus:outline-none focus:border-black transition"
+                                required
+                              />
+                              <button
+                                type="button"
+                                disabled={isLoading || !(returnerNames[req.id]?.trim())}
+                                onClick={() => handleMarkReturned(req, returnerNames[req.id])}
+                                className="w-full flex items-center justify-center gap-1.5 py-2 bg-slate-700 hover:bg-slate-850 disabled:bg-slate-350 text-white rounded-xl text-xs font-bold transition-all cursor-pointer"
+                              >
+                                {isLoading ? <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <RotateCcw className="h-3.5 w-3.5" />}
+                                ยืนยันการรับคืนพัสดุ
+                              </button>
+                            </div>
+                          )}
+                        </>
                       )}
                     </div>
                   </div>
