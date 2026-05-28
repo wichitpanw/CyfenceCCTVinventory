@@ -80,10 +80,6 @@ export default function RequestView({ config, refreshTrigger }: RequestViewProps
   const [purpose, setPurpose] = useState('');
   const [dueDate, setDueDate] = useState('');
 
-  // Evidence image
-  const [evidenceImage, setEvidenceImage] = useState('');
-  const [evidenceMode, setEvidenceMode] = useState<'upload' | 'url'>('upload');
-
   // Submission
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
@@ -120,11 +116,7 @@ export default function RequestView({ config, refreshTrigger }: RequestViewProps
     const n = [...cart]; n.splice(idx, 1); setCart(n);
   };
 
-  const handleImageFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    try { setEvidenceImage(await compressImage(file)); } catch { setSubmitError('เกิดข้อผิดพลาดในการประมวลผลรูปภาพ'); }
-  };
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -155,7 +147,6 @@ export default function RequestView({ config, refreshTrigger }: RequestViewProps
         items,
         purpose: purpose.trim(),
         requested_due_date: dueDate,
-        evidence_image_url: evidenceImage || undefined,
       });
       setSuccessRefCode(result.id);
 
@@ -204,7 +195,6 @@ export default function RequestView({ config, refreshTrigger }: RequestViewProps
     setCustomCompany('');
     setRequesterContact('');
     setPurpose('');
-    setEvidenceImage('');
     setSubmitError('');
   };
 
@@ -508,44 +498,7 @@ export default function RequestView({ config, refreshTrigger }: RequestViewProps
           </div>
         </div>
 
-        {/* ── Step 4: Evidence Image ── */}
-        <div className="bg-white border border-[#E8E8ED] rounded-2xl p-5 shadow-[0_4px_20px_rgba(0,0,0,0.04)] space-y-3">
-          <div className="flex items-center justify-between">
-            <h3 className="text-[11px] font-bold uppercase tracking-wider text-[#1D1D1F] flex items-center gap-2">
-              <Camera className="h-3.5 w-3.5 text-[#000000]" />
-              4. รูปประกอบหลักฐาน <span className="normal-case font-normal text-[#86868B]">(ไม่บังคับ)</span>
-            </h3>
-            <div className="bg-[#F5F5F7] p-0.5 rounded-full flex items-center border border-[#E8E8ED] text-[10px] font-semibold">
-              <button type="button" onClick={() => { setEvidenceMode('upload'); setEvidenceImage(''); }}
-                className={`px-3 py-1 rounded-full transition ${evidenceMode==='upload' ? 'bg-white text-[#1D1D1F] shadow-sm' : 'text-[#86868B]'}`}>อัปโหลดรูป</button>
-              <button type="button" onClick={() => { setEvidenceMode('url'); setEvidenceImage(''); }}
-                className={`px-3 py-1 rounded-full transition ${evidenceMode==='url' ? 'bg-white text-[#1D1D1F] shadow-sm' : 'text-[#86868B]'}`}>แนบลิงก์ URL</button>
-            </div>
-          </div>
 
-          {evidenceMode === 'upload' ? (
-            evidenceImage ? (
-              <div className="relative w-full">
-                <img src={evidenceImage} alt="Evidence" className="w-full max-h-48 object-contain rounded-xl border border-[#E8E8ED]" />
-                <button type="button" onClick={() => setEvidenceImage('')}
-                  className="absolute top-2 right-2 w-7 h-7 bg-white border border-[#E8E8ED] rounded-full flex items-center justify-center shadow hover:bg-red-50 transition">
-                  <X className="h-3.5 w-3.5 text-red-500" />
-                </button>
-              </div>
-            ) : (
-              <label className="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-[#C7C7CC] rounded-xl p-8 cursor-pointer hover:bg-[#F5F5F7] transition">
-                <UploadCloud className="h-8 w-8 text-[#86868B]" />
-                <span className="text-xs font-semibold text-[#86868B]">คลิกที่นี่หรือถ่ายรูปผู้รับพัสดุ</span>
-                <span className="text-[10px] text-[#86868B]">PNG, JPG, WebP (บีบอัดโดยอัตโนมัติ)</span>
-                <input type="file" accept="image/*" capture="environment" onChange={handleImageFile} className="hidden" />
-              </label>
-            )
-          ) : (
-            <input type="url" value={evidenceImage} onChange={e=>setEvidenceImage(e.target.value)}
-              placeholder="https://... URL รูปภาพหลักฐาน"
-              className="w-full px-3 py-2 border border-[#E8E8ED] rounded-xl text-xs focus:outline-none focus:border-[#000000] bg-[#F5F5F7] focus:bg-white transition" />
-          )}
-        </div>
 
         {/* Error */}
         {submitError && (

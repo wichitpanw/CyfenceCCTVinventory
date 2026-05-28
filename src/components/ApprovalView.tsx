@@ -20,6 +20,8 @@ import {
   Image as ImageIcon,
   ShieldCheck,
   X,
+  Camera,
+  UploadCloud,
 } from 'lucide-react';
 import { BorrowRequest, SupabaseConfig, Equipment } from '../types';
 import {
@@ -28,6 +30,34 @@ import {
   borrowEquipment,
   getEquipments,
 } from '../services/db';
+
+const compressImage = (file: File): Promise<string> =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (ev) => {
+      const img = new Image();
+      img.src = ev.target?.result as string;
+      img.onload = () => {
+        const MAX = 500;
+        let { width, height } = img;
+        if (width > MAX) { height = (height * MAX) / width; width = MAX; }
+        if (height > MAX) { width = (width * MAX) / height; height = MAX; }
+        const canvas = document.createElement('canvas');
+        canvas.width = width; canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          resolve(ev.target?.result as string); // safe guard fallback
+          return;
+        }
+        ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, width, height);
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', 0.7));
+      };
+      img.onerror = reject;
+    };
+    reader.onerror = reject;
+  });
 
 interface ApprovalViewProps {
   config: SupabaseConfig;
@@ -62,6 +92,14 @@ export default function ApprovalView({ config, refreshTrigger, onRefresh }: Appr
   const [actionError, setActionError] = useState<Record<string, string>>({});
   const [actionSuccess, setActionSuccess] = useState<Record<string, string>>({});
 
+  // Hotfix states for reviewer names and evidence images
+  const [approverNames, setApproverNames] = useState<Record<string, string>>({});
+  const [showApproveInput, setShowApproveInput] = useState<Record<string, boolean>>({});
+  const [dispatchImages, setDispatchImages] = useState<Record<string, string>>({});
+  const [dispatchImageMode, setDispatchImageMode] = useState<Record<string, 'upload' | 'url'>>({});
+  const [uploadErrors, setUploadErrors] = useState<Record<string, string>>({});
+  const [showDispatchInput, setShowDispatchInput] = useState<Record<string, boolean>>({});
+
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
@@ -87,12 +125,15 @@ export default function ApprovalView({ config, refreshTrigger, onRefresh }: Appr
   const setCardSuccess = (id: string, msg: string) => setActionSuccess(p => ({ ...p, [id]: msg }));
 
   // ── Actions ─────────────────────────────────────────────────────────────────
-  const handleApprove = async (req: BorrowRequest) => {
+  const handleApprove = async (req: BorrowRequest, reviewerName: string) => {
     setCardLoading(req.id, true);
     setCardError(req.id, '');
     try {
-      await updateBorrowRequestStatus(config, req.id, 'approved', { reviewedBy: 'Admin' });
+      await updateBorrowRequestStatus(config, req.id, 'approved', { 
+        reviewedBy: reviewerName.trim() || 'Admin' 
+      });
       setCardSuccess(req.id, '✅ อนุมัติคำขอเรียบร้อยแล้ว');
+      setShowApproveInput(p => ({ ...p, [req.id]: false }));
       await loadData();
       onRefresh();
     } catch (e: any) {
@@ -122,7 +163,7 @@ export default function ApprovalView({ config, refreshTrigger, onRefresh }: Appr
   };
 
   // Approved → Borrowing: create real transactions
-  const handleDispatch = async (req: BorrowRequest) => {
+  const handleDispatch = async (req: BorrowRequest, evidenceImageUrl: string) => {
     setCardLoading(req.id, true);
     setCardError(req.id, '');
     try {
@@ -136,15 +177,17 @@ export default function ApprovalView({ config, refreshTrigger, onRefresh }: Appr
           purpose: req.purpose,
           dueDate: req.requested_due_date,
           borrowQty: item.qty,
-          evidenceImageUrl: req.evidence_image_url,
+          evidenceImageUrl: evidenceImageUrl,
         });
         txIds.push(tx.id);
       }
       await updateBorrowRequestStatus(config, req.id, 'borrowing', {
         transactionIds: txIds,
         reviewedBy: 'Admin',
+        evidenceImageUrl: evidenceImageUrl,
       });
       setCardSuccess(req.id, '📦 จ่ายพัสดุออกจากคลังเรียบร้อย — ระบบสร้างประวัติการเบิกแล้ว');
+      setShowDispatchInput(p => ({ ...p, [req.id]: false }));
       await loadData();
       onRefresh();
     } catch (e: any) {
@@ -348,23 +391,55 @@ export default function ApprovalView({ config, refreshTrigger, onRefresh }: Appr
                             <button
                               type="button"
                               disabled={isLoading}
-                              onClick={() => handleApprove(req)}
-                              className="flex items-center justify-center gap-1.5 py-2.5 bg-emerald-500 hover:bg-emerald-600 disabled:bg-slate-300 text-white rounded-xl text-xs font-bold transition-all"
+                              onClick={() => {
+                                setShowApproveInput(p => ({ ...p, [req.id]: !p[req.id] }));
+                                setShowRejectInput(p => ({ ...p, [req.id]: false }));
+                              }}
+                              className="flex items-center justify-center gap-1.5 py-2.5 bg-emerald-500 hover:bg-emerald-600 disabled:bg-slate-300 text-white rounded-xl text-xs font-bold transition-all cursor-pointer"
                             >
-                              {isLoading ? <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <CheckCircle className="h-3.5 w-3.5" />}
-                              อนุมัติ
+                              <CheckCircle className="h-3.5 w-3.5" />
+                              {showApproveInput[req.id] ? 'ยกเลิก' : 'อนุมัติ'}
                             </button>
                             <button
                               type="button"
                               disabled={isLoading}
-                              onClick={() => setShowRejectInput(p => ({ ...p, [req.id]: !p[req.id] }))}
-                              className="flex items-center justify-center gap-1.5 py-2.5 bg-red-50 hover:bg-red-100 disabled:bg-slate-100 text-red-600 border border-red-200 rounded-xl text-xs font-bold transition-all"
+                              onClick={() => {
+                                setShowRejectInput(p => ({ ...p, [req.id]: !p[req.id] }));
+                                setShowApproveInput(p => ({ ...p, [req.id]: false }));
+                              }}
+                              className="flex items-center justify-center gap-1.5 py-2.5 bg-red-50 hover:bg-red-100 disabled:bg-slate-100 text-red-600 border border-red-200 rounded-xl text-xs font-bold transition-all cursor-pointer"
                             >
                               <XCircle className="h-3.5 w-3.5" /> ปฏิเสธ
                             </button>
                           </div>
+
+                          {showApproveInput[req.id] && (
+                            <div className="space-y-2 mt-2 bg-[#F5F5F7] p-3.5 rounded-xl border border-[#E8E8ED] animate-in fade-in slide-in-from-top-1 duration-200">
+                              <label className="block text-[10px] font-sans font-bold text-[#86868B] uppercase tracking-wider">
+                                ชื่อผู้ทำรายการอนุมัติ / ผู้ตรวจสอบ *
+                              </label>
+                              <input
+                                type="text"
+                                placeholder="กรอกชื่อผู้ตรวจสอบ เช่น แอดมินวิชัย"
+                                value={approverNames[req.id] || ''}
+                                onChange={e => setApproverNames(p => ({ ...p, [req.id]: e.target.value }))}
+                                className="w-full px-3 py-2 bg-white border border-[#E8E8ED] rounded-xl text-xs font-sans text-black focus:outline-none focus:border-black transition"
+                                required
+                              />
+                              <button
+                                type="button"
+                                disabled={isLoading || !(approverNames[req.id]?.trim())}
+                                onClick={() => handleApprove(req, approverNames[req.id])}
+                                className="w-full flex items-center justify-center gap-1.5 py-2 bg-emerald-500 hover:bg-emerald-600 disabled:bg-slate-350 text-white rounded-xl text-xs font-bold transition-all cursor-pointer"
+                              >
+                                {isLoading ? <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <CheckCircle className="h-3.5 w-3.5" />}
+                                ยืนยันการอนุมัติคำขอ
+                              </button>
+                            </div>
+                          )}
+
                           {showReject && (
-                            <div className="space-y-2">
+                            <div className="space-y-2 mt-2">
                               <textarea
                                 rows={2}
                                 placeholder="หมายเหตุสำหรับการปฏิเสธ (ไม่บังคับ)..."
@@ -376,7 +451,7 @@ export default function ApprovalView({ config, refreshTrigger, onRefresh }: Appr
                                 type="button"
                                 disabled={isLoading}
                                 onClick={() => handleReject(req)}
-                                className="w-full flex items-center justify-center gap-1.5 py-2.5 bg-red-500 hover:bg-red-600 disabled:bg-slate-300 text-white rounded-xl text-xs font-bold transition-all"
+                                className="w-full flex items-center justify-center gap-1.5 py-2.5 bg-red-500 hover:bg-red-600 disabled:bg-slate-300 text-white rounded-xl text-xs font-bold transition-all cursor-pointer"
                               >
                                 {isLoading ? <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <XOctagon className="h-3.5 w-3.5" />}
                                 ยืนยันการปฏิเสธคำขอ
@@ -387,15 +462,124 @@ export default function ApprovalView({ config, refreshTrigger, onRefresh }: Appr
                       )}
 
                       {req.status === 'approved' && (
-                        <button
-                          type="button"
-                          disabled={isLoading}
-                          onClick={() => handleDispatch(req)}
-                          className="w-full flex items-center justify-center gap-1.5 py-3 bg-[#000000] hover:bg-[#1D1D1F] disabled:bg-slate-300 text-white rounded-xl text-xs font-bold transition-all shadow-[0_4px_16px_rgba(0,113,227,0.25)]"
-                        >
-                          {isLoading ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Truck className="h-4 w-4" />}
-                          ยืนยันจ่ายพัสดุออกจากคลัง — สร้างประวัติเบิกทันที
-                        </button>
+                        <>
+                          <button
+                            type="button"
+                            disabled={isLoading}
+                            onClick={() => setShowDispatchInput(p => ({ ...p, [req.id]: !p[req.id] }))}
+                            className="w-full flex items-center justify-center gap-1.5 py-3 bg-[#000000] hover:bg-[#1D1D1F] disabled:bg-slate-300 text-white rounded-xl text-xs font-bold transition-all shadow-[0_4px_16px_rgba(0,113,227,0.25)] cursor-pointer"
+                          >
+                            <Truck className="h-4 w-4" />
+                            {showDispatchInput[req.id] ? 'ปิดการจ่ายพัสดุ' : 'ดำเนินการจ่ายพัสดุออกจากคลัง'}
+                          </button>
+
+                          {showDispatchInput[req.id] && (
+                            <div className="space-y-3 mt-2 bg-[#F5F5F7] p-4 rounded-xl border border-[#E8E8ED] animate-in fade-in slide-in-from-top-1 duration-200">
+                              <div className="flex items-center justify-between">
+                                <label className="block text-[10px] font-sans font-bold text-[#86868B] uppercase tracking-wider">
+                                  รูปประกอบหลักฐานการจ่ายพัสดุ *
+                                </label>
+                                <div className="bg-white p-0.5 rounded-full flex items-center border border-[#E8E8ED] text-[9px] font-bold shadow-3xs">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setDispatchImageMode(p => ({ ...p, [req.id]: 'upload' }));
+                                      setDispatchImages(p => ({ ...p, [req.id]: '' }));
+                                    }}
+                                    className={`px-2.5 py-1 rounded-full transition cursor-pointer ${
+                                      (dispatchImageMode[req.id] || 'upload') === 'upload'
+                                        ? 'bg-black text-white'
+                                        : 'text-[#86868B]'
+                                    }`}
+                                  >
+                                    อัปโหลดรูป
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setDispatchImageMode(p => ({ ...p, [req.id]: 'url' }));
+                                      setDispatchImages(p => ({ ...p, [req.id]: '' }));
+                                    }}
+                                    className={`px-2.5 py-1 rounded-full transition cursor-pointer ${
+                                      dispatchImageMode[req.id] === 'url'
+                                        ? 'bg-black text-white'
+                                        : 'text-[#86868B]'
+                                    }`}
+                                  >
+                                    แนบลิงก์ URL
+                                  </button>
+                                </div>
+                              </div>
+
+                              {(dispatchImageMode[req.id] || 'upload') === 'upload' ? (
+                                dispatchImages[req.id] ? (
+                                  <div className="relative w-full">
+                                    <img
+                                      src={dispatchImages[req.id]}
+                                      alt="Handover Evidence"
+                                      className="w-full max-h-36 object-contain rounded-lg border border-[#E8E8ED] bg-white p-1"
+                                    />
+                                    <button
+                                      type="button"
+                                      onClick={() => setDispatchImages(p => ({ ...p, [req.id]: '' }))}
+                                      className="absolute top-1.5 right-1.5 w-6 h-6 bg-white border border-[#E8E8ED] rounded-full flex items-center justify-center shadow hover:bg-red-50 transition cursor-pointer"
+                                    >
+                                      <X className="h-3 w-3 text-red-500" />
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <label className="flex flex-col items-center justify-center gap-1.5 border-2 border-dashed border-[#C5C5C7] rounded-xl p-6 cursor-pointer hover:bg-white hover:border-black transition">
+                                    <UploadCloud className="h-6 w-6 text-[#86868B]" />
+                                    <span className="text-[11px] font-semibold text-[#86868B]">คลิกเพื่ออัปโหลด/เลือกรูปภาพหลักฐาน</span>
+                                    <span className="text-[9px] text-[#86868B]">PNG, JPG, WebP (ย่อรูปภาพให้อัตโนมัติ)</span>
+                                    <input
+                                      type="file"
+                                      accept="image/*"
+                                      onChange={async e => {
+                                        const file = e.target.files?.[0];
+                                        if (!file) return;
+                                        try {
+                                          setUploadErrors(p => ({ ...p, [req.id]: '' }));
+                                          const compressed = await compressImage(file);
+                                          setDispatchImages(p => ({ ...p, [req.id]: compressed }));
+                                        } catch {
+                                          setUploadErrors(p => ({ ...p, [req.id]: 'เกิดข้อผิดพลาดในการประมวลผลรูปภาพ' }));
+                                        }
+                                      }}
+                                      className="hidden"
+                                    />
+                                  </label>
+                                )
+                              ) : (
+                                <input
+                                  type="url"
+                                  value={dispatchImages[req.id] || ''}
+                                  onChange={e => setDispatchImages(p => ({ ...p, [req.id]: e.target.value }))}
+                                  placeholder="https://... URL รูปภาพหลักฐานเซ็นรับของ"
+                                  className="w-full px-3 py-2 border border-[#E8E8ED] rounded-xl text-xs focus:outline-none focus:border-black bg-white transition"
+                                />
+                              )}
+
+                              {uploadErrors[req.id] && (
+                                <p className="text-[10px] text-red-650 font-semibold">{uploadErrors[req.id]}</p>
+                              )}
+
+                              <button
+                                type="button"
+                                disabled={isLoading || !dispatchImages[req.id]}
+                                onClick={() => handleDispatch(req, dispatchImages[req.id])}
+                                className="w-full flex items-center justify-center gap-1.5 py-2.5 bg-black hover:bg-[#1D1D1F] disabled:bg-slate-350 text-white rounded-xl text-xs font-bold transition-all cursor-pointer"
+                              >
+                                {isLoading ? (
+                                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                ) : (
+                                  <Truck className="h-4 w-4" />
+                                )}
+                                ยืนยันการจ่ายพัสดุและแนบหลักฐาน
+                              </button>
+                            </div>
+                          )}
+                        </>
                       )}
 
                       {req.status === 'borrowing' && (

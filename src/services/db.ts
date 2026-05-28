@@ -1336,6 +1336,7 @@ export async function updateBorrowRequestStatus(
     adminNote?: string;
     reviewedBy?: string;
     transactionIds?: string[];
+    evidenceImageUrl?: string;
   }
 ): Promise<BorrowRequest> {
   const now = new Date().toISOString();
@@ -1346,6 +1347,7 @@ export async function updateBorrowRequestStatus(
     patch.reviewed_at = now;
   }
   if (opts?.transactionIds) patch.transaction_ids = opts.transactionIds;
+  if (opts?.evidenceImageUrl) patch.evidence_image_url = opts.evidenceImageUrl;
 
   const client = getSupabaseClient(config);
   if (client) {
