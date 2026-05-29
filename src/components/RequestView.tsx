@@ -124,6 +124,7 @@ export default function RequestView({ config, refreshTrigger }: RequestViewProps
 
     if (cart.length === 0) { setSubmitError('กรุณาเลือกอุปกรณ์ที่ต้องการขอเบิกอย่างน้อย 1 รายการ'); return; }
     if (!requesterName.trim()) { setSubmitError('กรุณาระบุชื่อ-นามสกุลผู้ยื่นคำขอ'); return; }
+    if (!requesterContact.trim()) { setSubmitError('กรุณาระบุเบอร์โทรติดต่อ'); return; }
     if (!dueDate) { setSubmitError('กรุณาระบุวันที่ต้องการคืนพัสดุ'); return; }
 
     const finalCompany = requesterCompany === 'อื่นๆ ระบุ'
@@ -166,7 +167,7 @@ export default function RequestView({ config, refreshTrigger }: RequestViewProps
               `<b>🔔 มีคำขอเสนอเบิกพัสดุใหม่เข้ามาในระบบ!</b>\n\n` +
               `👤 <b>ผู้ยื่นคำขอ:</b> ${requesterName.trim()}\n` +
               `🏢 <b>บริษัท/สังกัด:</b> ${finalCompany}\n` +
-              `📞 <b>เบอร์ติดต่อ:</b> ${requesterContact.trim() || 'ไม่ระบุ'}\n\n` +
+              `📞 <b>เบอร์โทรติดต่อ:</b> ${requesterContact.trim()}\n\n` +
               `📦 <b>รายการพัสดุที่ขอเบิก:</b>\n${itemsStr}\n\n` +
               `📝 <b>วัตถุประสงค์สถานที่ขอไป:</b>\n${purpose.trim() || 'ไม่ระบุ'}\n\n` +
               `📅 <b>กำหนดคืนพัสดุ:</b> ${new Date(dueDate).toLocaleDateString('th-TH')}\n` +
@@ -448,11 +449,11 @@ export default function RequestView({ config, refreshTrigger }: RequestViewProps
             </div>
             {/* Contact */}
             <div className="md:col-span-2">
-              <label className="block text-[10px] font-semibold uppercase tracking-wider text-[#86868B] mb-1.5">เบอร์ติดต่อ / อีเมล (ไม่บังคับ)</label>
+              <label className="block text-[10px] font-semibold uppercase tracking-wider text-[#86868B] mb-1.5">เบอร์โทรติดต่อ *</label>
               <div className="relative">
                 <Phone className="absolute left-3 top-2.5 h-4 w-4 text-[#86868B] pointer-events-none" />
                 <input type="text" value={requesterContact} onChange={e=>setRequesterContact(e.target.value)}
-                  placeholder="เช่น 081-234-5678 หรือ name@company.com"
+                  placeholder="เช่น 081-234-5678" required
                   className="w-full pl-9 pr-3 py-2 border border-[#E8E8ED] rounded-xl text-xs focus:outline-none focus:border-[#000000] bg-[#F5F5F7] focus:bg-white transition" />
               </div>
             </div>
