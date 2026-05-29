@@ -185,7 +185,6 @@ export default function ApprovalView({ config, refreshTrigger, onRefresh }: Appr
       }
       await updateBorrowRequestStatus(config, req.id, 'borrowing', {
         transactionIds: txIds,
-        reviewedBy: 'Admin',
         evidenceImageUrl: evidenceImageUrl,
       });
       setCardSuccess(req.id, '📦 จ่ายพัสดุออกจากคลังเรียบร้อย — ระบบสร้างประวัติการเบิกแล้ว');
