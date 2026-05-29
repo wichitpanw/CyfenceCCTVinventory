@@ -117,6 +117,17 @@ export default function ApprovalView({ config, refreshTrigger, onRefresh }: Appr
   const [filterRequestDate, setFilterRequestDate] = useState('');
   const [filterDueDate, setFilterDueDate] = useState('');
 
+  // Custom Revert Confirmation Modal State
+  const [revertConfirmModal, setRevertConfirmModal] = useState<{
+    isOpen: boolean;
+    req: BorrowRequest | null;
+    totalReturned: number;
+  }>({
+    isOpen: false,
+    req: null,
+    totalReturned: 0,
+  });
+
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
@@ -269,7 +280,7 @@ export default function ApprovalView({ config, refreshTrigger, onRefresh }: Appr
     }
   };
 
-  const handleRevertEntireRequest = async (req: BorrowRequest) => {
+  const handleRevertEntireRequest = (req: BorrowRequest) => {
     const totalReturned = req.items.reduce((sum, item) => {
       const qty = item.returned_qty !== undefined ? (item.returned_qty || 0) : (req.status === 'returned' ? item.qty : 0);
       return sum + qty;
@@ -280,9 +291,19 @@ export default function ApprovalView({ config, refreshTrigger, onRefresh }: Appr
       return;
     }
 
-    if (!window.confirm(`คุณแน่ใจหรือไม่ว่าต้องการดึงพัสดุทุกรายการในใบเบิกนี้จำนวน ${totalReturned} ชิ้น กลับมาเป็นสถานะ "กำลังยืม"? \n(ยอดสต็อกในคลังอุปกรณ์ทั้งหมดจะถูกหักออกโดยอัตโนมัติ)`)) {
-      return;
-    }
+    setRevertConfirmModal({
+      isOpen: true,
+      req,
+      totalReturned,
+    });
+  };
+
+  const executeRevertEntireRequest = async () => {
+    const { req } = revertConfirmModal;
+    if (!req) return;
+
+    // Reset modal state
+    setRevertConfirmModal({ isOpen: false, req: null, totalReturned: 0 });
 
     setCardLoading(req.id, true);
     setCardError(req.id, '');
@@ -1047,6 +1068,79 @@ export default function ApprovalView({ config, refreshTrigger, onRefresh }: Appr
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Revert Confirmation Custom Modal */}
+      {revertConfirmModal.isOpen && revertConfirmModal.req && (
+        <div 
+          className="fixed inset-0 z-[110] flex items-center justify-center bg-[#1D1D1F]/70 backdrop-blur-md transition-opacity duration-300 animate-in fade-in"
+          onClick={() => setRevertConfirmModal({ isOpen: false, req: null, totalReturned: 0 })}
+        >
+          <div 
+            className="w-full max-w-md p-6 bg-white rounded-3xl overflow-hidden shadow-2xl animate-in zoom-in-95 duration-250 border border-[#E8E8ED] space-y-4 m-4"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Warning Icon & Header */}
+            <div className="flex items-center gap-3 pb-2 border-b border-[#E8E8ED]">
+              <div className="p-2.5 bg-red-50 text-red-600 rounded-2xl">
+                <AlertCircle className="w-6 h-6 animate-pulse" />
+              </div>
+              <div className="text-left">
+                <h3 className="text-sm font-bold text-[#1D1D1F] font-sans">
+                  ยืนยันการดึงใบเบิกกลับเป็นกำลังยืม
+                </h3>
+                <p className="text-[10px] text-slate-500 font-sans mt-0.5">Revert Borrow Request Status</p>
+              </div>
+            </div>
+
+            {/* Content Details */}
+            <div className="space-y-3 font-sans text-left">
+              <div className="bg-[#F5F5F7] rounded-2xl p-4 border border-[#E8E8ED] space-y-2">
+                <p className="text-xs text-slate-600">
+                  คุณกำลังต้องการดึงพัสดุทุกรายการในใบเบิกนี้จำนวน <strong className="text-black font-extrabold text-sm">{revertConfirmModal.totalReturned} ชิ้น</strong> กลับมาเป็นสถานะ <span className="font-bold text-blue-700">"กำลังยืม"</span>
+                </p>
+                <p className="text-[11px] text-slate-500 font-medium">
+                  ใบเบิกเลขที่: <span className="font-mono text-black font-bold">{revertConfirmModal.req.id}</span>
+                </p>
+                <p className="text-[11px] text-slate-500 font-medium">
+                  ผู้ขอเบิก: <span className="text-black font-bold">{revertConfirmModal.req.requester_name}</span>
+                </p>
+              </div>
+
+              {/* Warning Notice */}
+              <div className="flex gap-2.5 p-3.5 bg-amber-50 border border-amber-200 rounded-2xl">
+                <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                  <p className="text-xs font-bold text-amber-850">
+                    ⚠️ ข้อควรระวังในการดึงสถานะกลับ
+                  </p>
+                  <p className="text-[10px] text-amber-800 leading-relaxed font-semibold">
+                    ยอดสต็อกในคลังอุปกรณ์ทั้งหมดที่เกี่ยวข้องในใบเบิกนี้ จะถูกหักออกโดยอัตโนมัติทันที กรุณาตรวจสอบให้แน่ใจว่าอุปกรณ์จริงยังมีอยู่ครบถ้วนเพื่อป้องกันข้อผิดพลาดทางบัญชีคลังพัสดุ
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="grid grid-cols-2 gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setRevertConfirmModal({ isOpen: false, req: null, totalReturned: 0 })}
+                className="py-3 px-4 border border-[#E8E8ED] hover:bg-[#F5F5F7] text-slate-650 hover:text-black font-bold text-xs rounded-xl transition-all cursor-pointer text-center select-none"
+              >
+                ยกเลิก
+              </button>
+              <button
+                type="button"
+                onClick={executeRevertEntireRequest}
+                className="py-3 px-4 bg-red-600 hover:bg-red-750 text-white font-bold text-xs rounded-xl shadow-md transition-all cursor-pointer text-center select-none flex items-center justify-center gap-1.5"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                ดึงกลับเป็นยืม
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
