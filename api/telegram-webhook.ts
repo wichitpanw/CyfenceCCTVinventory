@@ -111,7 +111,7 @@ export default async function handler(req: any, res: any) {
 
       if (text === '/start' || text.toLowerCase() === '/stock' || text.includes('เช็คสต๊อก') || text.includes('สต็อก')) {
         // Fetch all categories dynamically from equipments table
-        const { data: eqs } = await supabase.from('equipments').select('category');
+        const { data: eqs } = await supabase.from('equipment').select('category');
         const categories = Array.from(new Set((eqs || []).map(e => e.category))).filter(Boolean).sort();
 
         if (categories.length === 0) {
@@ -164,7 +164,7 @@ export default async function handler(req: any, res: any) {
         const catIndex = parseInt(callbackData.replace('cat_', ''), 10);
 
         // Fetch dynamic categories list to resolve name index
-        const { data: eqs } = await supabase.from('equipments').select('category');
+        const { data: eqs } = await supabase.from('equipment').select('category');
         const categories = Array.from(new Set((eqs || []).map(e => e.category))).filter(Boolean).sort();
         const selectedCategory = categories[catIndex];
 
@@ -185,7 +185,7 @@ export default async function handler(req: any, res: any) {
 
         // Query stock in Supabase for selectedCategory
         const { data: equipments, error: eqError } = await supabase
-          .from('equipments')
+          .from('equipment')
           .select('*')
           .eq('category', selectedCategory)
           .order('name', { ascending: true });
@@ -230,7 +230,7 @@ export default async function handler(req: any, res: any) {
       } 
       // Tapped the Back button
       else if (callbackData === 'show_categories') {
-        const { data: eqs } = await supabase.from('equipments').select('category');
+        const { data: eqs } = await supabase.from('equipment').select('category');
         const categories = Array.from(new Set((eqs || []).map(e => e.category))).filter(Boolean).sort();
 
         const keyboard: any[] = [];
