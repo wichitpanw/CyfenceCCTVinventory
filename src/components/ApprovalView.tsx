@@ -34,7 +34,7 @@ import {
   borrowEquipment,
   getEquipments,
   returnBorrowRequestItems,
-  revertBorrowRequestItemReturn,
+  revertEntireBorrowRequestReturn,
 } from '../services/db';
 
 const compressImage = (file: File): Promise<string> =>
@@ -269,19 +269,30 @@ export default function ApprovalView({ config, refreshTrigger, onRefresh }: Appr
     }
   };
 
-  const handleRevertReturn = async (req: BorrowRequest, equipmentId: string, revertQty: number) => {
-    if (!window.confirm(`คุณแน่ใจหรือไม่ว่าต้องการดึงพัสดุจำนวน ${revertQty} ชิ้น กลับมาเป็นสถานะ "กำลังยืม"? \n(ยอดสต็อกในคลังอุปกรณ์จะถูกหักออกโดยอัตโนมัติ)`)) {
+  const handleRevertEntireRequest = async (req: BorrowRequest) => {
+    const totalReturned = req.items.reduce((sum, item) => {
+      const qty = item.returned_qty !== undefined ? (item.returned_qty || 0) : (req.status === 'returned' ? item.qty : 0);
+      return sum + qty;
+    }, 0);
+
+    if (totalReturned === 0) {
+      setCardError(req.id, 'ไม่พบจำนวนพัสดุที่ถูกคืนในใบเบิกนี้');
       return;
     }
+
+    if (!window.confirm(`คุณแน่ใจหรือไม่ว่าต้องการดึงพัสดุทุกรายการในใบเบิกนี้จำนวน ${totalReturned} ชิ้น กลับมาเป็นสถานะ "กำลังยืม"? \n(ยอดสต็อกในคลังอุปกรณ์ทั้งหมดจะถูกหักออกโดยอัตโนมัติ)`)) {
+      return;
+    }
+
     setCardLoading(req.id, true);
     setCardError(req.id, '');
     try {
-      await revertBorrowRequestItemReturn(config, req.id, equipmentId, revertQty);
-      setCardSuccess(req.id, '🔄 ดึงสถานะอุปกรณ์กลับเป็นกำลังยืมเรียบร้อยแล้ว');
+      await revertEntireBorrowRequestReturn(config, req.id);
+      setCardSuccess(req.id, '🔄 ดึงใบเบิกกลับมาเป็นสถานะกำลังยืมเรียบร้อยแล้ว');
       await loadData();
       onRefresh();
     } catch (e: any) {
-      setCardError(req.id, e?.message || 'ไม่สามารถดึงสถานะกลับได้');
+      setCardError(req.id, e?.message || 'ไม่สามารถดึงใบเบิกกลับได้');
     } finally {
       setCardLoading(req.id, false);
     }
@@ -511,23 +522,9 @@ export default function ApprovalView({ config, refreshTrigger, onRefresh }: Appr
                                   {item.qty} ชิ้น
                                 </p>
                                 {actualReturnedQty > 0 && (
-                                  <div className="flex items-center justify-end gap-1.5 mt-0.5">
-                                    <span className="text-[9px] font-semibold text-[#86868B]">
-                                      (คืนแล้ว {actualReturnedQty} ชิ้น, ค้าง {remainingQty} ชิ้น)
-                                    </span>
-                                    <button
-                                      type="button"
-                                      disabled={isLoading}
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleRevertReturn(req, item.equipment_id, item.returned_qty || 0);
-                                      }}
-                                      className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 rounded text-[9px] font-bold transition cursor-pointer select-none"
-                                      title="ดึงยอดที่คืนนี้กลับมาเป็นสถานะกำลังยืม และหักจากสต็อกคลังอุปกรณ์โดยอัตโนมัติ"
-                                    >
-                                      <RotateCcw className="h-2.5 w-2.5" /> ดึงกลับเป็นยืม
-                                    </button>
-                                  </div>
+                                  <p className="text-[9px] font-semibold text-[#86868B]">
+                                    (คืนแล้ว {actualReturnedQty} ชิ้น, ค้าง {remainingQty} ชิ้น)
+                                  </p>
                                 )}
                               </div>
                             </div>
@@ -817,15 +814,30 @@ export default function ApprovalView({ config, refreshTrigger, onRefresh }: Appr
 
                       {req.status === 'borrowing' && (
                         <>
-                          <button
-                            type="button"
-                            disabled={isLoading}
-                            onClick={() => setShowReturnInput(p => ({ ...p, [req.id]: !p[req.id] }))}
-                            className="w-full flex items-center justify-center gap-1.5 py-3 bg-slate-700 hover:bg-slate-800 disabled:bg-slate-300 text-white rounded-xl text-xs font-bold transition-all cursor-pointer"
-                          >
-                            <RotateCcw className="h-4 w-4" />
-                            {showReturnInput[req.id] ? 'ยกเลิกการคืนพัสดุ' : 'บันทึกรับคืนพัสดุ'}
-                          </button>
+                          <div className="flex flex-col sm:flex-row gap-2">
+                            <button
+                              type="button"
+                              disabled={isLoading}
+                              onClick={() => setShowReturnInput(p => ({ ...p, [req.id]: !p[req.id] }))}
+                              className="flex-1 flex items-center justify-center gap-1.5 py-3 bg-slate-700 hover:bg-slate-850 disabled:bg-slate-300 text-white rounded-xl text-xs font-bold transition-all cursor-pointer"
+                            >
+                              <RotateCcw className="h-4 w-4" />
+                              {showReturnInput[req.id] ? 'ยกเลิกการคืนพัสดุ' : 'บันทึกรับคืนพัสดุ'}
+                            </button>
+                            {req.items.some(item => {
+                              const actualRet = item.returned_qty !== undefined ? (item.returned_qty || 0) : (req.status === 'returned' ? item.qty : 0);
+                              return actualRet > 0;
+                            }) && (
+                              <button
+                                type="button"
+                                disabled={isLoading}
+                                onClick={() => handleRevertEntireRequest(req)}
+                                className="flex-1 flex items-center justify-center gap-1.5 py-3 bg-red-100 hover:bg-red-200 border border-red-300 text-red-700 rounded-xl text-xs font-bold transition-all cursor-pointer"
+                              >
+                                <RotateCcw className="h-4 w-4 text-red-650" /> ดึงพัสดุที่คืนแล้วกลับมาเป็นยืม
+                              </button>
+                            )}
+                          </div>
 
                           {showReturnInput[req.id] && (
                             <div className="space-y-4 mt-2 bg-[#F5F5F7] p-3.5 rounded-xl border border-[#E8E8ED] animate-in fade-in slide-in-from-top-1 duration-200">
@@ -1017,6 +1029,17 @@ export default function ApprovalView({ config, refreshTrigger, onRefresh }: Appr
                             </div>
                           )}
                         </>
+                      )}
+
+                      {req.status === 'returned' && (
+                        <button
+                          type="button"
+                          disabled={isLoading}
+                          onClick={() => handleRevertEntireRequest(req)}
+                          className="w-full flex items-center justify-center gap-1.5 py-3 bg-[#E02424] hover:bg-[#C81E1E] disabled:bg-slate-350 text-white rounded-xl text-xs font-bold transition-all cursor-pointer select-none"
+                        >
+                          <RotateCcw className="h-4 w-4" /> ดึงใบเบิกกลับเป็นกำลังยืม (Revert Return)
+                        </button>
                       )}
                     </div>
                   </div>
