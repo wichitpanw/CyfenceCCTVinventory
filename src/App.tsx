@@ -54,6 +54,33 @@ export default function App() {
     }
   };
 
+  // Keyboard input listener for the 6-digit Admin Sidebar PIN Entry Modal
+  useEffect(() => {
+    if (!showAdminPinModal) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+        return;
+      }
+
+      if (e.key >= '0' && e.key <= '9') {
+        e.preventDefault();
+        handleAdminPinKeyPress(e.key);
+      } else if (e.key === 'Backspace') {
+        e.preventDefault();
+        setAdminPin(p => p.slice(0, -1));
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        setShowAdminPinModal(false);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [showAdminPinModal, adminPin, targetPin]);
+
   // Initialize config SYNCHRONOUSLY so child components never render with
   // useLocalStorage:true (which would flash seed data) before useEffect fires.
   const [dbConfig, setDbConfig] = useState<SupabaseConfig>(() => {
