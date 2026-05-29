@@ -22,6 +22,10 @@ import {
   X,
   Camera,
   UploadCloud,
+  Minus,
+  Plus,
+  Square,
+  CheckSquare,
 } from 'lucide-react';
 import { BorrowRequest, SupabaseConfig, Equipment } from '../types';
 import {
@@ -29,6 +33,8 @@ import {
   updateBorrowRequestStatus,
   borrowEquipment,
   getEquipments,
+  returnBorrowRequestItems,
+  revertBorrowRequestItemReturn,
 } from '../services/db';
 
 const compressImage = (file: File): Promise<string> =>
@@ -101,6 +107,15 @@ export default function ApprovalView({ config, refreshTrigger, onRefresh }: Appr
   const [showDispatchInput, setShowDispatchInput] = useState<Record<string, boolean>>({});
   const [showReturnInput, setShowReturnInput] = useState<Record<string, boolean>>({});
   const [returnerNames, setReturnerNames] = useState<Record<string, string>>({});
+  const [returnQuantities, setReturnQuantities] = useState<Record<string, Record<string, number>>>({});
+  const [returnConditions, setReturnConditions] = useState<Record<string, Record<string, 'available' | 'maintenance' | 'broken'>>>({});
+  const [returnNotes, setReturnNotes] = useState<Record<string, Record<string, string>>>({});
+  const [selectedReturnItems, setSelectedReturnItems] = useState<Record<string, Record<string, boolean>>>({});
+  
+  // Custom Filters for Company and Dates
+  const [filterCompany, setFilterCompany] = useState('');
+  const [filterRequestDate, setFilterRequestDate] = useState('');
+  const [filterDueDate, setFilterDueDate] = useState('');
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -202,19 +217,71 @@ export default function ApprovalView({ config, refreshTrigger, onRefresh }: Appr
     setCardLoading(req.id, true);
     setCardError(req.id, '');
     try {
-      const currentApprover = req.reviewed_by || 'Admin';
-      const cleanReturner = returnerName.trim() || 'Admin';
-      const combinedReviewer = `${currentApprover} | ผู้รับคืน: ${cleanReturner}`;
+      const itemsToReturn = req.items.map(item => {
+        const remainingQty = item.qty - (item.returned_qty || 0);
+        const isSelected = selectedReturnItems[req.id]?.[item.equipment_id] ?? true;
+        const return_qty = isSelected ? (returnQuantities[req.id]?.[item.equipment_id] ?? remainingQty) : 0;
+        const condition = returnConditions[req.id]?.[item.equipment_id] ?? 'available';
+        const condition_on_return = returnNotes[req.id]?.[item.equipment_id] ?? 'ปกติ เรียบร้อยดี';
+        return {
+          equipment_id: item.equipment_id,
+          return_qty,
+          condition,
+          condition_on_return,
+        };
+      }).filter(item => item.return_qty > 0);
 
-      await updateBorrowRequestStatus(config, req.id, 'returned', { 
-        reviewedBy: combinedReviewer 
+      if (itemsToReturn.length === 0) {
+        throw new Error('กรุณาระบุจำนวนอุปกรณ์ที่ต้องการคืนอย่างน้อย 1 ชิ้น');
+      }
+
+      await returnBorrowRequestItems(config, req.id, {
+        returnerName: returnerName.trim() || 'Admin',
+        itemsToReturn
       });
-      setCardSuccess(req.id, '🔄 บันทึกการรับคืนพัสดุแล้ว');
+
+      setCardSuccess(req.id, '🔄 บันทึกการรับคืนพัสดุเรียบร้อยแล้ว');
       setShowReturnInput(p => ({ ...p, [req.id]: false }));
+      
+      // Clear input states
+      setReturnQuantities(p => {
+        const next = { ...p };
+        delete next[req.id];
+        return next;
+      });
+      setReturnConditions(p => {
+        const next = { ...p };
+        delete next[req.id];
+        return next;
+      });
+      setReturnNotes(p => {
+        const next = { ...p };
+        delete next[req.id];
+        return next;
+      });
+
       await loadData();
       onRefresh();
     } catch (e: any) {
       setCardError(req.id, e?.message || 'ไม่สามารถบันทึกการคืนได้');
+    } finally {
+      setCardLoading(req.id, false);
+    }
+  };
+
+  const handleRevertReturn = async (req: BorrowRequest, equipmentId: string, revertQty: number) => {
+    if (!window.confirm(`คุณแน่ใจหรือไม่ว่าต้องการดึงพัสดุจำนวน ${revertQty} ชิ้น กลับมาเป็นสถานะ "กำลังยืม"? \n(ยอดสต็อกในคลังอุปกรณ์จะถูกหักออกโดยอัตโนมัติ)`)) {
+      return;
+    }
+    setCardLoading(req.id, true);
+    setCardError(req.id, '');
+    try {
+      await revertBorrowRequestItemReturn(config, req.id, equipmentId, revertQty);
+      setCardSuccess(req.id, '🔄 ดึงสถานะอุปกรณ์กลับเป็นกำลังยืมเรียบร้อยแล้ว');
+      await loadData();
+      onRefresh();
+    } catch (e: any) {
+      setCardError(req.id, e?.message || 'ไม่สามารถดึงสถานะกลับได้');
     } finally {
       setCardLoading(req.id, false);
     }
@@ -225,7 +292,37 @@ export default function ApprovalView({ config, refreshTrigger, onRefresh }: Appr
   const approved = requests.filter(r => r.status === 'approved').length;
   const borrowing = requests.filter(r => r.status === 'borrowing').length;
 
-  const filtered = filterStatus === 'all' ? requests : requests.filter(r => r.status === filterStatus);
+  const handleClearFilters = () => {
+    setFilterCompany('');
+    setFilterRequestDate('');
+    setFilterDueDate('');
+  };
+
+  const filtered = requests.filter(r => {
+    // 1. Tab status filter
+    if (filterStatus !== 'all' && r.status !== filterStatus) return false;
+
+    // 2. Company filter
+    if (filterCompany.trim() !== '') {
+      const compLower = (r.requester_company || '').toLowerCase();
+      const searchLower = filterCompany.toLowerCase().trim();
+      if (!compLower.includes(searchLower)) return false;
+    }
+
+    // 3. Request Date filter (created_at matches filterRequestDate)
+    if (filterRequestDate) {
+      const reqDateStr = new Date(r.created_at).toLocaleDateString('en-CA');
+      if (reqDateStr !== filterRequestDate) return false;
+    }
+
+    // 4. Due Date filter (requested_due_date matches filterDueDate)
+    if (filterDueDate) {
+      const reqDueDateStr = new Date(r.requested_due_date).toLocaleDateString('en-CA');
+      if (reqDueDateStr !== filterDueDate) return false;
+    }
+
+    return true;
+  });
 
   // ── Main Admin Panel ─────────────────────────────────────────────────────────
   return (
@@ -283,15 +380,75 @@ export default function ApprovalView({ config, refreshTrigger, onRefresh }: Appr
         ))}
       </div>
 
+      {/* Filter panel */}
+      <div className="bg-white border border-[#E8E8ED] p-4 rounded-2xl space-y-3">
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <span className="text-xs font-bold text-[#1D1D1F] flex items-center gap-1.5">
+            <Filter className="h-3.5 w-3.5 text-black" /> ค้นหาและตัวกรองใบเบิกพัสดุ
+          </span>
+          {(filterCompany || filterRequestDate || filterDueDate) && (
+            <button
+              onClick={handleClearFilters}
+              className="text-xs text-red-600 hover:text-red-700 font-bold transition flex items-center gap-1 cursor-pointer select-none"
+            >
+              ล้างตัวกรองทั้งหมด
+            </button>
+          )}
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          {/* Company search */}
+          <div className="space-y-1">
+            <label className="text-[10px] font-sans font-bold text-[#86868B] uppercase tracking-wider block">บริษัท/หน่วยงาน</label>
+            <input
+              type="text"
+              placeholder="ค้นหาชื่อหน่วยงาน เช่น Insider..."
+              value={filterCompany}
+              onChange={e => setFilterCompany(e.target.value)}
+              className="w-full px-3 py-2 bg-[#F5F5F7] border border-[#E8E8ED] rounded-xl text-xs font-sans text-black focus:outline-none focus:border-black transition"
+            />
+          </div>
+
+          {/* Request Date search */}
+          <div className="space-y-1">
+            <label className="text-[10px] font-sans font-bold text-[#86868B] uppercase tracking-wider block">วันที่ยื่นคำขอเบิก</label>
+            <input
+              type="date"
+              value={filterRequestDate}
+              onChange={e => setFilterRequestDate(e.target.value)}
+              className="w-full px-3 py-2 bg-[#F5F5F7] border border-[#E8E8ED] rounded-xl text-xs font-sans text-black focus:outline-none focus:border-black transition"
+            />
+          </div>
+
+          {/* Due Date search */}
+          <div className="space-y-1">
+            <label className="text-[10px] font-sans font-bold text-[#86868B] uppercase tracking-wider block">กำหนดส่งคืนพัสดุ</label>
+            <input
+              type="date"
+              value={filterDueDate}
+              onChange={e => setFilterDueDate(e.target.value)}
+              className="w-full px-3 py-2 bg-[#F5F5F7] border border-[#E8E8ED] rounded-xl text-xs font-sans text-black focus:outline-none focus:border-black transition"
+            />
+          </div>
+        </div>
+      </div>
+
       {/* Request Cards */}
       {loading ? (
         <div className="flex items-center justify-center py-16">
           <div className="w-7 h-7 border-3 border-[#000000] border-t-transparent rounded-full animate-spin" />
         </div>
       ) : filtered.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 gap-3 text-center">
+        <div className="flex flex-col items-center justify-center py-16 gap-3 text-center bg-white border border-[#E8E8ED] rounded-2xl p-4">
           <Filter className="h-8 w-8 text-[#C7C7CC]" />
-          <p className="text-sm text-[#86868B] font-medium">ไม่มีคำขอในสถานะนี้</p>
+          <p className="text-sm text-[#86868B] font-medium">ไม่พบข้อมูลใบเบิกที่ตรงตามเงื่อนไขการค้นหา</p>
+          {(filterCompany || filterRequestDate || filterDueDate) && (
+            <button
+              onClick={handleClearFilters}
+              className="px-4 py-2 bg-[#1D1D1F] text-white rounded-xl text-xs font-semibold hover:bg-black transition cursor-pointer select-none"
+            >
+              ล้างตัวกรองทั้งหมด
+            </button>
+          )}
         </div>
       ) : (
         <div className="space-y-4">
@@ -324,7 +481,7 @@ export default function ApprovalView({ config, refreshTrigger, onRefresh }: Appr
                       {req.requester_contact ? ` · ${req.requester_contact}` : ''}
                     </p>
                     <div className="flex items-center gap-3 text-[10px] text-[#86868B] flex-wrap">
-                      <span className="flex items-center gap-1"><Package className="h-3 w-3" />{req.items.length} ชนิด · {req.items.reduce((s,i)=>s+i.qty,0)} ชิ้น</span>
+                      <span className="flex items-center gap-1"><Package className="h-3 w-3" />{req.items.length} ชนิด · ยืม {req.items.reduce((s,i)=>s+i.qty,0)} ชิ้น{req.items.some(i => (i.returned_qty || 0) > 0) ? ` (คืนแล้ว ${req.items.reduce((s,i)=>s+(i.returned_qty||0),0)} ชิ้น)` : ''}</span>
                       <span className="flex items-center gap-1"><Calendar className="h-3 w-3" />คืน {new Date(req.requested_due_date).toLocaleDateString('th-TH')}</span>
                       <span className="flex items-center gap-1"><Clock className="h-3 w-3" />ยื่น {new Date(req.created_at).toLocaleDateString('th-TH', { hour: '2-digit', minute: '2-digit' })}</span>
                     </div>
@@ -339,15 +496,43 @@ export default function ApprovalView({ config, refreshTrigger, onRefresh }: Appr
                     <div>
                       <p className="text-[10px] font-bold uppercase tracking-wider text-[#86868B] mb-2">รายการพัสดุที่ขอ</p>
                       <div className="space-y-1.5">
-                        {req.items.map((item, i) => (
-                          <div key={i} className="flex items-center justify-between bg-[#F5F5F7] rounded-xl px-3 py-2">
-                            <div>
-                              <p className="text-xs font-bold text-[#1D1D1F]">{item.equipment_name}</p>
-                              <p className="text-[10px] text-[#86868B] font-mono">{item.equipment_code}</p>
+                        {req.items.map((item, i) => {
+                          const actualReturnedQty = item.returned_qty !== undefined ? (item.returned_qty || 0) : (req.status === 'returned' ? item.qty : 0);
+                          const remainingQty = item.qty - actualReturnedQty;
+                          const isFullyReturned = remainingQty <= 0;
+                          return (
+                            <div key={i} className={`flex items-center justify-between rounded-xl px-3 py-2 ${isFullyReturned ? 'bg-slate-100 opacity-65' : 'bg-[#F5F5F7]'}`}>
+                              <div>
+                                <p className={`text-xs font-bold ${isFullyReturned ? 'text-slate-500 line-through' : 'text-[#1D1D1F]'}`}>{item.equipment_name}</p>
+                                <p className="text-[10px] text-[#86868B] font-mono">{item.equipment_code}</p>
+                              </div>
+                              <div className="text-right">
+                                <p className="text-xs font-extrabold text-[#000000]">
+                                  {item.qty} ชิ้น
+                                </p>
+                                {actualReturnedQty > 0 && (
+                                  <div className="flex items-center justify-end gap-1.5 mt-0.5">
+                                    <span className="text-[9px] font-semibold text-[#86868B]">
+                                      (คืนแล้ว {actualReturnedQty} ชิ้น, ค้าง {remainingQty} ชิ้น)
+                                    </span>
+                                    <button
+                                      type="button"
+                                      disabled={isLoading}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleRevertReturn(req, item.equipment_id, item.returned_qty || 0);
+                                      }}
+                                      className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 rounded text-[9px] font-bold transition cursor-pointer select-none"
+                                      title="ดึงยอดที่คืนนี้กลับมาเป็นสถานะกำลังยืม และหักจากสต็อกคลังอุปกรณ์โดยอัตโนมัติ"
+                                    >
+                                      <RotateCcw className="h-2.5 w-2.5" /> ดึงกลับเป็นยืม
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
                             </div>
-                            <span className="text-xs font-extrabold text-[#000000]">{item.qty} ชิ้น</span>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     </div>
 
@@ -643,21 +828,186 @@ export default function ApprovalView({ config, refreshTrigger, onRefresh }: Appr
                           </button>
 
                           {showReturnInput[req.id] && (
-                            <div className="space-y-2 mt-2 bg-[#F5F5F7] p-3.5 rounded-xl border border-[#E8E8ED] animate-in fade-in slide-in-from-top-1 duration-200">
-                              <label className="block text-[10px] font-sans font-bold text-[#86868B] uppercase tracking-wider">
-                                ชื่อผู้ทำรายการรับคืนพัสดุ *
-                              </label>
-                              <input
-                                type="text"
-                                placeholder="กรอกชื่อผู้รับคืน เช่น แอดมินวิชัย"
-                                value={returnerNames[req.id] || ''}
-                                onChange={e => setReturnerNames(p => ({ ...p, [req.id]: e.target.value }))}
-                                className="w-full px-3 py-2 bg-white border border-[#E8E8ED] rounded-xl text-xs font-sans text-black focus:outline-none focus:border-black transition"
-                                required
-                              />
+                            <div className="space-y-4 mt-2 bg-[#F5F5F7] p-3.5 rounded-xl border border-[#E8E8ED] animate-in fade-in slide-in-from-top-1 duration-200">
+                              <p className="text-[10px] font-sans font-bold text-[#86868B] uppercase tracking-wider">
+                                ระบุจำนวนและสภาพพัสดุที่นำมาคืน
+                              </p>
+
+                              <div className="space-y-2">
+                                {req.items.map((item, idx) => {
+                                  const remainingQty = item.qty - (item.returned_qty || 0);
+                                  if (remainingQty <= 0) {
+                                    return (
+                                      <div key={idx} className="flex items-center justify-between bg-white/50 rounded-xl px-3 py-2 border border-dashed border-[#E8E8ED]">
+                                        <div>
+                                          <p className="text-xs font-semibold text-[#86868B] line-through">{item.equipment_name}</p>
+                                          <p className="text-[9px] text-[#86868B] font-mono">{item.equipment_code}</p>
+                                        </div>
+                                        <span className="text-[9px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-250 px-2 py-0.5 rounded-full">คืนครบแล้ว</span>
+                                      </div>
+                                    );
+                                  }
+
+                                  const isSelected = selectedReturnItems[req.id]?.[item.equipment_id] ?? true;
+                                  const currentReturnVal = returnQuantities[req.id]?.[item.equipment_id] ?? remainingQty;
+                                  const currentConditionVal = returnConditions[req.id]?.[item.equipment_id] ?? 'available';
+                                  const currentNoteVal = returnNotes[req.id]?.[item.equipment_id] ?? 'ปกติ เรียบร้อยดี';
+
+                                  return (
+                                    <div key={idx} className={`bg-white p-3 rounded-xl border transition-all ${isSelected ? 'border-[#E8E8ED]' : 'border-[#E8E8ED] opacity-60 bg-[#F5F5F7]/40'} space-y-2.5`}>
+                                      <div className="flex items-start justify-between">
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            const nextSelected = !isSelected;
+                                            setSelectedReturnItems(p => ({
+                                              ...p,
+                                              [req.id]: {
+                                                ...(p[req.id] || {}),
+                                                [item.equipment_id]: nextSelected
+                                              }
+                                            }));
+                                            setReturnQuantities(p => ({
+                                              ...p,
+                                              [req.id]: {
+                                                ...(p[req.id] || {}),
+                                                [item.equipment_id]: nextSelected ? remainingQty : 0
+                                              }
+                                            }));
+                                          }}
+                                          className="flex items-start gap-2 text-left cursor-pointer focus:outline-none select-none"
+                                        >
+                                          {isSelected ? (
+                                            <CheckSquare className="h-4 w-4 text-black shrink-0 mt-0.5" />
+                                          ) : (
+                                            <Square className="h-4 w-4 text-[#86868B] shrink-0 mt-0.5" />
+                                          )}
+                                          <div>
+                                            <p className={`text-xs font-bold ${isSelected ? 'text-[#1D1D1F]' : 'text-[#86868B] line-through'}`}>{item.equipment_name}</p>
+                                            <p className="text-[10px] text-[#86868B] font-mono">{item.equipment_code}</p>
+                                          </div>
+                                        </button>
+                                        <span className="text-[9px] font-bold text-slate-500 bg-slate-50 px-2 py-0.5 rounded-full shrink-0">ค้างยืม: {remainingQty} ชิ้น</span>
+                                      </div>
+
+                                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                        {/* Qty Counter with +/- Buttons */}
+                                        <div className="space-y-1">
+                                          <label className="text-[9px] font-bold text-[#86868B] block">จำนวนที่ต้องการคืน</label>
+                                          <div className="flex items-center gap-2">
+                                            <button
+                                              type="button"
+                                              disabled={!isSelected || currentReturnVal <= 1}
+                                              onClick={() => {
+                                                const nextVal = Math.max(1, currentReturnVal - 1);
+                                                setReturnQuantities(p => ({
+                                                  ...p,
+                                                  [req.id]: {
+                                                    ...(p[req.id] || {}),
+                                                    [item.equipment_id]: nextVal
+                                                  }
+                                                }));
+                                              }}
+                                              className="w-7 h-7 flex items-center justify-center rounded-lg bg-[#F5F5F7] border border-[#E8E8ED] hover:bg-[#E8E8ED] disabled:opacity-40 disabled:cursor-not-allowed text-black font-bold transition select-none"
+                                            >
+                                              <Minus className="h-3.5 w-3.5" />
+                                            </button>
+                                            <span className="w-8 text-center text-xs font-bold text-[#1D1D1F]">
+                                              {isSelected ? currentReturnVal : 0}
+                                            </span>
+                                            <button
+                                              type="button"
+                                              disabled={!isSelected || currentReturnVal >= remainingQty}
+                                              onClick={() => {
+                                                const nextVal = Math.min(remainingQty, currentReturnVal + 1);
+                                                setReturnQuantities(p => ({
+                                                  ...p,
+                                                  [req.id]: {
+                                                    ...(p[req.id] || {}),
+                                                    [item.equipment_id]: nextVal
+                                                  }
+                                                }));
+                                              }}
+                                              className="w-7 h-7 flex items-center justify-center rounded-lg bg-[#F5F5F7] border border-[#E8E8ED] hover:bg-[#E8E8ED] disabled:opacity-40 disabled:cursor-not-allowed text-black font-bold transition select-none"
+                                            >
+                                              <Plus className="h-3.5 w-3.5" />
+                                            </button>
+                                          </div>
+                                        </div>
+
+                                        {/* Condition Select */}
+                                        <div className="space-y-1">
+                                          <label className="text-[9px] font-bold text-[#86868B] block">สภาพหลังคืน</label>
+                                          <select
+                                            disabled={!isSelected}
+                                            value={currentConditionVal}
+                                            onChange={e => {
+                                              const val = e.target.value as 'available' | 'maintenance' | 'broken';
+                                              setReturnConditions(p => ({
+                                                ...p,
+                                                [req.id]: {
+                                                  ...(p[req.id] || {}),
+                                                  [item.equipment_id]: val
+                                                }
+                                              }));
+                                            }}
+                                            className="w-full px-2 py-1 bg-[#F5F5F7] border border-[#E8E8ED] rounded-lg text-xs font-sans text-black focus:outline-none focus:border-black transition disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                                          >
+                                            <option value="available">ปกติ (พร้อมใช้)</option>
+                                            <option value="maintenance">ส่งซ่อม (Maintenance)</option>
+                                            <option value="broken">ชำรุด (Broken)</option>
+                                          </select>
+                                        </div>
+
+                                        {/* Note Input */}
+                                        <div className="space-y-1">
+                                          <label className="text-[9px] font-bold text-[#86868B] block">หมายเหตุสภาพพัสดุ</label>
+                                          <input
+                                            type="text"
+                                            disabled={!isSelected}
+                                            value={currentNoteVal}
+                                            onChange={e => {
+                                              const val = e.target.value;
+                                              setReturnNotes(p => ({
+                                                ...p,
+                                                [req.id]: {
+                                                  ...(p[req.id] || {}),
+                                                  [item.equipment_id]: val
+                                                }
+                                              }));
+                                            }}
+                                            className="w-full px-2 py-1 bg-[#F5F5F7] border border-[#E8E8ED] rounded-lg text-xs font-sans text-black focus:outline-none focus:border-black transition disabled:opacity-50 disabled:cursor-not-allowed"
+                                          />
+                                        </div>
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+
+                              <div className="space-y-1 pt-1">
+                                <label className="block text-[10px] font-sans font-bold text-[#86868B] uppercase tracking-wider">
+                                  ชื่อผู้ทำรายการรับคืนพัสดุ *
+                                </label>
+                                <input
+                                  type="text"
+                                  placeholder="กรอกชื่อผู้รับคืน เช่น แอดมินวิชัย"
+                                  value={returnerNames[req.id] || ''}
+                                  onChange={e => setReturnerNames(p => ({ ...p, [req.id]: e.target.value }))}
+                                  className="w-full px-3 py-2 bg-white border border-[#E8E8ED] rounded-xl text-xs font-sans text-black focus:outline-none focus:border-black transition"
+                                  required
+                                />
+                              </div>
+
                               <button
                                 type="button"
-                                disabled={isLoading || !(returnerNames[req.id]?.trim())}
+                                disabled={isLoading || !(returnerNames[req.id]?.trim()) || !req.items.some(item => {
+                                  const remainingQty = item.qty - (item.returned_qty || 0);
+                                  if (remainingQty <= 0) return false;
+                                  const isSelected = selectedReturnItems[req.id]?.[item.equipment_id] ?? true;
+                                  const qty = isSelected ? (returnQuantities[req.id]?.[item.equipment_id] ?? remainingQty) : 0;
+                                  return qty > 0;
+                                })}
                                 onClick={() => handleMarkReturned(req, returnerNames[req.id])}
                                 className="w-full flex items-center justify-center gap-1.5 py-2 bg-slate-700 hover:bg-slate-850 disabled:bg-slate-350 text-white rounded-xl text-xs font-bold transition-all cursor-pointer"
                               >

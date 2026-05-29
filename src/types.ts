@@ -72,6 +72,7 @@ export interface BorrowRequestItem {
   equipment_code: string;
   equipment_name: string;
   qty: number;
+  returned_qty?: number;
 }
 
 export interface BorrowRequest {

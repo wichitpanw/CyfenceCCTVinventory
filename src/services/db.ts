@@ -891,19 +891,65 @@ export async function returnEquipment(
       const bQty = tx.borrow_qty ?? 1;
       const rQty = params.returnQty ?? bQty;
 
+      if (rQty > bQty) {
+        throw new Error(`ไม่สามารถคืนอุปกรณ์จำนวน ${rQty} ชิ้นได้ เนื่องจากมียอดค้างยืมเพียง ${bQty} ชิ้น`);
+      }
+
+      let finalReturnedTx: Transaction;
+
       // Step 2: อัปเดตตาราง Transactions
-      const { data: updatedTx, error: txErr } = await client
-        .from('transactions')
-        .update({
+      if (rQty < bQty) {
+        // Partial return: split transaction
+        const remainingQty = bQty - rQty;
+        const { error: txUpdateErr } = await client
+          .from('transactions')
+          .update({
+            borrow_qty: remainingQty
+          })
+          .eq('id', transactionId);
+
+        if (txUpdateErr) {
+          throw new Error(`อัปเดตยอดคงค้างในรายการยืมล้มเหลว: ${txUpdateErr.message}`);
+        }
+
+        const randStr = Math.random().toString(36).substring(2, 7);
+        const splitTx: Transaction = {
+          ...tx,
+          id: `tx-${Date.now()}-${randStr}`,
+          borrow_qty: rQty,
+          status: 'returned',
           return_date: returnDateStr,
           condition_on_return: params.conditionOnReturn,
-          status: 'returned'
-        })
-        .eq('id', transactionId)
-        .select();
+          created_at: new Date().toISOString()
+        };
 
-      if (txErr) {
-        throw new Error(`อัปเดตรายการคืนล้มเหลว: ${txErr.message}`);
+        const { data: insertedTxData, error: insertTxErr } = await client
+          .from('transactions')
+          .insert([splitTx])
+          .select();
+
+        if (insertTxErr || !insertedTxData || !insertedTxData[0]) {
+          throw new Error(`สร้างรายการแยกประวัติการคืนล้มเหลว: ${insertTxErr?.message}`);
+        }
+
+        finalReturnedTx = insertedTxData[0] as Transaction;
+      } else {
+        // Full return of transaction
+        const { data: updatedTx, error: txErr } = await client
+          .from('transactions')
+          .update({
+            return_date: returnDateStr,
+            condition_on_return: params.conditionOnReturn,
+            status: 'returned'
+          })
+          .eq('id', transactionId)
+          .select();
+
+        if (txErr || !updatedTx || !updatedTx[0]) {
+          throw new Error(`อัปเดตรายการคืนล้มเหลว: ${txErr?.message}`);
+        }
+
+        finalReturnedTx = updatedTx[0] as Transaction;
       }
 
       // Step 3: ดึงข้อมูลอุปกรณ์ปัจจุบันเพื่อคำนวณจำนวน
@@ -966,20 +1012,39 @@ export async function returnEquipment(
               ? req.transaction_ids 
               : JSON.parse(req.transaction_ids || '[]');
             if (txIds.includes(transactionId)) {
+              let updatedTxIds = [...txIds];
+              let updatedItems = Array.isArray(req.items) ? req.items : JSON.parse(req.items || '[]');
+
+              if (rQty < bQty) {
+                updatedTxIds.push(finalReturnedTx.id);
+              }
+
+              updatedItems = updatedItems.map((item: any) => {
+                if (item.equipment_id === tx.equipment_id) {
+                  return {
+                    ...item,
+                    returned_qty: (item.returned_qty || 0) + rQty
+                  };
+                }
+                return item;
+              });
+
               // Fetch all transactions for this request
               const { data: requestTxs, error: fetchTxsErr } = await client
                 .from('transactions')
-                .select('status')
-                .in('id', txIds);
+                .select('id, status')
+                .in('id', updatedTxIds);
               if (!fetchTxsErr && requestTxs) {
-                // If every transaction has been returned, mark borrow_request as 'returned'
                 const allReturned = requestTxs.every((t: any) => t.status === 'returned');
-                if (allReturned) {
-                  await client
-                    .from('borrow_requests')
-                    .update({ status: 'returned', updated_at: new Date().toISOString() })
-                    .eq('id', req.id);
-                }
+                await client
+                  .from('borrow_requests')
+                  .update({ 
+                    status: allReturned ? 'returned' : 'borrowing',
+                    transaction_ids: updatedTxIds,
+                    items: updatedItems,
+                    updated_at: new Date().toISOString()
+                  })
+                  .eq('id', req.id);
               }
             }
           }
@@ -988,7 +1053,7 @@ export async function returnEquipment(
         console.warn('Sync warning: Failed to sync return with borrow_request', syncErr);
       }
 
-      return updatedTx[0] as Transaction;
+      return finalReturnedTx;
     } catch (err: any) {
       console.error('Error during Supabase return', err);
       handleSupabaseError(err, 'ทำรายการคืนคลังและประเมินสภาพ');
@@ -1018,13 +1083,39 @@ export async function returnEquipment(
   const bQty = tx.borrow_qty ?? 1;
   const rQty = params.returnQty ?? bQty;
 
-  // Update Transaction
-  txs[txIndex] = {
-    ...tx,
-    return_date: returnDateStr,
-    condition_on_return: params.conditionOnReturn,
-    status: 'returned'
-  };
+  if (rQty > bQty) {
+    throw new Error(`ไม่สามารถคืนอุปกรณ์จำนวน ${rQty} ชิ้นได้ เนื่องจากมียอดค้างยืมเพียง ${bQty} ชิ้น`);
+  }
+
+  let finalTx: Transaction;
+
+  if (rQty < bQty) {
+    // Partial return: split
+    const remainingQty = bQty - rQty;
+    txs[txIndex].borrow_qty = remainingQty;
+
+    const randStr = Math.random().toString(36).substring(2, 7);
+    const splitTx: Transaction = {
+      ...tx,
+      id: `tx-${Date.now()}-${randStr}`,
+      borrow_qty: rQty,
+      status: 'returned',
+      return_date: returnDateStr,
+      condition_on_return: params.conditionOnReturn,
+      created_at: new Date().toISOString()
+    };
+    txs.unshift(splitTx);
+    finalTx = splitTx;
+  } else {
+    // Full return
+    txs[txIndex] = {
+      ...tx,
+      return_date: returnDateStr,
+      condition_on_return: params.conditionOnReturn,
+      status: 'returned'
+    };
+    finalTx = txs[txIndex];
+  }
 
   // Update Equipment Status & Quantities Local
   let eqAvailable = item.available_qty ?? 0;
@@ -1053,10 +1144,51 @@ export async function returnEquipment(
     item.status = 'borrowed';
   }
 
+  // Sync with borrow_requests locally if any
+  try {
+    const localReqsSaved = localStorage.getItem('borrow_requests_local');
+    if (localReqsSaved) {
+      const localReqs = JSON.parse(localReqsSaved) as BorrowRequest[];
+      let updatedAny = false;
+      for (const req of localReqs) {
+        const txIds = req.transaction_ids || [];
+        if (txIds.includes(transactionId)) {
+          let updatedTxIds = [...txIds];
+          if (rQty < bQty) {
+            updatedTxIds.push(finalTx.id);
+          }
+          req.transaction_ids = updatedTxIds;
+
+          req.items = (req.items || []).map((ritem: any) => {
+            if (ritem.equipment_id === tx.equipment_id) {
+              return {
+                ...ritem,
+                returned_qty: (ritem.returned_qty || 0) + rQty
+              };
+            }
+            return ritem;
+          });
+
+          // Check if all transactions are returned
+          const reqTxs = txs.filter(t => updatedTxIds.includes(t.id));
+          const allReturned = reqTxs.every(t => t.status === 'returned');
+          req.status = allReturned ? 'returned' : 'borrowing';
+          req.updated_at = new Date().toISOString();
+          updatedAny = true;
+        }
+      }
+      if (updatedAny) {
+        localStorage.setItem('borrow_requests_local', JSON.stringify(localReqs));
+      }
+    }
+  } catch (syncErr) {
+    console.warn('Local storage sync returned fail', syncErr);
+  }
+
   localStorage.setItem(STORAGE_KEY_EQUIPMENT, JSON.stringify(items));
   localStorage.setItem(STORAGE_KEY_TRANSACTIONS, JSON.stringify(txs));
 
-  return txs[txIndex];
+  return finalTx;
 }
 
 // Seed starter demo data into a freshly connected Supabase database
@@ -1357,10 +1489,17 @@ export async function updateBorrowRequestStatus(
         try {
           const { data: currentReq } = await client
             .from('borrow_requests')
-            .select('transaction_ids')
+            .select('transaction_ids, items')
             .eq('id', id)
             .single();
           if (currentReq) {
+            const reqItems = Array.isArray(currentReq.items) ? currentReq.items : JSON.parse(currentReq.items || '[]');
+            const updatedItems = reqItems.map((item: any) => ({
+              ...item,
+              returned_qty: item.qty
+            }));
+            patch.items = updatedItems;
+
             const txIds = Array.isArray(currentReq.transaction_ids)
               ? currentReq.transaction_ids
               : JSON.parse(currentReq.transaction_ids || '[]');
@@ -1424,7 +1563,7 @@ export async function updateBorrowRequestStatus(
       if (error) throw error;
     } catch (err: any) {
       console.error('Error updating borrow_request status:', err);
-      throw new Error(`อัปเดตสถานะไม่สำเร็จ: ${err?.message}`);
+      handleSupabaseError(err, 'อัปเดตสถานะใบเบิก');
     }
   }
 
@@ -1437,6 +1576,13 @@ export async function updateBorrowRequestStatus(
     if (status === 'returned') {
       try {
         const txIds = list[idx].transaction_ids || [];
+        const reqItems = list[idx].items || [];
+        const updatedItems = reqItems.map((item: any) => ({
+          ...item,
+          returned_qty: item.qty
+        }));
+        list[idx].items = updatedItems;
+
         const localTxsSaved = localStorage.getItem('item_inventory_transactions_data');
         const localEqSaved = localStorage.getItem('item_inventory_equipment_data');
         if (localTxsSaved && localEqSaved) {
@@ -1469,6 +1615,580 @@ export async function updateBorrowRequestStatus(
     return list[idx];
   }
   throw new Error('ไม่พบคำขอที่ต้องการอัปเดต');
+}
+
+// Return items on a borrow request (Partial Return support)
+export async function returnBorrowRequestItems(
+  config: SupabaseConfig,
+  requestId: string,
+  params: {
+    returnerName: string;
+    itemsToReturn: {
+      equipment_id: string;
+      return_qty: number;
+      condition: 'available' | 'maintenance' | 'broken';
+      condition_on_return: string;
+    }[];
+    returnDate?: string;
+  }
+): Promise<BorrowRequest> {
+  const returnDateStr = params.returnDate ? new Date(params.returnDate).toISOString() : new Date().toISOString();
+  const client = getSupabaseClient(config);
+
+  if (client) {
+    try {
+      // 1. Fetch current borrow request
+      const { data: reqData, error: reqFetchErr } = await client
+        .from('borrow_requests')
+        .select('*')
+        .eq('id', requestId)
+        .single();
+
+      if (reqFetchErr || !reqData) {
+        throw new Error('ไม่พบข้อมูลคำขอเบิกพัสดุนี้ในระบบ');
+      }
+
+      const req = {
+        ...reqData,
+        items: Array.isArray(reqData.items) ? reqData.items : JSON.parse(reqData.items || '[]'),
+        transaction_ids: Array.isArray(reqData.transaction_ids) ? reqData.transaction_ids : JSON.parse(reqData.transaction_ids || '[]'),
+      } as BorrowRequest;
+
+      // 2. Fetch all transactions for this request
+      const txIds = req.transaction_ids || [];
+      const { data: txsData, error: txsFetchErr } = await client
+        .from('transactions')
+        .select('*')
+        .in('id', txIds);
+
+      if (txsFetchErr || !txsData) {
+        throw new Error('ไม่พบข้อมูลรายการทำธุรกรรมยืมพัสดุนี้ในระบบ');
+      }
+
+      const txs = txsData as Transaction[];
+      const newTxIds = [...txIds];
+
+      // 3. For each return item input, process the return
+      for (const retItem of params.itemsToReturn) {
+        if (retItem.return_qty <= 0) continue;
+
+        // Find the active transaction for this equipment
+        const matchingTx = txs.find(t => t.equipment_id === retItem.equipment_id && t.status !== 'returned');
+        if (!matchingTx) continue;
+
+        const currentBorrowQty = matchingTx.borrow_qty ?? 1;
+        const returnQty = retItem.return_qty;
+
+        if (returnQty > currentBorrowQty) {
+          throw new Error(`ไม่สามารถคืนอุปกรณ์จำนวน ${returnQty} ชิ้นได้ เนื่องจากมียอดค้างยืมเพียง ${currentBorrowQty} ชิ้น`);
+        }
+
+        // Return quantities to equipment stock
+        const { data: eqData, error: eqFetchErr } = await client
+          .from('equipment')
+          .select('available_qty, total_qty, maintenance_qty, broken_qty, status')
+          .eq('id', retItem.equipment_id)
+          .single();
+
+        if (eqFetchErr || !eqData) {
+          throw new Error(`ไม่พบข้อมูลอุปกรณ์รหัส ${retItem.equipment_id} ในระบบคลัง`);
+        }
+
+        let eqAvailable = eqData.available_qty ?? 0;
+        let eqMaintenance = eqData.maintenance_qty ?? 0;
+        let eqBroken = eqData.broken_qty ?? 0;
+
+        if (retItem.condition === 'available') {
+          eqAvailable += returnQty;
+        } else if (retItem.condition === 'maintenance') {
+          eqMaintenance += returnQty;
+        } else if (retItem.condition === 'broken') {
+          eqBroken += returnQty;
+        }
+
+        let nextEqStatus = eqData.status;
+        if (eqAvailable > 0) {
+          nextEqStatus = 'available';
+        } else if (eqMaintenance > 0) {
+          nextEqStatus = 'maintenance';
+        } else if (eqBroken > 0) {
+          nextEqStatus = 'broken';
+        } else {
+          nextEqStatus = 'borrowed';
+        }
+
+        await client
+          .from('equipment')
+          .update({
+            available_qty: eqAvailable,
+            maintenance_qty: eqMaintenance,
+            broken_qty: eqBroken,
+            status: nextEqStatus
+          })
+          .eq('id', retItem.equipment_id);
+
+        if (returnQty === currentBorrowQty) {
+          // Full return for this transaction: just update the transaction status
+          await client
+            .from('transactions')
+            .update({
+              status: 'returned',
+              return_date: returnDateStr,
+              condition_on_return: retItem.condition_on_return || 'คืนพัสดุ (บางส่วน)'
+            })
+            .eq('id', matchingTx.id);
+        } else {
+          // Partial return for this transaction: split transaction!
+          // A: Update current transaction borrow_qty
+          const remainingQty = currentBorrowQty - returnQty;
+          await client
+            .from('transactions')
+            .update({
+              borrow_qty: remainingQty
+            })
+            .eq('id', matchingTx.id);
+
+          // B: Create a new transaction representing the returned part
+          const randStr = Math.random().toString(36).substring(2, 7);
+          const newReturnedTx: Transaction = {
+            ...matchingTx,
+            id: `tx-${Date.now()}-${randStr}`,
+            borrow_qty: returnQty,
+            status: 'returned',
+            return_date: returnDateStr,
+            condition_on_return: retItem.condition_on_return || 'คืนพัสดุ (บางส่วน)',
+            created_at: new Date().toISOString()
+          };
+
+          const { data: insertedTxData, error: insertTxErr } = await client
+            .from('transactions')
+            .insert([newReturnedTx])
+            .select();
+
+          if (insertTxErr || !insertedTxData || !insertedTxData[0]) {
+            throw new Error(`สร้างรายการคืนพัสดุสะท้อนกลับล้มเหลว: ${insertTxErr?.message}`);
+          }
+
+          newTxIds.push(insertedTxData[0].id);
+        }
+
+        // Update returned_qty in req.items array
+        const reqItem = req.items.find(i => i.equipment_id === retItem.equipment_id);
+        if (reqItem) {
+          reqItem.returned_qty = (reqItem.returned_qty || 0) + returnQty;
+        }
+      }
+
+      // Check if all items in request are fully returned
+      const allReturned = req.items.every(item => item.qty === (item.returned_qty || 0));
+      const nextStatus = allReturned ? 'returned' : 'borrowing';
+
+      // Update borrow_requests table
+      const reviewerNameCombined = req.reviewed_by 
+        ? `${req.reviewed_by.split(' | ผู้รับคืน: ')[0]} | ผู้รับคืน: ${params.returnerName}` 
+        : `Admin | ผู้รับคืน: ${params.returnerName}`;
+
+      const { data: updatedReqData, error: updateReqErr } = await client
+        .from('borrow_requests')
+        .update({
+          status: nextStatus,
+          items: req.items,
+          transaction_ids: newTxIds,
+          reviewed_by: reviewerNameCombined,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', requestId)
+        .select();
+
+      if (updateReqErr || !updatedReqData || !updatedReqData[0]) {
+        throw new Error(`ไม่สามารถอัปเดตใบยืมได้: ${updateReqErr?.message}`);
+      }
+
+      const finalReq = updatedReqData[0] as any;
+      return {
+        ...finalReq,
+        items: Array.isArray(finalReq.items) ? finalReq.items : JSON.parse(finalReq.items || '[]'),
+        transaction_ids: Array.isArray(finalReq.transaction_ids) ? finalReq.transaction_ids : [],
+      } as BorrowRequest;
+
+    } catch (err: any) {
+      console.error('Error in returnBorrowRequestItems Supabase:', err);
+      handleSupabaseError(err, 'บันทึกรับคืนพัสดุบางส่วน');
+    }
+  }
+
+  // LocalStorage Fallback
+  try {
+    const localReqsSaved = localStorage.getItem('borrow_requests_local');
+    const localTxsSaved = localStorage.getItem('item_inventory_transactions_data');
+    const localEqSaved = localStorage.getItem('item_inventory_equipment_data');
+
+    if (localReqsSaved && localTxsSaved && localEqSaved) {
+      const localReqs = JSON.parse(localReqsSaved) as BorrowRequest[];
+      const localTxs = JSON.parse(localTxsSaved) as Transaction[];
+      const localEq = JSON.parse(localEqSaved) as Equipment[];
+
+      const reqIdx = localReqs.findIndex(r => r.id === requestId);
+      if (reqIdx === -1) throw new Error('ไม่พบข้อมูลคำขอเบิกพัสดุในระบบ');
+
+      const req = localReqs[reqIdx];
+      const txIds = req.transaction_ids || [];
+
+      for (const retItem of params.itemsToReturn) {
+        if (retItem.return_qty <= 0) continue;
+
+        const txIndex = localTxs.findIndex(t => txIds.includes(t.id) && t.equipment_id === retItem.equipment_id && t.status !== 'returned');
+        if (txIndex === -1) continue;
+
+        const currentBorrowQty = localTxs[txIndex].borrow_qty ?? 1;
+        const returnQty = retItem.return_qty;
+
+        if (returnQty > currentBorrowQty) {
+          throw new Error(`ไม่สามารถคืนอุปกรณ์จำนวน ${returnQty} ชิ้นได้ เนื่องจากมียอดค้างยืมเพียง ${currentBorrowQty} ชิ้น`);
+        }
+
+        // Return quantities to equipment stock
+        const eqIdx = localEq.findIndex(e => e.id === retItem.equipment_id);
+        if (eqIdx !== -1) {
+          let eqAvailable = localEq[eqIdx].available_qty ?? 0;
+          let eqMaintenance = localEq[eqIdx].maintenance_qty ?? 0;
+          let eqBroken = localEq[eqIdx].broken_qty ?? 0;
+
+          if (retItem.condition === 'available') {
+            eqAvailable += returnQty;
+          } else if (retItem.condition === 'maintenance') {
+            eqMaintenance += returnQty;
+          } else if (retItem.condition === 'broken') {
+            eqBroken += returnQty;
+          }
+
+          localEq[eqIdx].available_qty = eqAvailable;
+          localEq[eqIdx].maintenance_qty = eqMaintenance;
+          localEq[eqIdx].broken_qty = eqBroken;
+
+          if (eqAvailable > 0) {
+            localEq[eqIdx].status = 'available';
+          } else if (eqMaintenance > 0) {
+            localEq[eqIdx].status = 'maintenance';
+          } else if (eqBroken > 0) {
+            localEq[eqIdx].status = 'broken';
+          } else {
+            localEq[eqIdx].status = 'borrowed';
+          }
+        }
+
+        if (returnQty === currentBorrowQty) {
+          // Full return for this transaction
+          localTxs[txIndex].status = 'returned';
+          localTxs[txIndex].return_date = returnDateStr;
+          localTxs[txIndex].condition_on_return = retItem.condition_on_return || 'คืนพัสดุ (บางส่วน)';
+        } else {
+          // Partial return: split
+          const remainingQty = currentBorrowQty - returnQty;
+          localTxs[txIndex].borrow_qty = remainingQty;
+
+          const randStr = Math.random().toString(36).substring(2, 7);
+          const newReturnedTx: Transaction = {
+            ...localTxs[txIndex],
+            id: `tx-${Date.now()}-${randStr}`,
+            borrow_qty: returnQty,
+            status: 'returned',
+            return_date: returnDateStr,
+            condition_on_return: retItem.condition_on_return || 'คืนพัสดุ (บางส่วน)',
+            created_at: new Date().toISOString()
+          };
+          localTxs.unshift(newReturnedTx);
+          req.transaction_ids = req.transaction_ids || [];
+          req.transaction_ids.push(newReturnedTx.id);
+        }
+
+        // Update returned_qty in req.items
+        const reqItem = req.items.find(i => i.equipment_id === retItem.equipment_id);
+        if (reqItem) {
+          reqItem.returned_qty = (reqItem.returned_qty || 0) + returnQty;
+        }
+      }
+
+      // Check if all items in request are fully returned
+      const allReturned = req.items.every(item => item.qty === (item.returned_qty || 0));
+      req.status = allReturned ? 'returned' : 'borrowing';
+
+      req.reviewed_by = req.reviewed_by 
+        ? `${req.reviewed_by.split(' | ผู้รับคืน: ')[0]} | ผู้รับคืน: ${params.returnerName}` 
+        : `Admin | ผู้รับคืน: ${params.returnerName}`;
+      req.updated_at = new Date().toISOString();
+
+      localStorage.setItem('borrow_requests_local', JSON.stringify(localReqs));
+      localStorage.setItem('item_inventory_transactions_data', JSON.stringify(localTxs));
+      localStorage.setItem('item_inventory_equipment_data', JSON.stringify(localEq));
+
+      return req;
+    }
+  } catch (e: any) {
+    console.error('LocalStorage returnBorrowRequestItems error:', e);
+  }
+
+  throw new Error('ไม่สามารถบันทึกรับคืนแบบบางส่วนได้ เนื่องจากระบบคลังขัดข้อง');
+}
+
+// Revert (pull back) returned items of a borrow request back to borrowing status
+export async function revertBorrowRequestItemReturn(
+  config: SupabaseConfig,
+  requestId: string,
+  equipmentId: string,
+  revertQty: number
+): Promise<BorrowRequest> {
+  if (revertQty <= 0) {
+    throw new Error('จำนวนการดึงกลับต้องมากกว่า 0');
+  }
+
+  const client = getSupabaseClient(config);
+
+  if (client) {
+    try {
+      // 1. Fetch current borrow request
+      const { data: reqData, error: reqFetchErr } = await client
+        .from('borrow_requests')
+        .select('*')
+        .eq('id', requestId)
+        .single();
+
+      if (reqFetchErr || !reqData) {
+        throw new Error('ไม่พบข้อมูลคำขอเบิกพัสดุนี้ในระบบ');
+      }
+
+      const req = {
+        ...reqData,
+        items: Array.isArray(reqData.items) ? reqData.items : JSON.parse(reqData.items || '[]'),
+        transaction_ids: Array.isArray(reqData.transaction_ids) ? reqData.transaction_ids : JSON.parse(reqData.transaction_ids || '[]'),
+      } as BorrowRequest;
+
+      // Find the item in request
+      const reqItem = req.items.find(i => i.equipment_id === equipmentId);
+      if (!reqItem) {
+        throw new Error('ไม่พบรายการพัสดุนี้ในใบขอเบิก');
+      }
+
+      const currentReturnedQty = reqItem.returned_qty !== undefined ? (reqItem.returned_qty || 0) : (req.status === 'returned' ? reqItem.qty : 0);
+      if (revertQty > currentReturnedQty) {
+        throw new Error(`ไม่สามารถดึงกลับจำนวน ${revertQty} ชิ้นได้ เนื่องจากมีจำนวนคืนเพียง ${currentReturnedQty} ชิ้น`);
+      }
+
+      // 2. Fetch all transactions for this request
+      const txIds = req.transaction_ids || [];
+      const { data: txsData, error: txsFetchErr } = await client
+        .from('transactions')
+        .select('*')
+        .in('id', txIds);
+
+      if (txsFetchErr || !txsData) {
+        throw new Error('ไม่พบข้อมูลรายการทำธุรกรรมยืมพัสดุนี้ในระบบ');
+      }
+
+      const txs = txsData as Transaction[];
+      const newTxIds = [...txIds];
+
+      // Find matching transactions
+      const activeTx = txs.find(t => t.equipment_id === equipmentId && t.status !== 'returned');
+      const returnedTxs = txs.filter(t => t.equipment_id === equipmentId && t.status === 'returned')
+                            .sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
+
+      if (returnedTxs.length === 0) {
+        throw new Error('ไม่พบประวัติรายการที่ถูกคืนสำหรับพัสดุนี้');
+      }
+
+      let remainingRevertQty = revertQty;
+
+      // Adjust transactions in database
+      for (const retTx of returnedTxs) {
+        if (remainingRevertQty <= 0) break;
+
+        const returnedQtyInTx = retTx.borrow_qty ?? 0;
+        const revertAmountFromThisTx = Math.min(remainingRevertQty, returnedQtyInTx);
+        remainingRevertQty -= revertAmountFromThisTx;
+
+        if (revertAmountFromThisTx === returnedQtyInTx) {
+          // If we revert the entire transaction amount:
+          if (activeTx) {
+            // Delete the returned split transaction
+            await client.from('transactions').delete().eq('id', retTx.id);
+            const idxToRemove = newTxIds.indexOf(retTx.id);
+            if (idxToRemove !== -1) newTxIds.splice(idxToRemove, 1);
+          } else {
+            // Make this transaction active again
+            await client
+              .from('transactions')
+              .update({
+                status: 'borrowing',
+                return_date: null,
+                condition_on_return: null
+              })
+              .eq('id', retTx.id);
+          }
+        } else {
+          // Decrease the returned transaction amount
+          await client
+            .from('transactions')
+            .update({
+              borrow_qty: returnedQtyInTx - revertAmountFromThisTx
+            })
+            .eq('id', retTx.id);
+        }
+      }
+
+      // Update active transaction qty if it exists
+      if (activeTx) {
+        await client
+          .from('transactions')
+          .update({
+            borrow_qty: (activeTx.borrow_qty ?? 0) + revertQty
+          })
+          .eq('id', activeTx.id);
+      }
+
+      // 3. Deduct quantity from equipment stock (as it is borrowed again)
+      const { data: eqData, error: eqFetchErr } = await client
+        .from('equipment')
+        .select('available_qty, total_qty, status')
+        .eq('id', equipmentId)
+        .single();
+
+      if (eqFetchErr || !eqData) {
+        throw new Error('ไม่พบข้อมูลอุปกรณ์ในระบบคลัง');
+      }
+
+      const nextAvail = Math.max(0, (eqData.available_qty ?? 0) - revertQty);
+      const nextEqStatus = nextAvail > 0 ? 'available' : 'borrowed';
+
+      await client
+        .from('equipment')
+        .update({
+          available_qty: nextAvail,
+          status: nextEqStatus
+        })
+        .eq('id', equipmentId);
+
+      // 4. Update the borrow request items returned_qty
+      reqItem.returned_qty = currentReturnedQty - revertQty;
+
+      // Update borrow request status to 'borrowing'
+      const { data: updatedReqData, error: updateReqErr } = await client
+        .from('borrow_requests')
+        .update({
+          status: 'borrowing',
+          items: req.items,
+          transaction_ids: newTxIds,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', requestId)
+        .select();
+
+      if (updateReqErr || !updatedReqData || !updatedReqData[0]) {
+        throw new Error(`ไม่สามารถอัปเดตใบยืมได้: ${updateReqErr?.message}`);
+      }
+
+      const finalReq = updatedReqData[0] as any;
+      return {
+        ...finalReq,
+        items: Array.isArray(finalReq.items) ? finalReq.items : JSON.parse(finalReq.items || '[]'),
+        transaction_ids: Array.isArray(finalReq.transaction_ids) ? finalReq.transaction_ids : [],
+      } as BorrowRequest;
+
+    } catch (err: any) {
+      console.error('Error in revertBorrowRequestItemReturn Supabase:', err);
+      handleSupabaseError(err, 'ดึงสถานะพัสดุกลับเป็นกำลังยืม');
+    }
+  }
+
+  // LocalStorage Fallback
+  try {
+    const localReqsSaved = localStorage.getItem('borrow_requests_local');
+    const localTxsSaved = localStorage.getItem('item_inventory_transactions_data');
+    const localEqSaved = localStorage.getItem('item_inventory_equipment_data');
+
+    if (localReqsSaved && localTxsSaved && localEqSaved) {
+      const localReqs = JSON.parse(localReqsSaved) as BorrowRequest[];
+      const localTxs = JSON.parse(localTxsSaved) as Transaction[];
+      const localEq = JSON.parse(localEqSaved) as Equipment[];
+
+      const reqIdx = localReqs.findIndex(r => r.id === requestId);
+      if (reqIdx === -1) throw new Error('ไม่พบข้อมูลคำขอเบิกพัสดุในระบบ');
+
+      const req = localReqs[reqIdx];
+      const reqItem = req.items.find(i => i.equipment_id === equipmentId);
+      if (!reqItem) throw new Error('ไม่พบรายการพัสดุนี้ในใบขอเบิก');
+
+      const currentReturnedQty = reqItem.returned_qty !== undefined ? (reqItem.returned_qty || 0) : (req.status === 'returned' ? reqItem.qty : 0);
+      if (revertQty > currentReturnedQty) {
+        throw new Error(`ไม่สามารถดึงกลับจำนวน ${revertQty} ชิ้นได้ เนื่องจากมีจำนวนคืนเพียง ${currentReturnedQty} ชิ้น`);
+      }
+
+      const txIds = req.transaction_ids || [];
+      const activeTxIndex = localTxs.findIndex(t => txIds.includes(t.id) && t.equipment_id === equipmentId && t.status !== 'returned');
+      const returnedTxIndices = localTxs
+        .map((t, idx) => ({ t, idx }))
+        .filter(x => txIds.includes(x.t.id) && x.t.equipment_id === equipmentId && x.t.status === 'returned')
+        .sort((a, b) => new Date(b.t.created_at || 0).getTime() - new Date(a.t.created_at || 0).getTime())
+        .map(x => x.idx);
+
+      if (returnedTxIndices.length === 0) {
+        throw new Error('ไม่พบประวัติรายการที่ถูกคืนสำหรับพัสดุนี้');
+      }
+
+      let remainingRevertQty = revertQty;
+
+      for (const idx of returnedTxIndices) {
+        if (remainingRevertQty <= 0) break;
+
+        const returnedQtyInTx = localTxs[idx].borrow_qty ?? 0;
+        const revertAmountFromThisTx = Math.min(remainingRevertQty, returnedQtyInTx);
+        remainingRevertQty -= revertAmountFromThisTx;
+
+        if (revertAmountFromThisTx === returnedQtyInTx) {
+          if (activeTxIndex !== -1) {
+            // Delete split returned transaction
+            const txIdToDelete = localTxs[idx].id;
+            localTxs.splice(idx, 1);
+            req.transaction_ids = (req.transaction_ids || []).filter(id => id !== txIdToDelete);
+          } else {
+            // Re-activate this transaction
+            localTxs[idx].status = 'borrowing';
+            localTxs[idx].return_date = null;
+            localTxs[idx].condition_on_return = undefined;
+          }
+        } else {
+          localTxs[idx].borrow_qty = returnedQtyInTx - revertAmountFromThisTx;
+        }
+      }
+
+      if (activeTxIndex !== -1) {
+        localTxs[activeTxIndex].borrow_qty = (localTxs[activeTxIndex].borrow_qty ?? 0) + revertQty;
+      }
+
+      // Deduct from stock
+      const eqIdx = localEq.findIndex(e => e.id === equipmentId);
+      if (eqIdx !== -1) {
+        const nextAvail = Math.max(0, (localEq[eqIdx].available_qty ?? 0) - revertQty);
+        localEq[eqIdx].available_qty = nextAvail;
+        localEq[eqIdx].status = nextAvail > 0 ? 'available' : 'borrowed';
+      }
+
+      // Update request items returned_qty
+      reqItem.returned_qty = currentReturnedQty - revertQty;
+      req.status = 'borrowing';
+      req.updated_at = new Date().toISOString();
+
+      localStorage.setItem('borrow_requests_local', JSON.stringify(localReqs));
+      localStorage.setItem('item_inventory_transactions_data', JSON.stringify(localTxs));
+      localStorage.setItem('item_inventory_equipment_data', JSON.stringify(localEq));
+
+      return req;
+    }
+  } catch (e: any) {
+    console.error('LocalStorage revert error:', e);
+  }
+
+  throw new Error('ไม่สามารถคืนสถานะรายการคืนคลังได้ เนื่องจากระบบคลังขัดข้อง');
 }
 
 // Provide Default SQL Schema setup script for the user

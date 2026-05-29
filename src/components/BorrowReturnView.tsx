@@ -124,11 +124,11 @@ export default function BorrowReturnView({ config, refreshTrigger, onRefresh, qu
     setBorrowError('');
   }, [selectedEqId]);
 
-  // Return Process State
   const [isReturnModalOpen, setIsReturnModalOpen] = useState(false);
   const [selectedTxForReturn, setSelectedTxForReturn] = useState<Transaction | null>(null);
   const [conditionOnReturn, setConditionOnReturn] = useState('ปกติ เรียบร้อยดี');
   const [itemConditionStatus, setItemConditionStatus] = useState<'available' | 'maintenance' | 'broken'>('available');
+  const [returnQty, setReturnQty] = useState<number>(1);
   const [searchTermReturn, setSearchTermReturn] = useState('');
   const [returnFilterStartDate, setReturnFilterStartDate] = useState('');
   const [returnFilterEndDate, setReturnFilterEndDate] = useState('');
@@ -319,6 +319,7 @@ export default function BorrowReturnView({ config, refreshTrigger, onRefresh, qu
     setSelectedTxForReturn(tx);
     setConditionOnReturn('ปกติ เรียบร้อยดี');
     setItemConditionStatus('available');
+    setReturnQty(tx.borrow_qty ?? 1);
     setReturnError('');
     setReturnSuccess('');
     setIsReturnModalOpen(true);
@@ -334,7 +335,8 @@ export default function BorrowReturnView({ config, refreshTrigger, onRefresh, qu
     try {
       await returnEquipment(config, selectedTxForReturn.id, {
         conditionOnReturn,
-        itemConditionStatus
+        itemConditionStatus,
+        returnQty
       });
 
       setReturnSuccess(`ส่งคืนอุปกรณ์ "${selectedTxForReturn.equipment_name}" และบันทึกเข้าสู่คลังสำเร็จ!`);
@@ -1228,8 +1230,29 @@ export default function BorrowReturnView({ config, refreshTrigger, onRefresh, qu
                   <p className="text-[10.5px] text-slate-500 mt-0.5">
                     ผู้เบิก: <span className="font-semibold text-blue-900">{selectedTxForReturn.borrower_name}</span> · {selectedTxForReturn.borrower_department}
                   </p>
+                  <p className="text-[10.5px] text-slate-500 mt-0.5">
+                    จำนวนที่ยืมค้างไว้: <span className="font-bold text-slate-850">{selectedTxForReturn.borrow_qty ?? 1} ชิ้น</span>
+                  </p>
                 </div>
               </div>
+
+              {/* Return quantity select (only if borrow_qty > 1) */}
+              {(selectedTxForReturn.borrow_qty ?? 1) > 1 && (
+                <div>
+                  <label className="block text-[11px] font-sans text-slate-500 font-bold uppercase tracking-wider mb-1.5">
+                    จำนวนพัสดุที่ต้องการส่งคืนคราวนี้ *
+                  </label>
+                  <input
+                    type="number"
+                    required
+                    min={1}
+                    max={selectedTxForReturn.borrow_qty}
+                    value={returnQty}
+                    onChange={(e) => setReturnQty(Math.min(selectedTxForReturn.borrow_qty || 1, Math.max(1, parseInt(e.target.value) || 1)))}
+                    className="w-full px-3.5 py-2 border border-[#E8E8ED] rounded-xl text-xs font-sans focus:outline-hidden focus:border-apple-primary focus:ring-1 focus:ring-apple-primary/20 bg-[#F5F5F7]/50 focus:bg-white transition-all"
+                  />
+                </div>
+              )}
 
               {/* Input condition text */}
               <div>
