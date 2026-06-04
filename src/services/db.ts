@@ -1617,6 +1617,35 @@ export async function updateBorrowRequestStatus(
   throw new Error('ไม่พบคำขอที่ต้องการอัปเดต');
 }
 
+// Delete a borrow request (Admin action)
+export async function deleteBorrowRequest(config: SupabaseConfig, id: string): Promise<boolean> {
+  const client = getSupabaseClient(config);
+  if (client) {
+    try {
+      const { error } = await client
+        .from('borrow_requests')
+        .delete()
+        .eq('id', id);
+      if (error) throw error;
+      return true;
+    } catch (err: any) {
+      console.error('Error deleting borrow request:', err);
+      handleSupabaseError(err, 'ลบใบคำขอเบิก');
+      return false;
+    }
+  }
+
+  // LocalStorage fallback
+  const stored = localStorage.getItem('borrow_requests_local');
+  if (stored) {
+    const list: BorrowRequest[] = JSON.parse(stored);
+    const filtered = list.filter(r => r.id !== id);
+    localStorage.setItem('borrow_requests_local', JSON.stringify(filtered));
+    return true;
+  }
+  return false;
+}
+
 // Return items on a borrow request (Partial Return support)
 export async function returnBorrowRequestItems(
   config: SupabaseConfig,

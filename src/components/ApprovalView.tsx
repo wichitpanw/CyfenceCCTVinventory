@@ -26,6 +26,7 @@ import {
   Plus,
   Square,
   CheckSquare,
+  Trash2,
 } from 'lucide-react';
 import { BorrowRequest, SupabaseConfig, Equipment } from '../types';
 import {
@@ -35,6 +36,7 @@ import {
   getEquipments,
   returnBorrowRequestItems,
   revertEntireBorrowRequestReturn,
+  deleteBorrowRequest,
 } from '../services/db';
 
 const compressImage = (file: File): Promise<string> =>
@@ -126,6 +128,15 @@ export default function ApprovalView({ config, refreshTrigger, onRefresh }: Appr
     isOpen: false,
     req: null,
     totalReturned: 0,
+  });
+
+  // Custom Delete Confirmation Modal State
+  const [deleteConfirmModal, setDeleteConfirmModal] = useState<{
+    isOpen: boolean;
+    req: BorrowRequest | null;
+  }>({
+    isOpen: false,
+    req: null,
   });
 
   const loadData = useCallback(async () => {
@@ -314,6 +325,36 @@ export default function ApprovalView({ config, refreshTrigger, onRefresh }: Appr
       onRefresh();
     } catch (e: any) {
       setCardError(req.id, e?.message || 'ไม่สามารถดึงใบเบิกกลับได้');
+    } finally {
+      setCardLoading(req.id, false);
+    }
+  };
+
+  const handleDeleteRequest = (req: BorrowRequest) => {
+    setDeleteConfirmModal({
+      isOpen: true,
+      req,
+    });
+  };
+
+  const executeDeleteRequest = async () => {
+    const { req } = deleteConfirmModal;
+    if (!req) return;
+
+    setDeleteConfirmModal({ isOpen: false, req: null });
+    setCardLoading(req.id, true);
+    setCardError(req.id, '');
+    try {
+      const ok = await deleteBorrowRequest(config, req.id);
+      if (ok) {
+        setCardSuccess(req.id, '🗑️ ลบใบคำขอเบิกพัสดุเรียบร้อยแล้ว');
+        await loadData();
+        onRefresh();
+      } else {
+        throw new Error('ไม่สามารถลบใบคำขอได้');
+      }
+    } catch (e: any) {
+      setCardError(req.id, e?.message || 'เกิดข้อผิดพลาดในการลบใบคำขอ');
     } finally {
       setCardLoading(req.id, false);
     }
@@ -714,15 +755,26 @@ export default function ApprovalView({ config, refreshTrigger, onRefresh }: Appr
 
                       {req.status === 'approved' && (
                         <>
-                          <button
-                            type="button"
-                            disabled={isLoading}
-                            onClick={() => setShowDispatchInput(p => ({ ...p, [req.id]: !p[req.id] }))}
-                            className="w-full flex items-center justify-center gap-1.5 py-3 bg-[#000000] hover:bg-[#1D1D1F] disabled:bg-slate-300 text-white rounded-xl text-xs font-bold transition-all shadow-[0_4px_16px_rgba(0,113,227,0.25)] cursor-pointer"
-                          >
-                            <Truck className="h-4 w-4" />
-                            {showDispatchInput[req.id] ? 'ปิดการจ่ายพัสดุ' : 'ดำเนินการจ่ายพัสดุออกจากคลัง'}
-                          </button>
+                          <div className="flex gap-2">
+                            <button
+                              type="button"
+                              disabled={isLoading}
+                              onClick={() => setShowDispatchInput(p => ({ ...p, [req.id]: !p[req.id] }))}
+                              className="flex-1 flex items-center justify-center gap-1.5 py-3 bg-[#000000] hover:bg-[#1D1D1F] disabled:bg-slate-300 text-white rounded-xl text-xs font-bold transition-all shadow-[0_4px_16px_rgba(0,113,227,0.25)] cursor-pointer"
+                            >
+                              <Truck className="h-4 w-4" />
+                              {showDispatchInput[req.id] ? 'ปิดการจ่ายพัสดุ' : 'ดำเนินการจ่ายพัสดุออกจากคลัง'}
+                            </button>
+                            <button
+                              type="button"
+                              disabled={isLoading}
+                              onClick={() => handleDeleteRequest(req)}
+                              className="px-4 flex items-center justify-center gap-1.5 py-3 bg-red-50 hover:bg-red-100 border border-red-200 text-red-750 rounded-xl text-xs font-bold transition-all cursor-pointer select-none"
+                              title="ลบคำขอเบิกพัสดุนี้"
+                            >
+                              <Trash2 className="h-4 w-4" /> ลบคำขอ
+                            </button>
+                          </div>
 
                           {showDispatchInput[req.id] && (
                             <div className="space-y-3 mt-2 bg-[#F5F5F7] p-4 rounded-xl border border-[#E8E8ED] animate-in fade-in slide-in-from-top-1 duration-200">
@@ -1062,6 +1114,17 @@ export default function ApprovalView({ config, refreshTrigger, onRefresh }: Appr
                           <RotateCcw className="h-4 w-4" /> ดึงใบเบิกกลับเป็นกำลังยืม (Revert Return)
                         </button>
                       )}
+
+                      {(req.status === 'rejected' || req.status === 'cancelled') && (
+                        <button
+                          type="button"
+                          disabled={isLoading}
+                          onClick={() => handleDeleteRequest(req)}
+                          className="w-full flex items-center justify-center gap-1.5 py-3 bg-red-50 hover:bg-red-100 border border-red-200 text-red-750 rounded-xl text-xs font-bold transition-all cursor-pointer select-none"
+                        >
+                          <Trash2 className="h-4 w-4" /> ลบใบคำขอเบิกพัสดุนี้ (Delete Request)
+                        </button>
+                      )}
                     </div>
                   </div>
                 )}
@@ -1138,6 +1201,82 @@ export default function ApprovalView({ config, refreshTrigger, onRefresh }: Appr
               >
                 <RotateCcw className="w-3.5 h-3.5" />
                 ดึงกลับเป็นยืม
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Custom Modal */}
+      {deleteConfirmModal.isOpen && deleteConfirmModal.req && (
+        <div 
+          className="fixed inset-0 z-[110] flex items-center justify-center bg-[#1D1D1F]/70 backdrop-blur-md transition-opacity duration-300 animate-in fade-in"
+          onClick={() => setDeleteConfirmModal({ isOpen: false, req: null })}
+        >
+          <div 
+            className="w-full max-w-md p-6 bg-white rounded-3xl overflow-hidden shadow-2xl animate-in zoom-in-95 duration-250 border border-[#E8E8ED] space-y-4 m-4"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Warning Icon & Header */}
+            <div className="flex items-center gap-3 pb-2 border-b border-[#E8E8ED]">
+              <div className="p-2.5 bg-red-50 text-red-600 rounded-2xl">
+                <Trash2 className="w-6 h-6 animate-bounce" />
+              </div>
+              <div className="text-left">
+                <h3 className="text-sm font-bold text-[#1D1D1F] font-sans">
+                  ยืนยันการลบใบคำขอเบิกพัสดุ
+                </h3>
+                <p className="text-[10px] text-slate-500 font-sans mt-0.5">Delete Borrow Request permanently</p>
+              </div>
+            </div>
+
+            {/* Content Details */}
+            <div className="space-y-3 font-sans text-left">
+              <div className="bg-[#F5F5F7] rounded-2xl p-4 border border-[#E8E8ED] space-y-2">
+                <p className="text-xs text-slate-655">
+                  คุณกำลังต้องการลบใบคำขอเบิกพัสดุนี้ออกจากระบบอย่างถาวร
+                </p>
+                <p className="text-[11px] text-slate-500 font-medium">
+                  ใบเบิกเลขที่: <span className="font-mono text-black font-bold">{deleteConfirmModal.req.id}</span>
+                </p>
+                <p className="text-[11px] text-slate-500 font-medium">
+                  ผู้ขอเบิก: <span className="text-black font-bold">{deleteConfirmModal.req.requester_name}</span>
+                </p>
+                <p className="text-[11px] text-slate-500 font-medium">
+                  สังกัด: <span className="text-black font-bold">{deleteConfirmModal.req.requester_company}</span>
+                </p>
+              </div>
+
+              {/* Warning Notice */}
+              <div className="flex gap-2.5 p-3.5 bg-red-50 border border-red-200 rounded-2xl">
+                <AlertCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                  <p className="text-xs font-bold text-red-850">
+                    ⚠️ ข้อควรระวัง
+                  </p>
+                  <p className="text-[10px] text-red-700 leading-relaxed font-semibold">
+                    การดำเนินการนี้จะลบข้อมูลใบเบิกออกจากระบบฐานข้อมูลอย่างถาวรและไม่สามารถย้อนคืนได้ ยอดอุปกรณ์ยังไม่ได้ถูกเบิกออกจริง จึงไม่มีผลกระทบต่อจำนวนสต็อกในคลังพัสดุ
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="grid grid-cols-2 gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setDeleteConfirmModal({ isOpen: false, req: null })}
+                className="py-3 px-4 border border-[#E8E8ED] hover:bg-[#F5F5F7] text-slate-655 hover:text-black font-bold text-xs rounded-xl transition-all cursor-pointer text-center select-none"
+              >
+                ยกเลิก
+              </button>
+              <button
+                type="button"
+                onClick={executeDeleteRequest}
+                className="py-3 px-4 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-xl shadow-md transition-all cursor-pointer text-center select-none flex items-center justify-center gap-1.5"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                ลบใบคำขอ
               </button>
             </div>
           </div>
