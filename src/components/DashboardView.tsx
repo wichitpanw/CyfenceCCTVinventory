@@ -55,10 +55,6 @@ import {
   Clock, 
   AlertTriangle, 
   XOctagon,
-  ArrowUpRight, 
-  ArrowDownLeft, 
-  History,
-  Calendar,
   Layers,
   Database
 } from 'lucide-react';
@@ -75,7 +71,6 @@ interface DashboardViewProps {
 export default function DashboardView({ config, onNavigate, onQuickReturn, refreshTrigger }: DashboardViewProps) {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [equipments, setEquipments] = useState<Equipment[]>([]);
-  const [recentTransactions, setRecentTransactions] = useState<Transaction[]>([]);
   const [allTransactions, setAllTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [dbError, setDbError] = useState<string | null>(null);
@@ -96,8 +91,6 @@ export default function DashboardView({ config, onNavigate, onQuickReturn, refre
         setStats(fetchedStats);
         setEquipments(fetchedEquip);
         setAllTransactions(fetchedTxs);
-        // Take top 5 recent transactions
-        setRecentTransactions(fetchedTxs.slice(0, 5));
       } catch (err: any) {
         console.error('Failed to load dashboard data', err);
         setDbError(err?.message || 'ไม่สามารถดึงข้อมูลแดชบอร์ดได้');
@@ -405,133 +398,49 @@ export default function DashboardView({ config, onNavigate, onQuickReturn, refre
         </div>
       </div>
 
-      {/* Grid: Recent Borrow Activity & Urgency Box */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4" id="recent-activities-row">
-        {/* Recent Transactions list */}
-        <div className="lg:col-span-8 bg-white p-5 border border-[#E8E8ED] rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.04)] flex flex-col" id="recent-transactions">
-          <div className="flex items-center justify-between mb-4">
-            <h4 className="text-xs font-bold text-[#86868B] uppercase tracking-wider flex items-center gap-2">
-              <History className="h-4 w-4 text-[#000000]" /> รายการเดินคลังล่าสุด (เบิก-คืน)
-            </h4>
-            <button 
-              onClick={() => onNavigate('history')}
-              className="text-xs text-[#000000] hover:text-[#1D1D1F] font-bold transition-all"
-            >
-              ดูประวัติทั้งหมด &rarr;
-            </button>
-          </div>
-
-          <div className="flow-root flex-1">
-            {recentTransactions.length === 0 ? (
-              <div className="text-center py-12 text-[#86868B] font-sans text-xs">
-                ไม่มีประวัติการเบิกคืนบันทึกในระบบในขณะนี้
+      {/* Grid: Urgency Alerts */}
+      <div className="grid grid-cols-1" id="recent-activities-row">
+        {/* Quick Tips / Connection Info Box */}
+        <div className="bg-white p-5 border border-[#E8E8ED] rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.04)] text-left" id="overdue-alerts">
+          <h4 className="text-[10px] font-bold text-[#86868B] uppercase tracking-wider mb-4">
+            การแจ้งเตือนพัสดุเร่งด่วน
+          </h4>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {stats && stats.overdueBorrows > 0 ? (
+              <div className="bg-[#FFEBEA] border border-[#FF3B30]/10 rounded-2xl p-4 flex items-start space-x-3">
+                <XOctagon className="h-5 w-5 text-[#FF3B30] shrink-0 mt-0.5" />
+                <div>
+                  <h5 className="text-xs font-sans font-extrabold text-[#FF3B30]">มีพัสดุเลยอายุคืน!</h5>
+                  <p className="text-[10px] text-[#FF3B30]/80 mt-1 leading-relaxed">
+                    พบอุปกรณ์จำนวน <span className="font-bold">{stats.overdueBorrows} ชิ้น</span> เลยกำหนดวันคืนที่ผู้เบิกระบุไว้ กรุณาตามตัวผู้เบิกเพื่อส่งมอบคืนคลัง
+                  </p>
+                  <button
+                    onClick={() => onNavigate('borrow')}
+                    className="text-[10px] font-extrabold text-[#FF3B30] hover:text-[#FF453A] underline mt-2 inline-block"
+                  >
+                    ตรวจสอบรายการเลยกำหนด &rarr;
+                  </button>
+                </div>
               </div>
             ) : (
-              <ul className="-my-4 divide-y divide-[#E8E8ED]">
-                {recentTransactions.map((tx) => (
-                  <li key={tx.id} className="py-3.5">
-                    <div className="flex items-center justify-between space-x-4">
-                      <div className="flex-1 min-w-0 flex items-start space-x-3.5">
-                        <div className={`mt-0.5 p-2 rounded-xl shrink-0 ${
-                          tx.status === 'returned' 
-                            ? 'bg-[#EAF9EE] text-[#34C759]'
-                            : tx.status === 'overdue'
-                              ? 'bg-[#FFEBEA] text-[#FF3B30]'
-                              : 'bg-[#F5F5F7] text-[#000000]'
-                        }`}>
-                          {tx.status === 'returned' ? (
-                            <ArrowDownLeft className="h-4 w-4" />
-                          ) : (
-                            <ArrowUpRight className="h-4 w-4" />
-                          )}
-                        </div>
-                        <div className="text-left">
-                          <p className="text-xs font-extrabold text-[#1D1D1F] truncate">
-                            {tx.equipment_name}
-                          </p>
-                          <p className="text-[11px] text-[#86868B] font-sans mt-0.5">
-                            ผู้เบิก: <span className="font-semibold text-[#1D1D1F]">{tx.borrower_name}</span> ({tx.borrower_department})
-                          </p>
-                          <p className="text-[10px] text-[#86868B]/80 font-sans mt-0.5 flex items-center gap-2">
-                            <span><Calendar className="h-3 w-3 inline mr-0.5 text-[#86868B]" /> {new Date(tx.borrow_date).toLocaleDateString('th-TH')}</span>
-                            {tx.return_date && (
-                              <span className="text-[#34C759] font-bold">คืนเมื่อ: {new Date(tx.return_date).toLocaleDateString('th-TH')}</span>
-                            )}
-                          </p>
-                        </div>
-                      </div>
-                      
-                      <div className="flex flex-col items-end space-y-2 shrink-0">
-                        <span className={`badge-apple ${
-                          tx.status === 'returned'
-                            ? 'badge-apple-green'
-                            : tx.status === 'overdue'
-                              ? 'badge-apple-red'
-                              : 'badge-apple-blue'
-                        }`}>
-                          {tx.status === 'returned' ? 'คืนเรียบร้อย' : tx.status === 'overdue' ? 'เลยกำหนดส่งคืน' : 'กำลังเบิกยืม'}
-                        </span>
-                        
-                        {tx.status !== 'returned' && (
-                          <button
-                            onClick={() => onQuickReturn(tx)}
-                            className="text-[10px] bg-[#F5F5F7] text-[#1D1D1F] border border-[#E8E8ED] hover:bg-[#F5F5F7] hover:text-[#000000] hover:border-transparent font-extrabold px-3 py-1.5 rounded-full transition-all cursor-pointer"
-                          >
-                            ทำรายการคืน
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        </div>
-
-        {/* Quick Tips / Connection Info Box */}
-        <div className="lg:col-span-4 flex flex-col space-y-4" id="dashboard-right-rail">
-          <div className="bg-white p-5 border border-[#E8E8ED] rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.04)] text-left" id="overdue-alerts">
-            <h4 className="text-[10px] font-bold text-[#86868B] uppercase tracking-wider mb-4">
-              การแจ้งเตือนพัสดุเร่งด่วน
-            </h4>
-            <div className="space-y-3">
-              {stats && stats.overdueBorrows > 0 ? (
-                <div className="bg-[#FFEBEA] border border-[#FF3B30]/10 rounded-2xl p-4 flex items-start space-x-3">
-                  <XOctagon className="h-5 w-5 text-[#FF3B30] shrink-0 mt-0.5" />
-                  <div>
-                    <h5 className="text-xs font-sans font-extrabold text-[#FF3B30]">มีพัสดุเลยอายุคืน!</h5>
-                    <p className="text-[10px] text-[#FF3B30]/80 mt-1 leading-relaxed">
-                      พบอุปกรณ์จำนวน <span className="font-bold">{stats.overdueBorrows} ชิ้น</span> เลยกำหนดวันคืนที่ผู้เบิกระบุไว้ กรุณาตามตัวผู้เบิกเพื่อส่งมอบคืนคลัง
-                    </p>
-                    <button
-                      onClick={() => onNavigate('borrow')}
-                      className="text-[10px] font-extrabold text-[#FF3B30] hover:text-[#FF453A] underline mt-2 inline-block"
-                    >
-                      ตรวจสอบรายการเลยกำหนด &rarr;
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div className="bg-[#EAF9EE] border border-[#34C759]/10 rounded-2xl p-4 flex items-start space-x-3">
-                  <CheckCircle className="h-5 w-5 text-[#34C759] shrink-0 mt-0.5" />
-                  <div>
-                    <h5 className="text-xs font-sans font-extrabold text-[#2F9E44]">พัสดุเป็นระเบียบเรียบร้อย</h5>
-                    <p className="text-[10px] text-[#2F9E44]/90 mt-1 leading-relaxed">
-                      ยินดีด้วย! ปัจจุบันไม่มีอุปกรณ์ชิ้นใดเลยกำหนดส่งคืน ถือว่าระบบยืมคืนพัสดุทำงานได้อย่างมีประสิทธิภาพ
-                    </p>
-                  </div>
-                </div>
-              )}
-              
-              <div className="bg-[#F5F5F7] border border-[#E8E8ED] rounded-2xl p-4 flex items-start space-x-3">
-                <AlertTriangle className="h-5 w-5 text-[#FF9500] shrink-0 mt-0.5" />
+              <div className="bg-[#EAF9EE] border border-[#34C759]/10 rounded-2xl p-4 flex items-start space-x-3">
+                <CheckCircle className="h-5 w-5 text-[#34C759] shrink-0 mt-0.5" />
                 <div>
-                  <h5 className="text-xs font-sans font-extrabold text-[#1D1D1F]">อุปกรณ์กำลังซ่อมบำรุง</h5>
-                  <p className="text-[10px] text-[#86868B] mt-1 leading-relaxed">
-                    มีอุปกรณ์ <span className="font-bold text-[#FF9500]">{stats?.maintenanceItems || 0} ชิ้น</span> อยู่ระหว่างส่งตรวจสภาพ และ <span className="font-bold text-[#FF3B30]">{stats?.brokenItems || 0} ชิ้น</span> เสียหายห้ามนำออกเบิก
+                  <h5 className="text-xs font-sans font-extrabold text-[#2F9E44]">พัสดุเป็นระเบียบเรียบร้อย</h5>
+                  <p className="text-[10px] text-[#2F9E44]/90 mt-1 leading-relaxed">
+                    ยินดีด้วย! ปัจจุบันไม่มีอุปกรณ์ชิ้นใดเลยกำหนดส่งคืน ถือว่าระบบยืมคืนพัสดุทำงานได้อย่างมีประสิทธิภาพ
                   </p>
                 </div>
+              </div>
+            )}
+            
+            <div className="bg-[#F5F5F7] border border-[#E8E8ED] rounded-2xl p-4 flex items-start space-x-3">
+              <AlertTriangle className="h-5 w-5 text-[#FF9500] shrink-0 mt-0.5" />
+              <div>
+                <h5 className="text-xs font-sans font-extrabold text-[#1D1D1F]">อุปกรณ์กำลังซ่อมบำรุง</h5>
+                <p className="text-[10px] text-[#86868B] mt-1 leading-relaxed">
+                  มีอุปกรณ์ <span className="font-bold text-[#FF9500]">{stats?.maintenanceItems || 0} ชิ้น</span> อยู่ระหว่างส่งตรวจสภาพ และ <span className="font-bold text-[#FF3B30]">{stats?.brokenItems || 0} ชิ้น</span> เสียหายห้ามนำออกเบิก
+                </p>
               </div>
             </div>
           </div>
