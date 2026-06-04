@@ -1622,6 +1622,35 @@ export async function deleteBorrowRequest(config: SupabaseConfig, id: string): P
   const client = getSupabaseClient(config);
   if (client) {
     try {
+      // 1. Fetch current borrow request to read transaction_ids
+      const { data: reqData } = await client
+        .from('borrow_requests')
+        .select('transaction_ids')
+        .eq('id', id)
+        .single();
+      
+      let txIds: string[] = [];
+      if (reqData && reqData.transaction_ids) {
+        if (Array.isArray(reqData.transaction_ids)) {
+          txIds = reqData.transaction_ids;
+        } else {
+          try {
+            txIds = JSON.parse(reqData.transaction_ids);
+          } catch {
+            txIds = [];
+          }
+        }
+      }
+
+      // 2. Delete transactions if any exist
+      if (txIds && txIds.length > 0) {
+        await client
+          .from('transactions')
+          .delete()
+          .in('id', txIds);
+      }
+
+      // 3. Delete the borrow request
       const { error } = await client
         .from('borrow_requests')
         .delete()
@@ -1639,6 +1668,15 @@ export async function deleteBorrowRequest(config: SupabaseConfig, id: string): P
   const stored = localStorage.getItem('borrow_requests_local');
   if (stored) {
     const list: BorrowRequest[] = JSON.parse(stored);
+    const target = list.find(r => r.id === id);
+    if (target && target.transaction_ids && target.transaction_ids.length > 0) {
+      const localTxsSaved = localStorage.getItem('item_inventory_transactions_data');
+      if (localTxsSaved) {
+        const localTxs = JSON.parse(localTxsSaved);
+        const filteredTxs = localTxs.filter((tx: any) => !target.transaction_ids?.includes(tx.id));
+        localStorage.setItem('item_inventory_transactions_data', JSON.stringify(filteredTxs));
+      }
+    }
     const filtered = list.filter(r => r.id !== id);
     localStorage.setItem('borrow_requests_local', JSON.stringify(filtered));
     return true;

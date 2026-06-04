@@ -1105,14 +1105,25 @@ export default function ApprovalView({ config, refreshTrigger, onRefresh }: Appr
                       )}
 
                       {req.status === 'returned' && (
-                        <button
-                          type="button"
-                          disabled={isLoading}
-                          onClick={() => handleRevertEntireRequest(req)}
-                          className="w-full flex items-center justify-center gap-1.5 py-3 bg-[#E02424] hover:bg-[#C81E1E] disabled:bg-slate-350 text-white rounded-xl text-xs font-bold transition-all cursor-pointer select-none"
-                        >
-                          <RotateCcw className="h-4 w-4" /> ดึงใบเบิกกลับเป็นกำลังยืม (Revert Return)
-                        </button>
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            disabled={isLoading}
+                            onClick={() => handleRevertEntireRequest(req)}
+                            className="flex-1 flex items-center justify-center gap-1.5 py-3 bg-[#E02424] hover:bg-[#C81E1E] disabled:bg-slate-350 text-white rounded-xl text-xs font-bold transition-all cursor-pointer select-none"
+                          >
+                            <RotateCcw className="h-4 w-4" /> ดึงใบเบิกกลับเป็นกำลังยืม (Revert Return)
+                          </button>
+                          <button
+                            type="button"
+                            disabled={isLoading}
+                            onClick={() => handleDeleteRequest(req)}
+                            className="px-4 flex items-center justify-center gap-1.5 py-3 bg-red-50 hover:bg-red-100 border border-red-200 text-red-700 rounded-xl text-xs font-bold transition-all cursor-pointer select-none"
+                            title="ลบประวัติใบคำขอเบิกพัสดุนี้"
+                          >
+                            <Trash2 className="h-4 w-4" /> ลบประวัติ
+                          </button>
+                        </div>
                       )}
 
                       {(req.status === 'rejected' || req.status === 'cancelled') && (
