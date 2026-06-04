@@ -286,12 +286,12 @@ export default function HistoryView({ config, refreshTrigger }: HistoryViewProps
             <table className="min-w-full divide-y divide-[#E8E8ED] table-auto">
               <thead className="bg-[#F5F5F7]">
                 <tr>
-                  <th scope="col" className="px-4 xl:px-6 py-3.5 text-[11px] font-bold text-slate-500 uppercase tracking-wider text-left font-sans whitespace-nowrap">สถานะใบเบิก</th>
-                  <th scope="col" className="px-4 xl:px-6 py-3.5 text-[11px] font-bold text-slate-500 uppercase tracking-wider text-left font-sans whitespace-nowrap">สรุปรายการพัสดุ</th>
-                  <th scope="col" className="px-4 xl:px-6 py-3.5 text-[11px] font-bold text-slate-500 uppercase tracking-wider text-left font-sans whitespace-nowrap">ผู้เบิกยืมและสังกัด</th>
-                  <th scope="col" className="px-4 xl:px-6 py-3.5 text-[11px] font-bold text-slate-500 uppercase tracking-wider text-left font-sans whitespace-nowrap">วันที่เบิก / กำหนดคืน</th>
-                  <th scope="col" className="px-4 xl:px-6 py-3.5 text-[11px] font-bold text-slate-500 uppercase tracking-wider text-left font-sans whitespace-nowrap">วัตถุประสงค์</th>
-                  <th scope="col" className="px-4 xl:px-6 py-3.5 text-[11px] font-bold text-slate-500 uppercase tracking-wider text-center font-sans whitespace-nowrap">รายละเอียด</th>
+                  <th scope="col" className="px-2.5 xl:px-4 py-3.5 text-[11px] font-bold text-slate-500 uppercase tracking-wider text-left font-sans whitespace-nowrap">สถานะใบเบิก</th>
+                  <th scope="col" className="px-2.5 xl:px-4 py-3.5 text-[11px] font-bold text-slate-500 uppercase tracking-wider text-left font-sans whitespace-nowrap">สรุปรายการพัสดุ</th>
+                  <th scope="col" className="px-2.5 xl:px-4 py-3.5 text-[11px] font-bold text-slate-500 uppercase tracking-wider text-left font-sans whitespace-nowrap">ผู้เบิกยืมและสังกัด</th>
+                  <th scope="col" className="px-2.5 xl:px-4 py-3.5 text-[11px] font-bold text-slate-500 uppercase tracking-wider text-left font-sans whitespace-nowrap">วันที่เบิก / กำหนดคืน</th>
+                  <th scope="col" className="px-2.5 xl:px-4 py-3.5 text-[11px] font-bold text-slate-500 uppercase tracking-wider text-left font-sans whitespace-nowrap">วัตถุประสงค์</th>
+                  <th scope="col" className="px-1.5 py-3.5 text-[11px] font-bold text-slate-500 uppercase tracking-wider text-center font-sans whitespace-nowrap">รายละเอียด</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-[#E8E8ED]">
@@ -308,7 +308,7 @@ export default function HistoryView({ config, refreshTrigger }: HistoryViewProps
                         className={`hover:bg-[#F5F5F7]/40 transition-all duration-200 cursor-pointer select-none ${isExpanded ? 'bg-[#F5F5F7]/30' : ''}`}
                       >
                         {/* Overall Group Status */}
-                        <td className="px-4 xl:px-6 py-4 whitespace-nowrap">
+                        <td className="px-2.5 xl:px-4 py-3 whitespace-nowrap">
                           <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10.5px] font-bold font-sans ${
                             group.status === 'returned'
                               ? 'bg-[#EAF9EE] text-[#1D8F3D]'
@@ -325,7 +325,7 @@ export default function HistoryView({ config, refreshTrigger }: HistoryViewProps
                         </td>
 
                         {/* Items Summary info */}
-                        <td className="px-4 xl:px-6 py-4 whitespace-nowrap">
+                        <td className="px-2.5 xl:px-4 py-3 whitespace-nowrap">
                           <div className="flex items-center space-x-2.5">
                             <div className="p-2 bg-[#F5F5F7] rounded-xl text-slate-650 shrink-0 border border-[#E8E8ED]">
                               <Package className="w-4 h-4" />
@@ -342,7 +342,7 @@ export default function HistoryView({ config, refreshTrigger }: HistoryViewProps
                         </td>
 
                         {/* Borrower */}
-                        <td className="px-4 xl:px-6 py-4 whitespace-nowrap">
+                        <td className="px-2.5 xl:px-4 py-3 whitespace-nowrap">
                           <div className="flex items-start space-x-2.5">
                             <User className="h-4 w-4 text-slate-400 shrink-0 mt-0.5" />
                             <div className="min-w-0 flex-1">
@@ -356,7 +356,7 @@ export default function HistoryView({ config, refreshTrigger }: HistoryViewProps
                         </td>
 
                         {/* Dates */}
-                        <td className="px-4 xl:px-6 py-4 whitespace-nowrap">
+                        <td className="px-2.5 xl:px-4 py-3 whitespace-nowrap">
                           <div className="space-y-1 text-[10.5px] leading-normal font-sans text-slate-500">
                             <p className="flex items-center gap-1.5">
                               <Calendar className="h-3.5 w-3.5 text-slate-400 shrink-0" />
@@ -370,7 +370,7 @@ export default function HistoryView({ config, refreshTrigger }: HistoryViewProps
                         </td>
 
                         {/* Purpose and Evidence */}
-                        <td className="px-4 xl:px-6 py-4 max-w-[200px]">
+                        <td className="px-2.5 xl:px-4 py-3 max-w-[200px]">
                           <div className="space-y-1.5">
                             {/* Purpose with tooltip for long text */}
                             <div className="group relative">
@@ -402,20 +402,20 @@ export default function HistoryView({ config, refreshTrigger }: HistoryViewProps
                         </td>
 
                         {/* Expand/Collapse Toggle Detail Button & Delete Button */}
-                        <td className="px-4 xl:px-6 py-4 text-center whitespace-nowrap">
-                          <div className="flex items-center justify-center gap-2">
+                        <td className="px-1.5 py-3 text-center whitespace-nowrap">
+                          <div className="flex items-center justify-center gap-1.5">
                             <button
                               type="button"
                               onClick={(e) => { e.stopPropagation(); toggleGroup(group.id); }}
-                              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold font-sans transition-all cursor-pointer border active:scale-95 ${
+                              className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold font-sans transition-all cursor-pointer border active:scale-95 ${
                                 isExpanded 
                                   ? 'bg-blue-50 text-apple-primary border-blue-100/80 shadow-xs' 
                                   : 'bg-[#F5F5F7] text-slate-655 border-[#E8E8ED] hover:bg-slate-100 hover:text-slate-800'
                               }`}
                             >
-                              <Eye className="w-3.5 h-3.5" />
-                              <span>{isExpanded ? 'ซ่อน' : 'แสดงลิสต์'}</span>
-                              {isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                              <Eye className="w-3 w-3" />
+                              <span>{isExpanded ? 'ซ่อน' : 'แสดง'}</span>
+                              {isExpanded ? <ChevronUp className="w-3 w-3" /> : <ChevronDown className="w-3 w-3" />}
                             </button>
                             <button
                               type="button"
@@ -424,7 +424,7 @@ export default function HistoryView({ config, refreshTrigger }: HistoryViewProps
                                 setDeleteConfirmModal({ isOpen: true, group });
                               }}
                               title="ลบประวัติรายการเบิกจ่ายนี้"
-                              className="inline-flex items-center justify-center p-2 bg-rose-50 hover:bg-rose-100/85 text-rose-600 rounded-xl cursor-pointer border border-rose-100 transition-all active:scale-90"
+                              className="inline-flex items-center justify-center p-1.5 bg-rose-50 hover:bg-rose-100/85 text-rose-600 rounded-lg cursor-pointer border border-rose-100 transition-all active:scale-90"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
                             </button>
