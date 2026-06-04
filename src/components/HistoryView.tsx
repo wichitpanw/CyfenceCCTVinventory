@@ -24,10 +24,12 @@ import {
   FileText,
   Package,
   SlidersHorizontal,
-  X
+  X,
+  Trash2,
+  AlertCircle
 } from 'lucide-react';
 import { Transaction, SupabaseConfig } from '../types';
-import { getTransactions } from '../services/db';
+import { getTransactions, deleteTransactionsGroup } from '../services/db';
 
 interface TransactionGroupItem {
   transaction_id: string;
@@ -138,20 +140,51 @@ export default function HistoryView({ config, refreshTrigger }: HistoryViewProps
   const [expandedGroupIds, setExpandedGroupIds] = useState<string[]>([]);
   const [activeLightboxUrl, setActiveLightboxUrl] = useState<string | null>(null);
 
-  useEffect(() => {
-    async function loadTransactions() {
-      setLoading(true);
-      try {
-        const fetched = await getTransactions(config);
-        setTxs(fetched);
-      } catch (err) {
-        console.error('Failed to load transaction history', err);
-      } finally {
-        setLoading(false);
-      }
+  // Custom states for delete history group
+  const [deleteConfirmModal, setDeleteConfirmModal] = useState<{
+    isOpen: boolean;
+    group: TransactionGroup | null;
+  }>({
+    isOpen: false,
+    group: null,
+  });
+  const [deleting, setDeleting] = useState(false);
+
+  async function loadTransactions() {
+    setLoading(true);
+    try {
+      const fetched = await getTransactions(config);
+      setTxs(fetched);
+    } catch (err) {
+      console.error('Failed to load transaction history', err);
+    } finally {
+      setLoading(false);
     }
+  }
+
+  useEffect(() => {
     loadTransactions();
   }, [config, refreshTrigger]);
+
+  const executeDeleteGroup = async () => {
+    if (!deleteConfirmModal.group) return;
+    setDeleting(true);
+    try {
+      const txIds = deleteConfirmModal.group.items.map(item => item.transaction_id);
+      const success = await deleteTransactionsGroup(config, txIds);
+      if (success) {
+        setDeleteConfirmModal({ isOpen: false, group: null });
+        await loadTransactions();
+      } else {
+        alert('เกิดข้อผิดพลาดในการลบข้อมูลประวัติ');
+      }
+    } catch (err) {
+      console.error('Failed to delete group:', err);
+      alert('เกิดข้อผิดพลาดในการลบข้อมูลประวัติ');
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   const toggleGroup = (groupId: string) => {
     if (expandedGroupIds.includes(groupId)) {
@@ -368,21 +401,34 @@ export default function HistoryView({ config, refreshTrigger }: HistoryViewProps
                           </div>
                         </td>
 
-                        {/* Expand/Collapse Toggle Detail Button */}
+                        {/* Expand/Collapse Toggle Detail Button & Delete Button */}
                         <td className="px-4 xl:px-6 py-4 text-center whitespace-nowrap">
-                          <button
-                            type="button"
-                            onClick={(e) => { e.stopPropagation(); toggleGroup(group.id); }}
-                            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold font-sans transition-all cursor-pointer border active:scale-95 ${
-                              isExpanded 
-                                ? 'bg-blue-50 text-apple-primary border-blue-100/80 shadow-xs' 
-                                : 'bg-[#F5F5F7] text-slate-600 border-[#E8E8ED] hover:bg-slate-100 hover:text-slate-800'
-                            }`}
-                          >
-                            <Eye className="w-3.5 h-3.5" />
-                            <span>{isExpanded ? 'ซ่อน' : 'แสดงลิสต์'}</span>
-                            {isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-                          </button>
+                          <div className="flex items-center justify-center gap-2">
+                            <button
+                              type="button"
+                              onClick={(e) => { e.stopPropagation(); toggleGroup(group.id); }}
+                              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold font-sans transition-all cursor-pointer border active:scale-95 ${
+                                isExpanded 
+                                  ? 'bg-blue-50 text-apple-primary border-blue-100/80 shadow-xs' 
+                                  : 'bg-[#F5F5F7] text-slate-655 border-[#E8E8ED] hover:bg-slate-100 hover:text-slate-800'
+                              }`}
+                            >
+                              <Eye className="w-3.5 h-3.5" />
+                              <span>{isExpanded ? 'ซ่อน' : 'แสดงลิสต์'}</span>
+                              {isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={(e) => { 
+                                e.stopPropagation(); 
+                                setDeleteConfirmModal({ isOpen: true, group });
+                              }}
+                              title="ลบประวัติรายการเบิกจ่ายนี้"
+                              className="inline-flex items-center justify-center p-2 bg-rose-50 hover:bg-rose-100/85 text-rose-600 rounded-xl cursor-pointer border border-rose-100 transition-all active:scale-90"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
                         </td>
                       </tr>
 
@@ -534,18 +580,25 @@ export default function HistoryView({ config, refreshTrigger }: HistoryViewProps
                     </div>
                   )}
 
-                  {/* Mobile Detail Show/Hide */}
-                  <div className="pt-1">
+                  {/* Mobile Detail Show/Hide & Delete */}
+                  <div className="pt-1 flex items-center gap-2">
                     <button
                       type="button"
                       onClick={() => toggleGroup(group.id)}
-                      className="w-full flex items-center justify-between px-3.5 py-2 bg-[#F5F5F7]/60 hover:bg-slate-100 border border-[#E8E8ED] rounded-xl text-xs font-bold text-slate-650 font-sans transition-all cursor-pointer"
+                      className="flex-1 flex items-center justify-between px-3.5 py-2 bg-[#F5F5F7]/60 hover:bg-slate-100 border border-[#E8E8ED] rounded-xl text-xs font-bold text-slate-650 font-sans transition-all cursor-pointer"
                     >
                       <span className="flex items-center gap-2">
                         <Package className="w-4 h-4 text-apple-primary shrink-0" />
                         <span>แสดงพัสดุทั้งหมด ({totalItemsCount} รายการ)</span>
                       </span>
                       {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDeleteConfirmModal({ isOpen: true, group })}
+                      className="p-2 bg-rose-50 hover:bg-rose-100/85 text-rose-600 rounded-xl cursor-pointer border border-rose-100 transition-all active:scale-90"
+                    >
+                      <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
 
@@ -612,11 +665,98 @@ export default function HistoryView({ config, refreshTrigger }: HistoryViewProps
                 src={activeLightboxUrl} 
                 alt="Evidence" 
                 className="max-w-full max-h-[75vh] object-contain rounded-2xl shadow-sm" 
-              />
+                />
             </div>
             <div className="mt-4 text-xs font-semibold text-[#86868B] font-sans flex items-center gap-2 pb-2">
               <Camera className="w-4 h-4 text-blue-650" />
               <span>ภาพหลักฐานใบเบิกคลังอุปกรณ์ (Cyfence Inventory Evidence Image)</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Custom Modal */}
+      {deleteConfirmModal.isOpen && deleteConfirmModal.group && (
+        <div 
+          className="fixed inset-0 z-[110] flex items-center justify-center bg-[#1D1D1F]/70 backdrop-blur-md transition-opacity duration-300 animate-in fade-in"
+          onClick={() => setDeleteConfirmModal({ isOpen: false, group: null })}
+        >
+          <div 
+            className="w-full max-w-md p-6 bg-white rounded-3xl overflow-hidden shadow-2xl animate-in zoom-in-95 duration-250 border border-[#E8E8ED] space-y-4 m-4"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Warning Icon & Header */}
+            <div className="flex items-center gap-3 pb-2 border-b border-[#E8E8ED]">
+              <div className="p-2.5 bg-rose-50 text-rose-600 rounded-2xl">
+                <Trash2 className="w-6 h-6 animate-bounce" />
+              </div>
+              <div className="text-left">
+                <h3 className="text-sm font-bold text-[#1D1D1F] font-sans">
+                  ยืนยันการลบประวัติใบเบิกพัสดุ
+                </h3>
+                <p className="text-[10px] text-slate-500 font-sans mt-0.5">Delete Transaction History permanently</p>
+              </div>
+            </div>
+
+            {/* Content Details */}
+            <div className="space-y-3 font-sans text-left">
+              <div className="bg-[#F5F5F7] rounded-2xl p-4 border border-[#E8E8ED] space-y-2">
+                <p className="text-xs text-slate-600 font-semibold">
+                  คุณต้องการลบรายการประวัตินี้ออกจากคลังและประวัติระบบอย่างถาวรหรือไม่?
+                </p>
+                <div className="text-[11px] text-slate-500 space-y-1">
+                  <p>
+                    ใบเบิกเลขที่: <span className="font-mono text-black font-bold">{deleteConfirmModal.group.id.substring(6, 14).toUpperCase()}</span>
+                  </p>
+                  <p>
+                    ผู้ขอเบิก: <span className="text-black font-bold">{deleteConfirmModal.group.borrower_name}</span>
+                  </p>
+                  <p>
+                    ฝ่าย/สังกัด: <span className="text-black font-bold">{deleteConfirmModal.group.borrower_department}</span>
+                  </p>
+                  <p>
+                    วัตถุประสงค์: <span className="text-black italic font-bold">"{deleteConfirmModal.group.purpose}"</span>
+                  </p>
+                </div>
+              </div>
+
+              {/* Warning Notice */}
+              <div className="flex gap-2.5 p-3.5 bg-red-50 border border-red-200 rounded-2xl">
+                <AlertCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                  <p className="text-xs font-bold text-red-850">
+                    ⚠️ ข้อควรระวังในการลบ
+                  </p>
+                  <p className="text-[10.5px] text-red-700 leading-relaxed font-semibold">
+                    การดำเนินการนี้จะลบประวัติการทำรายการเบิก-คืน รวมทั้งลบใบคำขอเบิก (Borrow Request) ที่เชื่อมโยงกันในหน้า "อนุมัติคำขอ" ทันที เพื่อให้ข้อมูลทั้งสองหน้าตรงกัน (Sync) อย่างสมบูรณ์ การลบนี้ไม่สามารถกู้คืนกลับมาได้!
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="grid grid-cols-2 gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setDeleteConfirmModal({ isOpen: false, group: null })}
+                disabled={deleting}
+                className="py-3 px-4 border border-[#E8E8ED] hover:bg-[#F5F5F7] text-slate-655 hover:text-black font-bold text-xs rounded-xl transition-all cursor-pointer text-center select-none disabled:opacity-50"
+              >
+                ยกเลิก
+              </button>
+              <button
+                type="button"
+                onClick={executeDeleteGroup}
+                disabled={deleting}
+                className="py-3 px-4 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-xl shadow-md transition-all cursor-pointer text-center select-none flex items-center justify-center gap-1.5 disabled:opacity-50"
+              >
+                {deleting ? (
+                  <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+                ) : (
+                  <Trash2 className="w-3.5 h-3.5" />
+                )}
+                {deleting ? 'กำลังลบ...' : 'ลบประวัติรายการ'}
+              </button>
             </div>
           </div>
         </div>

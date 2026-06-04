@@ -1684,6 +1684,72 @@ export async function deleteBorrowRequest(config: SupabaseConfig, id: string): P
   return false;
 }
 
+// Delete a transaction group and its associated borrow request (Admin action)
+export async function deleteTransactionsGroup(config: SupabaseConfig, txIds: string[]): Promise<boolean> {
+  const client = getSupabaseClient(config);
+  if (client) {
+    try {
+      // 1. Delete transactions from transactions table
+      if (txIds && txIds.length > 0) {
+        const { error: txErr } = await client
+          .from('transactions')
+          .delete()
+          .in('id', txIds);
+        if (txErr) throw txErr;
+      }
+
+      // 2. Find and delete corresponding borrow request if any exists
+      const { data: reqs } = await client.from('borrow_requests').select('*');
+      if (reqs) {
+        for (const req of reqs) {
+          let reqTxIds: string[] = [];
+          if (req.transaction_ids) {
+            if (Array.isArray(req.transaction_ids)) {
+              reqTxIds = req.transaction_ids;
+            } else {
+              try {
+                reqTxIds = JSON.parse(req.transaction_ids);
+              } catch {
+                reqTxIds = [];
+              }
+            }
+          }
+          const hasMatch = reqTxIds.some((id: string) => txIds.includes(id));
+          if (hasMatch) {
+            await client.from('borrow_requests').delete().eq('id', req.id);
+          }
+        }
+      }
+
+      return true;
+    } catch (err: any) {
+      console.error('Error deleting transactions group:', err);
+      handleSupabaseError(err, 'ลบประวัติรายการเบิกจ่าย');
+      return false;
+    }
+  }
+
+  // LocalStorage fallback
+  const localTxsSaved = localStorage.getItem('item_inventory_transactions_data');
+  if (localTxsSaved) {
+    const localTxs = JSON.parse(localTxsSaved);
+    const filteredTxs = localTxs.filter((tx: any) => !txIds.includes(tx.id));
+    localStorage.setItem('item_inventory_transactions_data', JSON.stringify(filteredTxs));
+  }
+
+  const localReqsSaved = localStorage.getItem('borrow_requests_local');
+  if (localReqsSaved) {
+    const localReqs = JSON.parse(localReqsSaved);
+    const filteredReqs = localReqs.filter((req: any) => {
+      const reqTxIds = req.transaction_ids || [];
+      return !reqTxIds.some((id: string) => txIds.includes(id));
+    });
+    localStorage.setItem('borrow_requests_local', JSON.stringify(filteredReqs));
+  }
+
+  return true;
+}
+
 // Return items on a borrow request (Partial Return support)
 export async function returnBorrowRequestItems(
   config: SupabaseConfig,
