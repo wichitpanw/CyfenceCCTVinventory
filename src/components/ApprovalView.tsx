@@ -37,6 +37,7 @@ import {
   returnBorrowRequestItems,
   revertEntireBorrowRequestReturn,
   deleteBorrowRequest,
+  updateBorrowRequestItems,
 } from '../services/db';
 
 const compressImage = (file: File): Promise<string> =>
@@ -198,6 +199,32 @@ export default function ApprovalView({ config, refreshTrigger, onRefresh }: Appr
       setCardError(req.id, e?.message || 'ไม่สามารถปฏิเสธได้');
     } finally {
       setCardLoading(req.id, false);
+    }
+  };
+
+  const handleUpdateItemQty = async (req: BorrowRequest, equipmentId: string, newQty: number) => {
+    const eq = equipments.find(e => e.id === equipmentId);
+    const maxQty = eq ? (eq.available_qty ?? 0) : 999;
+    
+    // Clamp quantity
+    const clampedQty = Math.max(1, Math.min(maxQty, newQty));
+    
+    const updatedItems = req.items.map(item => {
+      if (item.equipment_id === equipmentId) {
+        return { ...item, qty: clampedQty };
+      }
+      return item;
+    });
+
+    // Optimistically update local UI state
+    setRequests(prev => prev.map(r => r.id === req.id ? { ...r, items: updatedItems } : r));
+
+    try {
+      await updateBorrowRequestItems(config, req.id, updatedItems);
+    } catch (err: any) {
+      setCardError(req.id, err?.message || 'ไม่สามารถปรับปรุงจำนวนพัสดุได้');
+      // Revert state on database failure by reloading
+      await loadData();
     }
   };
 
@@ -579,14 +606,64 @@ export default function ApprovalView({ config, refreshTrigger, onRefresh }: Appr
                                 <p className={`text-xs font-bold ${isFullyReturned ? 'text-slate-500 line-through' : 'text-[#1D1D1F]'}`}>{item.equipment_name}</p>
                                 <p className="text-[10px] text-[#86868B] font-mono">{item.equipment_code}</p>
                               </div>
-                              <div className="text-right">
-                                <p className="text-xs font-extrabold text-[#000000]">
-                                  {item.qty} ชิ้น
-                                </p>
-                                {actualReturnedQty > 0 && (
-                                  <p className="text-[9px] font-semibold text-[#86868B]">
-                                    (คืนแล้ว {actualReturnedQty} ชิ้น, ค้าง {remainingQty} ชิ้น)
-                                  </p>
+                              <div className="text-right flex items-center gap-2">
+                                {req.status === 'approved' ? (
+                                  <div className="flex items-center gap-1">
+                                    <button
+                                      type="button"
+                                      onClick={() => handleUpdateItemQty(req, item.equipment_id, item.qty - 1)}
+                                      disabled={item.qty <= 1}
+                                      className="p-1 rounded bg-[#E8E8ED] hover:bg-[#D8D8DC] text-[#1D1D1F] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                                      title="ลดจำนวน"
+                                    >
+                                      <Minus className="h-3 w-3" />
+                                    </button>
+                                    <input
+                                      type="number"
+                                      value={item.qty}
+                                      onChange={(e) => {
+                                        const val = parseInt(e.target.value, 10);
+                                        const updatedItems = req.items.map(it => 
+                                          it.equipment_id === item.equipment_id ? { ...it, qty: isNaN(val) ? 0 : val } : it
+                                        );
+                                        setRequests(prev => prev.map(r => r.id === req.id ? { ...r, items: updatedItems } : r));
+                                      }}
+                                      onBlur={(e) => {
+                                        const val = parseInt(e.target.value, 10);
+                                        const eq = equipments.find(el => el.id === item.equipment_id);
+                                        const maxLimit = eq ? (eq.available_qty ?? 0) : 999;
+                                        const finalVal = Math.max(1, Math.min(maxLimit, isNaN(val) ? 1 : val));
+                                        handleUpdateItemQty(req, item.equipment_id, finalVal);
+                                      }}
+                                      className="w-12 text-center text-xs font-bold bg-[#FFFFFF] border border-[#D1D1D6] rounded px-1 py-0.5 focus:outline-none focus:border-[#000000]"
+                                    />
+                                    <button
+                                      type="button"
+                                      onClick={() => handleUpdateItemQty(req, item.equipment_id, item.qty + 1)}
+                                      disabled={(() => {
+                                        const eq = equipments.find(el => el.id === item.equipment_id);
+                                        return eq ? item.qty >= (eq.available_qty ?? 0) : false;
+                                      })()}
+                                      className="p-1 rounded bg-[#E8E8ED] hover:bg-[#D8D8DC] text-[#1D1D1F] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                                      title="เพิ่มจำนวน"
+                                    >
+                                      <Plus className="h-3 w-3" />
+                                    </button>
+                                    <span className="text-xs text-[#86868B] ml-0.5">ชิ้น</span>
+                                  </div>
+                                ) : (
+                                  <>
+                                    <div>
+                                      <p className="text-xs font-extrabold text-[#000000]">
+                                        {item.qty} ชิ้น
+                                      </p>
+                                      {actualReturnedQty > 0 && (
+                                        <p className="text-[9px] font-semibold text-[#86868B]">
+                                          (คืนแล้ว {actualReturnedQty} ชิ้น, ค้าง {remainingQty} ชิ้น)
+                                        </p>
+                                      )}
+                                    </div>
+                                  </>
                                 )}
                               </div>
                             </div>
