@@ -1617,6 +1617,55 @@ export async function updateBorrowRequestStatus(
   throw new Error('ไม่พบคำขอที่ต้องการอัปเดต');
 }
 
+// Update borrow request items (Admin action before dispatching)
+export async function updateBorrowRequestItems(
+  config: SupabaseConfig,
+  requestId: string,
+  items: BorrowRequestItem[]
+): Promise<BorrowRequest> {
+  const now = new Date().toISOString();
+  const patch: any = { items, updated_at: now };
+
+  const client = getSupabaseClient(config);
+  if (client) {
+    try {
+      const { data, error } = await client
+        .from('borrow_requests')
+        .update(patch)
+        .eq('id', requestId)
+        .select();
+      if (!error && data && data[0]) {
+        const r = data[0] as any;
+        return {
+          ...r,
+          items: Array.isArray(r.items) ? r.items : JSON.parse(r.items || '[]'),
+          transaction_ids: Array.isArray(r.transaction_ids) ? r.transaction_ids : [],
+        } as BorrowRequest;
+      }
+      if (error) throw error;
+    } catch (err: any) {
+      console.error('Error updating borrow_request items:', err);
+      handleSupabaseError(err, 'อัปเดตรายการใบเบิก');
+    }
+  }
+
+  // LocalStorage fallback
+  const stored = localStorage.getItem('borrow_requests_local');
+  const list: BorrowRequest[] = stored ? JSON.parse(stored) : [];
+  const idx = list.findIndex(r => r.id === requestId);
+  if (idx !== -1) {
+    list[idx] = {
+      ...list[idx],
+      items,
+      updated_at: now
+    };
+    localStorage.setItem('borrow_requests_local', JSON.stringify(list));
+    return list[idx];
+  }
+
+  throw new Error('ไม่พบใบเบิกที่ระบุ');
+}
+
 // Delete a borrow request (Admin action)
 export async function deleteBorrowRequest(config: SupabaseConfig, id: string): Promise<boolean> {
   const client = getSupabaseClient(config);
