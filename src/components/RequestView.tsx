@@ -125,6 +125,7 @@ export default function RequestView({ config, refreshTrigger }: RequestViewProps
     if (cart.length === 0) { setSubmitError('กรุณาเลือกอุปกรณ์ที่ต้องการขอเบิกอย่างน้อย 1 รายการ'); return; }
     if (!requesterName.trim()) { setSubmitError('กรุณาระบุชื่อ-นามสกุลผู้ยื่นคำขอ'); return; }
     if (!requesterContact.trim()) { setSubmitError('กรุณาระบุเบอร์โทรติดต่อ'); return; }
+    if (!purpose.trim()) { setSubmitError('กรุณาระบุวัตถุประสงค์การใช้งาน'); return; }
     if (!dueDate) { setSubmitError('กรุณาระบุวันที่ต้องการคืนพัสดุ'); return; }
 
     const finalCompany = requesterCompany === 'อื่นๆ ระบุ'
@@ -269,7 +270,31 @@ export default function RequestView({ config, refreshTrigger }: RequestViewProps
                   <div className="flex items-center gap-2 shrink-0">
                     <button type="button" onClick={() => { const n=[...cart]; if(n[idx].qty>1)n[idx].qty--; else n.splice(idx,1); setCart(n); }}
                       className="w-6 h-6 bg-white border border-[#E8E8ED] rounded-lg text-sm font-bold text-[#1D1D1F] flex items-center justify-center hover:bg-gray-50 transition">-</button>
-                    <span className="w-6 text-center text-xs font-bold">{item.qty}</span>
+                    <input
+                      type="number"
+                      min={1}
+                      max={item.equipment.available_qty ?? 9999}
+                      value={item.qty || ''}
+                      onChange={(e) => {
+                        const val = parseInt(e.target.value, 10);
+                        const n = [...cart];
+                        if (!isNaN(val)) {
+                          const max = item.equipment.available_qty ?? 9999;
+                          n[idx].qty = Math.min(Math.max(1, val), max);
+                        } else {
+                          n[idx].qty = 0;
+                        }
+                        setCart(n);
+                      }}
+                      onBlur={() => {
+                        const n = [...cart];
+                        if (n[idx].qty < 1 || isNaN(n[idx].qty)) {
+                          n[idx].qty = 1;
+                          setCart(n);
+                        }
+                      }}
+                      className="w-12 text-center text-xs font-bold bg-white border border-[#E8E8ED] rounded-lg py-1 focus:outline-none focus:border-black [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    />
                     <button type="button" onClick={() => { const n=[...cart]; const avail=(n[idx].equipment.available_qty??1); if(n[idx].qty<avail)n[idx].qty++; setCart(n); }}
                       className="w-6 h-6 bg-white border border-[#E8E8ED] rounded-lg text-sm font-bold text-[#1D1D1F] flex items-center justify-center hover:bg-gray-50 transition">+</button>
                     <button type="button" onClick={() => removeFromCart(idx)}
@@ -371,9 +396,34 @@ export default function RequestView({ config, refreshTrigger }: RequestViewProps
                             >
                               -
                             </button>
-                            <span className="w-5 text-center text-xs font-extrabold font-mono text-black">
-                              {inCartQty}
-                            </span>
+                            <input
+                              type="number"
+                              min={1}
+                              max={availableStock}
+                              value={inCartQty || ''}
+                              onChange={(e) => {
+                                const val = parseInt(e.target.value, 10);
+                                const newCart = [...cart];
+                                const idx = newCart.findIndex(c => c.equipment.id === eq.id);
+                                if (idx !== -1) {
+                                  if (!isNaN(val)) {
+                                    newCart[idx].qty = Math.min(Math.max(1, val), availableStock);
+                                  } else {
+                                    newCart[idx].qty = 0;
+                                  }
+                                  setCart(newCart);
+                                }
+                              }}
+                              onBlur={() => {
+                                const newCart = [...cart];
+                                const idx = newCart.findIndex(c => c.equipment.id === eq.id);
+                                if (idx !== -1 && (newCart[idx].qty < 1 || isNaN(newCart[idx].qty))) {
+                                  newCart[idx].qty = 1;
+                                  setCart(newCart);
+                                }
+                              }}
+                              className="w-10 text-center text-xs font-extrabold font-mono text-black bg-transparent border-none focus:outline-none focus:ring-0 p-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                            />
                             <button
                               type="button"
                               disabled={inCartQty >= availableStock}
@@ -469,11 +519,11 @@ export default function RequestView({ config, refreshTrigger }: RequestViewProps
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Purpose */}
             <div className="md:col-span-2">
-              <label className="block text-[10px] font-semibold uppercase tracking-wider text-[#86868B] mb-1.5">วัตถุประสงค์การใช้งาน</label>
+              <label className="block text-[10px] font-semibold uppercase tracking-wider text-[#86868B] mb-1.5">วัตถุประสงค์การใช้งาน *</label>
               <div className="relative">
                 <FileText className="absolute left-3 top-2.5 h-4 w-4 text-[#86868B] pointer-events-none" />
                 <textarea rows={2} value={purpose} onChange={e=>setPurpose(e.target.value)}
-                  placeholder="เช่น ใช้ในงานโครงการติดตั้งกล้องโครงการ X ที่..."
+                  placeholder="เช่น ใช้ในงานโครงการติดตั้งกล้องโครงการ X ที่..." required
                   className="w-full pl-9 pr-3 py-2 border border-[#E8E8ED] rounded-xl text-xs focus:outline-none focus:border-[#000000] bg-[#F5F5F7] focus:bg-white transition resize-none" />
               </div>
             </div>
