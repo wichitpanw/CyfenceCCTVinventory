@@ -31,11 +31,16 @@ export interface Transaction {
   return_date: string | null; // ISO date string of actual return
   purpose: string; // วัตถุประสงค์
   status: 'borrowing' | 'returned' | 'overdue'; // สถานะรายการ
-  condition_on_return?: string; // สภาพตอนคืน
+  condition_on_return?: string; // หมายเหตุสภาพตอนคืน (ข้อความอิสระ)
+  condition_status?: EquipmentCondition; // สภาพตอนคืนแบบมีโครงสร้าง — ใช้คำนวณ/ย้อนสต็อก
   borrow_qty?: number; // จำนวนที่ยืมไป
   evidence_image_url?: string; // รูปหลักฐานถ่ายเก็บไว้ตอนทำความร่วมมือเบิก-คืน
+  parent_tx_id?: string | null; // ถ้าเกิดจากการคืนบางส่วน จะชี้ไปยัง transaction ตัวแม่
   created_at: string;
 }
+
+/** ช่องที่พัสดุจะถูกนับกลับเข้าคลังเมื่อคืน */
+export type EquipmentCondition = 'available' | 'maintenance' | 'broken';
 
 export interface SupabaseConfig {
   supabaseUrl: string;
@@ -54,6 +59,27 @@ export interface DashboardStats {
   overdueBorrows: number;
 }
 
+/** สิ่งที่ API ส่งกลับให้หน้าเว็บ — ไม่มีความลับ (PIN / bot token) อยู่ในนี้ */
+export interface PublicSystemSettings {
+  id: string;
+  title: string;
+  description: string;
+  version: string;
+  custom_logo: string;
+  has_custom_pin: boolean;
+  has_telegram_token: boolean;
+  has_telegram_chat_id: boolean;
+}
+
+/** รายการที่ส่งไปตอนบันทึกรับคืน — แยกสภาพ (ช่องในคลัง) ออกจากหมายเหตุ (ข้อความ) */
+export interface ReturnItemInput {
+  equipment_id: string;
+  qty: number;
+  conditionStatus: EquipmentCondition;
+  conditionNote?: string;
+}
+
+/** รูปแบบที่ใช้ตอน "บันทึก" ค่าตั้งค่าเท่านั้น — เว้นฟิลด์ความลับไว้ = คงค่าเดิม */
 export interface SystemSettings {
   id: string;
   title: string;

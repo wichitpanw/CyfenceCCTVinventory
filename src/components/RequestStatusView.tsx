@@ -1,256 +1,356 @@
 /**
- * RequestStatusView.tsx — หน้าตรวจสอบสถานะคำขอยื่นเบิกสำหรับผู้ใช้ทั่วไป
+ * RequestStatusView.tsx — หน้าติดตามสถานะคำขอเบิกสำหรับผู้ใช้ทั่วไป
  */
-import React, { useState, useEffect } from 'react';
-import {
-  ClipboardList,
-  Search,
-  Clock,
-  CheckCircle,
-  XCircle,
-  Truck,
-  RotateCcw,
-  Calendar,
-  User,
-  Briefcase,
-  AlertCircle,
-  FileText,
-  MapPin,
-} from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { ClipboardList, Search, User, MapPin, AlertTriangle, PackageCheck } from 'lucide-react';
 import { BorrowRequest, SupabaseConfig } from '../types';
 import { getBorrowRequests } from '../services/db';
+import { statusMeta, REQUEST_STEPS } from '../lib/statusMeta';
+import { formatDate, formatDateTime, dueLabel, isOverdue } from '../lib/format';
+import { getMyRequestIds } from '../lib/myRequests';
+import { useToast } from './ui/Toast';
 
 interface RequestStatusViewProps {
   config: SupabaseConfig;
   refreshTrigger: number;
 }
 
-const STATUS_LABELS: Record<BorrowRequest['status'], { label: string; color: string; bg: string; icon: React.ReactNode }> = {
-  pending_approval: { label: 'รอการอนุมัติ', color: 'text-amber-700', bg: 'bg-amber-50 border-amber-250', icon: <Clock className="h-3.5 w-3.5" /> },
-  approved: { label: 'อนุมัติแล้ว (รอจ่ายพัสดุ)', color: 'text-emerald-700', bg: 'bg-emerald-50 border-emerald-250', icon: <CheckCircle className="h-3.5 w-3.5" /> },
-  rejected: { label: 'ปฏิเสธการขอเบิก', color: 'text-red-700', bg: 'bg-red-50 border-red-250', icon: <XCircle className="h-3.5 w-3.5" /> },
-  borrowing: { label: 'กำลังเบิกใช้งานอยู่', color: 'text-blue-700', bg: 'bg-blue-50 border-blue-250', icon: <Truck className="h-3.5 w-3.5" /> },
-  returned: { label: 'ส่งมอบคืนคลังแล้ว', color: 'text-slate-600', bg: 'bg-slate-50 border-slate-255', icon: <CheckCircle className="h-3.5 w-3.5" /> },
-  cancelled: { label: 'ยกเลิกคำขอ', color: 'text-slate-500', bg: 'bg-slate-50 border-slate-200', icon: <XCircle className="h-3.5 w-3.5" /> },
-};
+type Scope = 'mine' | 'all';
 
 export default function RequestStatusView({ config, refreshTrigger }: RequestStatusViewProps) {
+  const toast = useToast();
+
   const [requests, setRequests] = useState<BorrowRequest[]>([]);
   const [loading, setLoading] = useState(true);
+  const [myIds, setMyIds] = useState<string[]>([]);
+
+  const [scope, setScope] = useState<Scope>('mine');
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('pending_approval');
-  const [startDate, setStartDate] = useState<string>('');
-  const [endDate, setEndDate] = useState<string>('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
   const [dateType, setDateType] = useState<'create' | 'due'>('create');
 
   useEffect(() => {
     setLoading(true);
+    const ids = getMyRequestIds();
+    setMyIds(ids);
+    // ถ้าเบราว์เซอร์นี้ยังไม่เคยยื่นคำขอ ให้เริ่มที่มุมมองทั้งหมดแทนหน้าว่าง
+    if (ids.length === 0) setScope('all');
+
     getBorrowRequests(config)
       .then(setRequests)
+      .catch(e => toast.error(e?.message || 'โหลดข้อมูลคำขอไม่สำเร็จ'))
       .finally(() => setLoading(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [config, refreshTrigger]);
 
-  const filtered = requests.filter(r => {
-    // 1. Search term match
-    if (searchTerm) {
-      const term = searchTerm.toLowerCase();
-      const matchSearch = 
-        r.id.toLowerCase().includes(term) ||
-        r.requester_name.toLowerCase().includes(term) ||
-        r.requester_company.toLowerCase().includes(term) ||
-        (r.purpose && r.purpose.toLowerCase().includes(term));
-      if (!matchSearch) return false;
-    }
+  const filtered = useMemo(() => {
+    const term = searchTerm.toLowerCase().trim();
+    return requests.filter(r => {
+      if (scope === 'mine' && !myIds.includes(r.id)) return false;
 
-    // 2. Status match
-    if (statusFilter !== 'all' && r.status !== statusFilter) {
-      return false;
-    }
-
-    // 3. Date range match
-    if (startDate || endDate) {
-      const compareDateStr = dateType === 'create' ? r.created_at : r.requested_due_date;
-      const compareDate = new Date(compareDateStr);
-      
-      if (startDate) {
-        const start = new Date(startDate);
-        start.setHours(0,0,0,0);
-        if (compareDate < start) return false;
+      if (term) {
+        const hit =
+          r.id.toLowerCase().includes(term) ||
+          r.requester_name.toLowerCase().includes(term) ||
+          r.requester_company.toLowerCase().includes(term) ||
+          (r.purpose || '').toLowerCase().includes(term);
+        if (!hit) return false;
       }
-      if (endDate) {
-        const end = new Date(endDate);
-        end.setHours(23,59,59,999);
-        if (compareDate > end) return false;
-      }
-    }
 
-    return true;
-  });
+      if (statusFilter !== 'all' && r.status !== statusFilter) return false;
+
+      if (startDate || endDate) {
+        const compare = new Date(dateType === 'create' ? r.created_at : r.requested_due_date);
+        if (startDate) {
+          const start = new Date(startDate);
+          start.setHours(0, 0, 0, 0);
+          if (compare < start) return false;
+        }
+        if (endDate) {
+          const end = new Date(endDate);
+          end.setHours(23, 59, 59, 999);
+          if (compare > end) return false;
+        }
+      }
+      return true;
+    });
+  }, [requests, scope, myIds, searchTerm, statusFilter, startDate, endDate, dateType]);
+
+  const hasFilters = statusFilter !== 'all' || !!startDate || !!endDate || !!searchTerm;
+  const clearFilters = () => {
+    setStatusFilter('all');
+    setStartDate('');
+    setEndDate('');
+    setSearchTerm('');
+  };
 
   return (
     <div className="space-y-6 text-left" id="request-status-view-wrapper">
       <div>
-        <h2 className="text-sm font-bold font-sans text-slate-900 uppercase tracking-wider flex items-center gap-2">
-          <ClipboardList className="h-4 w-4 text-[#000000]" />
-          รายการรอยืนยัน
+        <h2 className="text-sm font-bold text-[#1D1D1F] uppercase tracking-wider flex items-center gap-2">
+          <ClipboardList className="h-4 w-4" />
+          ติดตามสถานะคำขอ
         </h2>
-        <p className="text-xs text-slate-500 font-sans mt-0.5">
-          ตรวจสอบสถานะคำขอเบิกพัสดุและสถานที่/งานระบบที่ขอเบิกใช้งานอุปกรณ์จริง
-        </p>
+        <p className="text-xs text-[#6E6E73] mt-0.5">ตรวจสอบว่าคำขอเบิกของคุณอยู่ในขั้นตอนไหนแล้ว</p>
       </div>
 
-      {/* Search and Advanced Filters */}
-      <div className="bg-white p-5 rounded-2xl border border-[#E8E8ED] shadow-[0_4px_16px_rgba(0,0,0,0.02)] space-y-4">
-        {/* Search Bar */}
+      {/* สลับมุมมอง คำขอของฉัน / ทั้งหมด */}
+      <div className="bg-[#F5F5F7] p-1 rounded-2xl flex gap-1">
+        {([
+          ['mine', `คำขอของฉัน${myIds.length ? ` (${myIds.length})` : ''}`],
+          ['all', 'คำขอทั้งหมด'],
+        ] as [Scope, string][]).map(([val, label]) => (
+          <button
+            key={val}
+            onClick={() => setScope(val)}
+            className={`flex-1 px-3 py-2 rounded-xl text-xs font-semibold transition cursor-pointer ${
+              scope === val ? 'bg-white text-[#1D1D1F] shadow-sm' : 'text-[#6E6E73] hover:text-[#1D1D1F]'
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {/* ค้นหาและตัวกรอง */}
+      <div className="bg-white p-5 rounded-2xl border border-[#E8E8ED] space-y-4">
         <div className="relative">
-          <Search className="absolute left-3.5 top-3 h-4 w-4 text-slate-400 pointer-events-none" />
+          <Search className="absolute left-3.5 top-3 h-4 w-4 text-[#86868B] pointer-events-none" />
           <input
             type="text"
-            placeholder="ค้นหาด้วยรหัสคำขอ, ชื่อผู้ยื่น หรือวัตถุประสงค์สถานที่..."
+            placeholder="ค้นหาด้วยรหัสอ้างอิงคำขอ, ชื่อผู้ยื่น หรือวัตถุประสงค์..."
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 border border-[#E8E8ED] rounded-xl text-xs font-sans focus:outline-hidden focus:border-[#000000] bg-[#F5F5F7]/60 focus:bg-white transition-all"
+            onChange={e => setSearchTerm(e.target.value)}
+            className="w-full pl-10 pr-4 py-2.5 border border-[#E8E8ED] rounded-xl text-xs bg-[#F5F5F7] focus:bg-white focus:outline-none focus:border-[#1D1D1F] transition"
           />
         </div>
 
-        {/* Date and Status Filters Grid */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-          {/* Status filter dropdown */}
-          <div>
-            <label className="block text-[10px] font-sans text-slate-450 font-bold uppercase tracking-wider mb-1.5">กรองตามสถานะ</label>
+          <FilterField label="สถานะ">
             <select
               value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="w-full px-3 py-2 border border-[#E8E8ED] rounded-xl text-xs font-sans focus:outline-hidden focus:border-[#000000] bg-white transition-all cursor-pointer appearance-none"
+              onChange={e => setStatusFilter(e.target.value)}
+              className={selectCls}
             >
-              <option value="all">แสดงสถานะทั้งหมด</option>
+              <option value="all">แสดงทุกสถานะ</option>
               <option value="pending_approval">รอการอนุมัติ</option>
               <option value="approved">อนุมัติแล้ว</option>
-              <option value="rejected">ปฏิเสธ</option>
               <option value="borrowing">กำลังยืม</option>
               <option value="returned">คืนแล้ว</option>
+              <option value="rejected">ปฏิเสธ</option>
             </select>
-          </div>
+          </FilterField>
 
-          {/* Date Type selection dropdown */}
-          <div>
-            <label className="block text-[10px] font-sans text-slate-450 font-bold uppercase tracking-wider mb-1.5">ประเภทวันที่กรอง</label>
-            <select
-              value={dateType}
-              onChange={(e) => setDateType(e.target.value as 'create' | 'due')}
-              className="w-full px-3 py-2 border border-[#E8E8ED] rounded-xl text-xs font-sans focus:outline-hidden focus:border-[#000000] bg-white transition-all cursor-pointer appearance-none"
-            >
-              <option value="create">กรองตามวันที่ยื่นคำขอ</option>
-              <option value="due">กรองตามกำหนดส่งคืน</option>
+          <FilterField label="ประเภทวันที่">
+            <select value={dateType} onChange={e => setDateType(e.target.value as 'create' | 'due')} className={selectCls}>
+              <option value="create">วันที่ยื่นคำขอ</option>
+              <option value="due">กำหนดส่งคืน</option>
             </select>
-          </div>
+          </FilterField>
 
-          {/* Start Date filter */}
-          <div>
-            <label className="block text-[10px] font-sans text-slate-450 font-bold uppercase tracking-wider mb-1.5">ตั้งแต่วันที่</label>
-            <input
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              className="w-full px-3 py-1.5 border border-[#E8E8ED] rounded-xl text-xs font-sans focus:outline-hidden focus:border-[#000000] bg-white transition-all"
-            />
-          </div>
+          <FilterField label="ตั้งแต่วันที่">
+            <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className={selectCls} />
+          </FilterField>
 
-          {/* End Date filter */}
-          <div>
-            <label className="block text-[10px] font-sans text-slate-450 font-bold uppercase tracking-wider mb-1.5">ถึงวันที่</label>
-            <input
-              type="date"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-              className="w-full px-3 py-1.5 border border-[#E8E8ED] rounded-xl text-xs font-sans focus:outline-hidden focus:border-[#000000] bg-white transition-all"
-            />
-          </div>
+          <FilterField label="ถึงวันที่">
+            <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className={selectCls} />
+          </FilterField>
         </div>
 
-        {/* Reset Filters Option */}
-        {(statusFilter !== 'all' || startDate || endDate) && (
-          <div className="flex justify-end pt-1">
+        {hasFilters && (
+          <div className="flex justify-end">
             <button
-              onClick={() => {
-                setStatusFilter('all');
-                setStartDate('');
-                setEndDate('');
-              }}
-              className="text-[10px] text-slate-500 hover:text-slate-700 font-bold underline cursor-pointer"
+              onClick={clearFilters}
+              className="text-[11px] text-[#6E6E73] hover:text-[#1D1D1F] font-bold underline cursor-pointer"
             >
-              ล้างตัวกรองทั้งหมด ✕
+              ล้างตัวกรองทั้งหมด
             </button>
           </div>
         )}
       </div>
 
+      {/* รายการ */}
       {loading ? (
-        <div className="flex items-center justify-center py-20">
-          <div className="w-8 h-8 border-3 border-[#000000] border-t-transparent rounded-full animate-spin" />
+        <div className="space-y-3">
+          {[0, 1].map(i => (
+            <div key={i} className="bg-white border border-[#E8E8ED] rounded-2xl p-5 space-y-3 animate-pulse">
+              <div className="h-4 w-40 bg-[#F5F5F7] rounded-full" />
+              <div className="h-3 w-56 bg-[#F5F5F7] rounded-full" />
+              <div className="h-16 bg-[#F5F5F7] rounded-xl" />
+            </div>
+          ))}
         </div>
       ) : filtered.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-[#E8E8ED] p-12 text-center text-slate-400 font-semibold text-xs">
-          ไม่พบรายการคำขอรอยืนยันที่ค้นหาในระบบ
+        <div className="bg-white rounded-2xl border border-[#E8E8ED] p-12 text-center space-y-3">
+          <PackageCheck className="h-8 w-8 text-[#C7C7CC] mx-auto" />
+          <p className="text-sm text-[#6E6E73] font-medium">
+            {scope === 'mine' && myIds.length === 0
+              ? 'เบราว์เซอร์นี้ยังไม่เคยยื่นคำขอ — เมื่อยื่นแล้วระบบจะจำรหัสอ้างอิงไว้ให้อัตโนมัติ'
+              : 'ไม่พบคำขอที่ตรงกับเงื่อนไขที่ค้นหา'}
+          </p>
+          {hasFilters && (
+            <button
+              onClick={clearFilters}
+              className="px-4 py-2 bg-[#1D1D1F] text-white rounded-xl text-xs font-semibold hover:bg-black transition cursor-pointer"
+            >
+              ล้างตัวกรอง
+            </button>
+          )}
         </div>
       ) : (
         <div className="space-y-4">
-          {filtered.map(req => {
-            const status = STATUS_LABELS[req.status] || { label: req.status, color: 'text-slate-600', bg: 'bg-slate-50 border-slate-200', icon: null };
-            return (
-              <div key={req.id} className="bg-white border border-[#E8E8ED] rounded-2xl p-5 shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:shadow-[0_6px_24px_rgba(0,0,0,0.05)] transition-all">
-                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 border-b border-[#E8E8ED] pb-3 mb-3">
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full border text-[10px] font-bold ${status.bg} ${status.color}`}>
-                        {status.icon}
-                        {status.label}
-                      </span>
-                      <span className="text-[10px] font-mono text-slate-400 font-bold bg-slate-50 border border-slate-100 rounded-md px-1.5 py-0.5">{req.id}</span>
-                    </div>
-                    <h3 className="text-xs font-black text-slate-800 flex items-center gap-1.5 pt-1.5">
-                      <User className="w-3.5 h-3.5 text-[#000000]" /> {req.requester_name}
-                      <span className="text-slate-400 font-semibold font-sans">({req.requester_company})</span>
-                    </h3>
-                  </div>
-
-                  <div className="text-[10px] text-slate-400 text-left sm:text-right font-sans shrink-0 font-medium">
-                    <p>ยื่นเมื่อ: {new Date(req.created_at).toLocaleDateString('th-TH', { hour: '2-digit', minute: '2-digit' })}</p>
-                    <p className="mt-0.5 text-slate-500 font-semibold">กำหนดคืน: {new Date(req.requested_due_date).toLocaleDateString('th-TH')}</p>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* Items detail list */}
-                  <div className="space-y-1.5">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">อุปกรณ์ที่เสนอขอเบิก ({req.items.length} รายการ)</p>
-                    <div className="space-y-1">
-                      {req.items.map((item, idx) => (
-                        <div key={idx} className="flex justify-between items-center bg-[#F5F5F7]/80 rounded-xl px-3 py-1.5 border border-slate-50">
-                          <span className="text-xs font-semibold text-slate-700 truncate max-w-[220px]">{item.equipment_name}</span>
-                          <span className="text-xs font-extrabold text-[#000000] shrink-0">{item.qty} ชิ้น</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Objective & Site details */}
-                  <div className="space-y-1.5 text-left">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1">
-                      <MapPin className="w-3 h-3 text-[#000000]" /> วัตถุประสงค์สถานที่ขอไป / รายละเอียดงาน
-                    </p>
-                    <div className="bg-[#F5F5F7]/80 rounded-xl p-3 border border-slate-50 min-h-[56px]">
-                      <p className="text-xs text-slate-700 leading-relaxed">
-                        {req.purpose ? req.purpose : <span className="text-slate-400 italic">ไม่ระบุวัตถุประสงค์ที่ชัดเจน</span>}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
+          {filtered.map(req => (
+            <RequestStatusCard key={req.id} req={req} isMine={myIds.includes(req.id)} />
+          ))}
         </div>
       )}
+    </div>
+  );
+}
+
+/* ────────────────────────────────────────────────────────────── */
+
+const selectCls =
+  'w-full px-3 py-2 border border-[#E8E8ED] rounded-xl text-xs bg-white focus:outline-none focus:border-[#1D1D1F] transition cursor-pointer';
+
+function FilterField({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <label className="block text-[11px] text-[#86868B] font-bold uppercase tracking-wider mb-1.5">{label}</label>
+      {children}
+    </div>
+  );
+}
+
+function RequestStatusCard({ req, isMine }: { req: BorrowRequest; isMine: boolean }) {
+  const meta = statusMeta(req.status);
+  const overdue = req.status === 'borrowing' && isOverdue(req.requested_due_date);
+  const totalReturned = req.items.reduce((s, i) => s + (i.returned_qty || 0), 0);
+
+  return (
+    <div className={`bg-white border rounded-2xl p-5 transition-all ${overdue ? 'border-red-200' : 'border-[#E8E8ED]'}`}>
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 border-b border-[#E8E8ED] pb-3 mb-3">
+        <div className="space-y-1.5 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full border text-[11px] font-bold ${meta.className}`}>
+              {meta.label}
+            </span>
+            {isMine && (
+              <span className="text-[11px] font-bold text-[#1D1D1F] bg-[#F5F5F7] border border-[#E8E8ED] rounded-full px-2 py-0.5">
+                คำขอของฉัน
+              </span>
+            )}
+            <span className="text-[11px] font-mono text-[#86868B] bg-[#F5F5F7] border border-[#E8E8ED] rounded-md px-1.5 py-0.5">
+              {req.id}
+            </span>
+          </div>
+          <h3 className="text-xs font-black text-[#1D1D1F] flex items-center gap-1.5 pt-0.5">
+            <User className="w-3.5 h-3.5" /> {req.requester_name}
+            <span className="text-[#86868B] font-semibold">({req.requester_company})</span>
+          </h3>
+        </div>
+
+        <div className="text-[11px] text-[#86868B] text-left sm:text-right shrink-0 space-y-0.5">
+          <p>ยื่นเมื่อ {formatDateTime(req.created_at)}</p>
+          <p className={overdue ? 'text-red-600 font-bold' : 'text-[#6E6E73] font-semibold'}>
+            กำหนดคืน {formatDate(req.requested_due_date)}
+            {req.status === 'borrowing' && ` · ${dueLabel(req.requested_due_date)}`}
+          </p>
+        </div>
+      </div>
+
+      <Timeline status={req.status} />
+
+      {overdue && (
+        <div className="flex items-start gap-2 mt-3 p-3 bg-red-50 border border-red-200 rounded-xl">
+          <AlertTriangle className="h-4 w-4 text-red-600 shrink-0 mt-0.5" />
+          <p className="text-[11px] text-red-700 leading-relaxed font-semibold">
+            เลยกำหนดคืนแล้ว กรุณาติดต่อเจ้าหน้าที่คลังเพื่อคืนพัสดุหรือขอขยายกำหนด
+          </p>
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
+        <div className="space-y-1.5">
+          <p className="text-[11px] font-bold uppercase tracking-wider text-[#86868B]">
+            พัสดุที่ขอเบิก ({req.items.length} รายการ)
+          </p>
+          <div className="space-y-1">
+            {req.items.map((item, idx) => {
+              const returned = item.returned_qty || 0;
+              return (
+                <div key={idx} className="flex justify-between items-center bg-[#F5F5F7] rounded-xl px-3 py-1.5 gap-2">
+                  <span className="text-xs font-semibold text-[#1D1D1F] truncate">{item.equipment_name}</span>
+                  <span className="text-xs font-extrabold text-[#1D1D1F] shrink-0">
+                    {item.qty} ชิ้น
+                    {returned > 0 && <span className="text-[11px] font-semibold text-emerald-700"> · คืนแล้ว {returned}</span>}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+          {totalReturned > 0 && req.status === 'borrowing' && (
+            <p className="text-[11px] text-[#6E6E73]">คืนแล้วรวม {totalReturned} ชิ้น — ยังมีรายการค้างคืนอยู่</p>
+          )}
+        </div>
+
+        <div className="space-y-1.5">
+          <p className="text-[11px] font-bold uppercase tracking-wider text-[#86868B] flex items-center gap-1">
+            <MapPin className="w-3 h-3" /> วัตถุประสงค์ / สถานที่ปฏิบัติงาน
+          </p>
+          <div className="bg-[#F5F5F7] rounded-xl p-3 min-h-[56px]">
+            <p className="text-xs text-[#1D1D1F] leading-relaxed">
+              {req.purpose || <span className="text-[#86868B] italic">ไม่ระบุวัตถุประสงค์</span>}
+            </p>
+          </div>
+          {req.admin_note && (
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-3">
+              <p className="text-[11px] font-bold text-amber-800 mb-0.5">หมายเหตุจากเจ้าหน้าที่</p>
+              <p className="text-xs text-amber-900 leading-relaxed">{req.admin_note}</p>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Timeline({ status }: { status: BorrowRequest['status'] }) {
+  const meta = statusMeta(status);
+
+  if (meta.step < 0) {
+    return (
+      <div className={`rounded-xl px-3 py-2 text-[11px] font-bold border ${meta.className}`}>
+        คำขอนี้{meta.label}แล้ว — ไม่มีการดำเนินการต่อ
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-1.5">
+      {REQUEST_STEPS.map((label, idx) => {
+        const stepNo = idx + 1;
+        const done = meta.step >= stepNo;
+        return (
+          <React.Fragment key={label}>
+            <div className="flex flex-col items-center gap-1 shrink-0">
+              <span
+                className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
+                  done ? 'bg-[#1D1D1F] text-white' : 'bg-[#E8E8ED] text-[#86868B]'
+                }`}
+              >
+                {stepNo}
+              </span>
+              <span className={`text-[10px] font-semibold ${done ? 'text-[#1D1D1F]' : 'text-[#A0A0A5]'}`}>{label}</span>
+            </div>
+            {stepNo < REQUEST_STEPS.length && (
+              <span className={`flex-1 h-0.5 rounded-full ${meta.step > stepNo ? 'bg-[#1D1D1F]' : 'bg-[#E8E8ED]'}`} />
+            )}
+          </React.Fragment>
+        );
+      })}
     </div>
   );
 }

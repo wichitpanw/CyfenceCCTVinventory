@@ -85,12 +85,17 @@ export default function SupabaseSettingsView({
   });
 
   // Local state for custom Admin 6-digit PIN
-  const [adminPinInput, setAdminPinInput] = useState(() => localStorage.getItem('system_admin_sidebar_pin') || '888888');
+  // ค่าเริ่มต้นเป็นช่องว่าง — PIN จริงอยู่ที่ server พิมพ์ค่าใหม่เพื่อเปลี่ยนเท่านั้น
+  const [adminPinInput, setAdminPinInput] = useState('');
   const [pinSaveSuccess, setPinSaveSuccess] = useState(false);
 
   // Telegram Notifications States
-  const [telegramToken, setTelegramToken] = useState(() => localStorage.getItem('system_telegram_bot_token') || '');
-  const [telegramChatId, setTelegramChatId] = useState(() => localStorage.getItem('system_telegram_chat_id') || '');
+  // ค่าจริงเก็บอยู่ใน D1 ฝั่ง server เท่านั้น หน้านี้รู้แค่ว่า "ตั้งค่าไว้แล้วหรือยัง"
+  // เว้นช่องว่างไว้ = คงค่าเดิม / พิมพ์ทับ = เปลี่ยนค่า
+  const [telegramToken, setTelegramToken] = useState('');
+  const [telegramChatId, setTelegramChatId] = useState('');
+  const [hasStoredToken, setHasStoredToken] = useState(false);
+  const [hasStoredChatId, setHasStoredChatId] = useState(false);
   const [telegramTestStatus, setTelegramTestStatus] = useState<{ success: boolean; message: string } | null>(null);
   const [telegramTesting, setTelegramTesting] = useState(false);
   const [telegramSaveSuccess, setTelegramSaveSuccess] = useState(false);
@@ -101,14 +106,8 @@ export default function SupabaseSettingsView({
         const { getSystemSettings } = await import('../services/db');
         const settings = await getSystemSettings(config);
         if (settings) {
-          if (settings.telegram_bot_token) {
-            setTelegramToken(settings.telegram_bot_token);
-            localStorage.setItem('system_telegram_bot_token', settings.telegram_bot_token);
-          }
-          if (settings.telegram_chat_id) {
-            setTelegramChatId(settings.telegram_chat_id);
-            localStorage.setItem('system_telegram_chat_id', settings.telegram_chat_id);
-          }
+          setHasStoredToken(!!settings.has_telegram_token);
+          setHasStoredChatId(!!settings.has_telegram_chat_id);
         }
       } catch (e) {
         console.warn('Failed to load settings in SupabaseSettingsView:', e);
@@ -207,7 +206,7 @@ export default function SupabaseSettingsView({
 
         <div className="space-y-1.5 leading-snug">
           <h3 className="text-sm font-bold font-sans text-slate-800 uppercase tracking-wider">ยืนยัน PIN ผู้ดูแลระบบ</h3>
-          <p className="text-xs text-slate-450 leading-relaxed max-w-xs mx-auto">
+          <p className="text-xs text-slate-500 leading-relaxed max-w-xs mx-auto">
             กรุณากรอกรหัส PIN 4 หลัก เพื่อปลดล็อกเข้าสู่หน้าตั้งค่าระบบ (โปรไฟล์โปรแกรมและฐานข้อมูล)
           </p>
         </div>
@@ -252,7 +251,7 @@ export default function SupabaseSettingsView({
           <button
             type="button"
             onClick={handleClear}
-            className="w-14 h-14 text-slate-450 hover:text-rose-605 active:scale-95 flex items-center justify-center text-xs font-bold font-sans transition-all cursor-pointer"
+            className="w-14 h-14 text-slate-500 hover:text-rose-600 active:scale-95 flex items-center justify-center text-xs font-bold font-sans transition-all cursor-pointer"
           >
             ล้างรหัส
           </button>
@@ -266,7 +265,7 @@ export default function SupabaseSettingsView({
           <button
             type="button"
             onClick={handleBackspace}
-            className="w-14 h-14 text-slate-450 hover:text-apple-primary active:scale-95 flex items-center justify-center text-xs font-bold font-sans transition-all cursor-pointer"
+            className="w-14 h-14 text-slate-500 hover:text-apple-primary active:scale-95 flex items-center justify-center text-xs font-bold font-sans transition-all cursor-pointer"
           >
             ลบ
           </button>
@@ -293,8 +292,8 @@ export default function SupabaseSettingsView({
               <h4 className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
                 🔒 รหัส PIN 6 หลัก ปลดล็อก Sidebar เมนูบริหารคลัง
               </h4>
-              <p className="text-[10px] text-slate-400 font-sans leading-relaxed">
-                กรุณาระบุเลขรหัสผ่าน 6 หลักเพื่อใช้ควบคุมสิทธิ์การเข้าถึงข้อมูลและการอนุมัติคลังแอดมิน (ค่าเริ่มต้น: 888888)
+              <p className="text-[11px] text-slate-500 font-sans leading-relaxed">
+                รหัสถูกเก็บและตรวจสอบที่เซิร์ฟเวอร์ ไม่แสดงค่าปัจจุบันบนหน้าเว็บ — พิมพ์เลข 6 หลักใหม่แล้วกดบันทึกเพื่อเปลี่ยน (ค่าเริ่มต้น: 888888)
               </p>
             </div>
             <div className="flex items-center gap-2 shrink-0">
@@ -314,11 +313,8 @@ export default function SupabaseSettingsView({
                     return;
                   }
                   
-                  // Save locally first
-                  localStorage.setItem('system_admin_sidebar_pin', adminPinInput);
-                  
-                  // Save and Sync globally to Supabase!
-                  const savePinToSupabase = async () => {
+                  // PIN ถูกเก็บและตรวจสอบที่ server เท่านั้น ไม่บันทึกลงเครื่องผู้ใช้อีกต่อไป
+                  const savePin = async () => {
                     try {
                       const { saveSystemSettings } = await import('../services/db');
                       await saveSystemSettings(config, {
@@ -328,25 +324,16 @@ export default function SupabaseSettingsView({
                         custom_logo: customLogo,
                         custom_pin: adminPinInput
                       });
-                      
+
                       setPinSaveSuccess(true);
                       setTimeout(() => setPinSaveSuccess(false), 2000);
                       onRefreshAll();
                     } catch (syncErr: any) {
-                      console.error('Failed to sync PIN to Supabase:', syncErr);
-                      alert(
-                        `⚠️ บันทึกในบราวเซอร์เครื่องนี้สำเร็จ! แต่ไม่สามารถซิงค์ไปยัง Supabase Cloud ได้ค่ะ\n\n` +
-                        `สาเหตุ: ตาราง system_settings บน Supabase ของคุณยังไม่มีคอลัมน์ 'custom_pin' เพื่อเก็บรหัสผ่าน\n\n` +
-                        `💡 วิธีแก้ปัญหาใน 10 วินาที:\n` +
-                        `1. เข้าไปที่หน้าเว็บ Supabase Dashboard ของคุณ\n` +
-                        `2. ไปที่เมนู "SQL Editor" ทางด้านซ้าย\n` +
-                        `3. วางคำสั่ง SQL ต่อไปนี้ลงไปแล้วกด "Run" เพื่ออัปเกรดตารางค่ะ:\n\n` +
-                        `ALTER TABLE system_settings ADD COLUMN IF NOT EXISTS custom_pin text;\n` +
-                        `NOTIFY pgrst, 'reload schema';`
-                      );
+                      console.error('Failed to save admin PIN:', syncErr);
+                      alert(`ไม่สามารถบันทึกรหัส PIN ได้ค่ะ: ${syncErr?.message || 'ระบบขัดข้อง'}`);
                     }
                   };
-                  savePinToSupabase();
+                  savePin();
                 }}
                 className="px-4 py-1.5 bg-[#000000] hover:bg-[#1D1D1F] text-white font-sans font-semibold text-xs rounded-xl shadow-md shadow-apple-primary/10 transition-all cursor-pointer"
               >
@@ -368,31 +355,36 @@ export default function SupabaseSettingsView({
             
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-[9px] font-sans font-bold text-slate-500 uppercase tracking-wider mb-1.5">Telegram Bot Token *</label>
+                <label className="block text-[11px] font-sans font-bold text-slate-500 uppercase tracking-wider mb-1.5">Telegram Bot Token</label>
                 <input
                   type="password"
                   value={telegramToken}
                   onChange={(e) => setTelegramToken(e.target.value.trim())}
-                  className="w-full px-3.5 py-2 border border-[#E8E8ED] rounded-xl text-xs font-mono focus:outline-hidden focus:border-apple-primary bg-white transition-all text-slate-850"
-                  placeholder="เช่น 123456789:ABCdefGhI..."
+                  className="w-full px-3.5 py-2 border border-[#E8E8ED] rounded-xl text-xs font-mono focus:outline-hidden focus:border-apple-primary bg-white transition-all text-slate-800"
+                  placeholder={hasStoredToken ? '•••••••• (ตั้งค่าไว้แล้ว)' : 'เช่น 123456789:ABCdefGhI...'}
                 />
               </div>
 
               <div>
-                <label className="block text-[9px] font-sans font-bold text-slate-500 uppercase tracking-wider mb-1.5">Telegram Chat ID / Group ID *</label>
+                <label className="block text-[11px] font-sans font-bold text-slate-500 uppercase tracking-wider mb-1.5">Telegram Chat ID / Group ID</label>
                 <input
                   type="text"
                   value={telegramChatId}
                   onChange={(e) => setTelegramChatId(e.target.value.trim())}
-                  className="w-full px-3.5 py-2 border border-[#E8E8ED] rounded-xl text-xs font-mono focus:outline-hidden focus:border-apple-primary bg-white transition-all text-slate-850"
-                  placeholder="เช่น -100123456789 หรือ 98765432"
+                  className="w-full px-3.5 py-2 border border-[#E8E8ED] rounded-xl text-xs font-mono focus:outline-hidden focus:border-apple-primary bg-white transition-all text-slate-800"
+                  placeholder={hasStoredChatId ? '•••••••• (ตั้งค่าไว้แล้ว)' : 'เช่น -100123456789 หรือ 98765432'}
                 />
               </div>
             </div>
 
+            <p className="text-[11px] text-slate-500 leading-relaxed">
+              เพื่อความปลอดภัย ระบบไม่ส่ง Token กลับมาแสดงบนหน้าเว็บอีกต่อไป —
+              {hasStoredToken ? ' เว้นช่องว่างไว้เพื่อใช้ค่าเดิม หรือพิมพ์ค่าใหม่ทับเพื่อเปลี่ยน' : ' กรอกค่าแล้วกดบันทึกเพื่อเริ่มใช้งาน'}
+            </p>
+
             {telegramTestStatus && (
               <div className={`p-3.5 rounded-xl border text-[10.5px] leading-relaxed font-sans ${
-                telegramTestStatus.success ? 'bg-emerald-50 border-emerald-150 text-emerald-800' : 'bg-rose-50 border-rose-100 text-rose-800'
+                telegramTestStatus.success ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-rose-50 border-rose-100 text-rose-800'
               }`}>
                 {telegramTestStatus.message}
               </div>
@@ -401,19 +393,15 @@ export default function SupabaseSettingsView({
             <div className="flex flex-wrap gap-2 pt-2 border-t border-[#E8E8ED]/60 justify-end">
               <button
                 type="button"
-                disabled={telegramTesting || !telegramToken || !telegramChatId}
+                disabled={telegramTesting || (!hasStoredToken && !telegramToken)}
                 onClick={async () => {
                   setTelegramTesting(true);
                   setTelegramTestStatus(null);
                   try {
-                    const { sendTelegramNotification } = await import('../services/db');
-                    const message = `<b>🔔 ทดสอบการแจ้งเตือนระบบคลังพัสดุสำเร็จ!</b>\n\nการเชื่อมโยงระบบบอท Telegram กับ <b>${systemTitle}</b> ทำงานได้สมบูรณ์แบบเรียบร้อยแล้วค่ะ 🕶️💙`;
-                    const ok = await sendTelegramNotification(telegramToken, telegramChatId, message);
-                    if (ok) {
-                      setTelegramTestStatus({ success: true, message: '✅ ส่งข้อความทดสอบไปยัง Telegram สำเร็จแล้ว! กรุณาตรวจสอบในห้องแชทของท่านค่ะ' });
-                    } else {
-                      setTelegramTestStatus({ success: false, message: '❌ ไม่สามารถส่งข้อความได้ กรุณาตรวจสอบความถูกต้องของ Bot Token และ Chat ID หรือความพร้อมใช้งานของบอท (ต้องแอดบอทเข้าห้องแชทและกด /start ก่อนนะคะ)' });
-                    }
+                    // ส่งจากฝั่ง server โดยใช้ค่าที่บันทึกไว้ — กรุณากดบันทึกก่อนทดสอบหากเพิ่งแก้ค่า
+                    const { sendTelegramTest } = await import('../services/db');
+                    const message = `<b>🔔 ทดสอบการแจ้งเตือนระบบคลังพัสดุสำเร็จ!</b>\n\nการเชื่อมโยงระบบบอท Telegram กับ <b>${systemTitle}</b> ทำงานได้เรียบร้อยแล้วค่ะ`;
+                    setTelegramTestStatus(await sendTelegramTest(config, message));
                   } catch (e: any) {
                     setTelegramTestStatus({ success: false, message: `เกิดข้อผิดพลาด: ${e?.message || 'ระบบขัดข้อง'}` });
                   } finally {
@@ -428,28 +416,27 @@ export default function SupabaseSettingsView({
               <button
                 type="button"
                 onClick={async () => {
-                  // Save locally
-                  localStorage.setItem('system_telegram_bot_token', telegramToken);
-                  localStorage.setItem('system_telegram_chat_id', telegramChatId);
-
-                  // Sync to Supabase!
                   try {
                     const { saveSystemSettings } = await import('../services/db');
+                    // ส่งเฉพาะฟิลด์ที่กรอกใหม่ — ฝั่ง server ใช้ COALESCE จึงคงค่าเดิมไว้เมื่อเว้นว่าง
                     await saveSystemSettings(config, {
                       title: systemTitle,
                       description: systemDesc,
                       version: systemVersion,
                       custom_logo: customLogo,
-                      custom_pin: localStorage.getItem('system_admin_sidebar_pin') || undefined,
                       telegram_bot_token: telegramToken || undefined,
                       telegram_chat_id: telegramChatId || undefined
                     });
+                    if (telegramToken) setHasStoredToken(true);
+                    if (telegramChatId) setHasStoredChatId(true);
+                    setTelegramToken('');
+                    setTelegramChatId('');
                     setTelegramSaveSuccess(true);
                     setTimeout(() => setTelegramSaveSuccess(false), 2000);
                     onRefreshAll();
                   } catch (e: any) {
-                    console.error('Failed to sync Telegram settings to Supabase:', e);
-                    alert(`บันทึกในบราวเซอร์สำเร็จ แต่ไม่สามารถซิงค์ไปยัง Supabase ได้ค่ะ: ${e?.message}`);
+                    console.error('Failed to save Telegram settings:', e);
+                    alert(`ไม่สามารถบันทึกการตั้งค่า Telegram ได้ค่ะ: ${e?.message}`);
                   }
                 }}
                 className="px-4 py-1.5 bg-[#000000] hover:bg-[#1D1D1F] text-white font-sans font-semibold text-xs rounded-xl shadow-md transition-all cursor-pointer"
@@ -471,7 +458,7 @@ export default function SupabaseSettingsView({
                 ) : (
                   <div className="flex flex-col items-center justify-center text-center">
                     <ImageIcon className="h-5 w-5 text-slate-400" />
-                    <span className="text-[8px] text-slate-450 mt-1 leading-none font-sans font-semibold">โลโก้เริ่มต้น</span>
+                    <span className="text-[8px] text-slate-500 mt-1 leading-none font-sans font-semibold">โลโก้เริ่มต้น</span>
                   </div>
                 )}
               </div>
@@ -610,73 +597,25 @@ export default function SupabaseSettingsView({
       {/* Connection Setup Container */}
       <div className="bg-white p-6 rounded-2xl border border-[#E8E8ED] shadow-apple-card">
         <h3 className="text-sm font-bold text-slate-900 border-b border-[#E8E8ED] pb-3 mb-6 flex items-center gap-2">
-          <Server className="h-4.5 w-4.5 text-apple-primary" /> การตั้งค่าฐานข้อมูลเซิร์ฟเวอร์ Supabase
+          <Server className="h-4.5 w-4.5 text-apple-primary" /> สถานะการเชื่อมต่อฐานข้อมูล Cloudflare D1 (SQLite)
         </h3>
 
         <div className="space-y-6">
-          <div className="space-y-4">
-            {/* Supabase API URL input */}
-            <div>
-              <label className="block text-[11px] font-mono text-slate-450 uppercase tracking-wider mb-1.5">Supabase Project URL *</label>
-              <input
-                type="url"
-                value={supabaseUrl}
-                onChange={(e) => setSupabaseUrl(e.target.value)}
-                className="w-full px-3.5 py-2 border border-[#E8E8ED] rounded-xl text-xs font-semibold text-slate-800 font-sans focus:outline-hidden focus:border-apple-primary focus:ring-1 focus:ring-apple-primary/20 bg-[#F5F5F7]/50 focus:bg-white transition-all"
-                placeholder="https://your-project-id.supabase.co"
-                required
-              />
-              <p className="text-[10px] text-slate-400 mt-1 font-sans">คัดลอกได้จากเมนู Settings &rarr; API &rarr; Project URL ของสตรีม Supabase</p>
-            </div>
-
-            {/* Supabase Anon Key input */}
-            <div>
-              <label className="block text-[11px] font-mono text-slate-450 uppercase tracking-wider mb-1.5">Supabase Anon Key (API Key) *</label>
-              <div className="relative">
-                <input
-                  type={showKey ? 'text' : 'password'}
-                  value={supabaseKey}
-                  onChange={(e) => setSupabaseKey(e.target.value)}
-                  className="w-full pl-3.5 pr-10 py-2 border border-[#E8E8ED] rounded-xl text-xs font-semibold text-slate-800 font-sans focus:outline-hidden focus:border-apple-primary focus:ring-1 focus:ring-apple-primary/20 bg-[#F5F5F7]/50 focus:bg-white transition-all font-mono"
-                  placeholder="eyJhbGciOiJIUzI1NiIsIn..."
-                  required
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowKey(!showKey)}
-                  className="absolute right-3 top-2 text-slate-400 hover:text-slate-650 p-1"
-                >
-                  {showKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
-              </div>
-              <p className="text-[10px] text-slate-400 mt-1 font-sans">คัดลอกได้จากเมนู Settings &rarr; API &rarr; Service keys / anon public ของ Supabase</p>
+          <div className="p-4 rounded-2xl border bg-emerald-50 border-emerald-200 text-emerald-800 text-xs flex items-start gap-2.5 font-sans">
+            <CheckCircle className="h-5 w-5 text-[#34C759] shrink-0 mt-0.5" />
+            <div className="text-left">
+              <h5 className="font-bold">เชื่อมต่อฐานข้อมูลสำเร็จ</h5>
+              <p className="text-[10.5px] text-slate-500 leading-relaxed mt-0.5">
+                ระบบคลังพัสดุนี้เชื่อมต่อกับเซิร์ฟเวอร์แบบไร้เซิร์ฟเวอร์ (Serverless SQLite) ของ Cloudflare D1 เรียบร้อยแล้ว ไม่จำเป็นต้องตั้งค่า URL หรือ API Key อีกต่อไป ข้อมูลทั้งหมดถูกจัดเก็บและประมวลผลอย่างรวดเร็วที่ Edge Network
+              </p>
             </div>
           </div>
 
-          {/* Display Test Results */}
-          {testResult && (
-            <div className={`p-4 rounded-2xl border text-xs flex items-start gap-2.5 font-sans ${
-              testResult.success 
-                ? 'bg-emerald-50 border-emerald-150 text-emerald-800' 
-                : 'bg-rose-50 border-rose-100 text-rose-800'
-            }`}>
-              {testResult.success ? (
-                <CheckCircle className="h-5 w-5 text-[#34C759] shrink-0 mt-0.5" />
-              ) : (
-                <AlertCircle className="h-5 w-5 text-rose-500 shrink-0 mt-0.5" />
-              )}
-              <div className="text-left">
-                <h5 className="font-bold">{testResult.success ? 'ตรวจสอบสำเร็จ!' : 'พบข้อขัดข้อง'}</h5>
-                <p className="text-[10.5px] text-slate-550 leading-relaxed mt-0.5">{testResult.message}</p>
-              </div>
-            </div>
-          )}
-
-          {/* Configuration operation buttons */}
+          {/* Test connection button */}
           <div className="pt-3.5 border-t border-[#E8E8ED] flex items-center justify-between">
             <button
               type="button"
-              disabled={testing || !supabaseUrl || !supabaseKey}
+              disabled={testing}
               onClick={handleTestConnection}
               className="flex items-center space-x-1.5 px-3.5 py-1.5 border border-[#E8E8ED] hover:bg-slate-50 text-slate-700 rounded-xl font-sans font-bold text-xs disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition active:scale-98"
             >
@@ -687,21 +626,12 @@ export default function SupabaseSettingsView({
               )}
               <span>{testing ? 'กำลังตรวจสอบ...' : 'ทดสอบสัญญาณเชื่อม'}</span>
             </button>
-
-            {/* Save settings */}
-            <button
-              type="button"
-              onClick={handleSaveSettings}
-              className="flex items-center space-x-1 bg-apple-primary hover:bg-[#1D1D1F] text-white font-sans font-bold text-xs py-2 px-4 rounded-xl shadow-md shadow-apple-primary/10 hover:shadow-lg hover:shadow-apple-primary/20 transition active:scale-98 cursor-pointer"
-            >
-              {saveSuccess ? (
-                <>
-                  <Check className="h-3.5 w-3.5 text-emerald-300" /> <span>บันทึกตั้งค่าแล้ว!</span>
-                </>
-              ) : (
-                <span>บันทึกและเชื่อมฐานข้อมูล</span>
-              )}
-            </button>
+            
+            {testResult && (
+              <span className={`text-[11px] font-bold ${testResult.success ? 'text-emerald-600' : 'text-rose-500'}`}>
+                {testResult.message}
+              </span>
+            )}
           </div>
         </div>
       </div>

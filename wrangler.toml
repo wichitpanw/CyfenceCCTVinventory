@@ -1,0 +1,12 @@
+name = "cctv"
+main = "server/index.ts"
+compatibility_date = "2024-04-03"
+
+[assets]
+directory = "./dist"
+binding = "ASSETS"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "cyfence-db"
+database_id = "0c98e005-2cf6-4080-9309-4a989e48ed9f"

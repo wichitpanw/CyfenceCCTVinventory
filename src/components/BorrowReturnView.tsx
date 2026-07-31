@@ -27,6 +27,7 @@ import {
   ShoppingCart
 } from 'lucide-react';
 import { Equipment, Transaction, SupabaseConfig } from '../types';
+import { compressImage } from '../lib/image';
 import { getEquipments, getTransactions, borrowEquipment, returnEquipment } from '../services/db';
 
 interface BorrowReturnViewProps {
@@ -45,49 +46,6 @@ const COMPANIES = [
 ];
 
 // Helper to compress and convert image files to Base64 (saving space in supadb & storage)
-const compressAndConvertToBase64 = (file: File): Promise<string> => {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = (event) => {
-      const img = new Image();
-      img.src = event.target?.result as string;
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        const MAX_WIDTH = 800;
-        const MAX_HEIGHT = 800;
-        let width = img.width;
-        let height = img.height;
-
-        if (width > height) {
-          if (width > MAX_WIDTH) {
-            height *= MAX_WIDTH / width;
-            width = MAX_WIDTH;
-          }
-        } else {
-          if (height > MAX_HEIGHT) {
-            width *= MAX_HEIGHT / height;
-            height = MAX_HEIGHT;
-          }
-        }
-
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        if (ctx) {
-          // Fill white background to handle PNG transparency
-          ctx.fillStyle = '#ffffff';
-          ctx.fillRect(0, 0, width, height);
-          ctx.drawImage(img, 0, 0, width, height);
-        }
-        const dataUrl = canvas.toDataURL('image/jpeg', 0.75); // 75% quality JPEG
-        resolve(dataUrl);
-      };
-      img.onerror = (err) => reject(err);
-    };
-    reader.onerror = (error) => reject(error);
-  });
-};
 
 export default function BorrowReturnView({ config, refreshTrigger, onRefresh, quickReturnTx, onClearQuickReturn }: BorrowReturnViewProps) {
   const [activeSubTab, setActiveSubTab] = useState<'borrow' | 'return'>('borrow');
@@ -235,7 +193,7 @@ export default function BorrowReturnView({ config, refreshTrigger, onRefresh, qu
       return;
     }
     try {
-      const base64Data = await compressAndConvertToBase64(file);
+      const base64Data = await compressImage(file);
       setEvidenceImage(base64Data);
       setBorrowError('');
     } catch (err) {
@@ -451,7 +409,7 @@ export default function BorrowReturnView({ config, refreshTrigger, onRefresh, qu
 
             <form onSubmit={handleBorrowSubmit} className="space-y-5">
               {borrowError && (
-                <div className="bg-red-55 border border-[#FFEBEA] text-apple-error p-3.5 rounded-xl text-xs flex items-start gap-2 animate-fade-in font-medium">
+                <div className="bg-red-50 border border-[#FFEBEA] text-apple-error p-3.5 rounded-xl text-xs flex items-start gap-2 animate-fade-in font-medium">
                   <AlertCircle className="h-4 w-4 text-apple-error shrink-0 mt-0.5" />
                   <span>{borrowError}</span>
                 </div>
@@ -1022,7 +980,7 @@ export default function BorrowReturnView({ config, refreshTrigger, onRefresh, qu
                   className={`text-[10.5px] px-3.5 py-1.5 rounded-full font-semibold font-sans transition-all duration-200 cursor-pointer border ${
                     returnFilterStartDate === new Date().toISOString().split('T')[0] && returnFilterEndDate === new Date().toISOString().split('T')[0]
                       ? 'bg-amber-500 border-amber-500 text-white shadow-xs'
-                      : 'bg-[#FFF9E6] border-amber-250/30 text-[#8F6B00] hover:bg-amber-100/60'
+                      : 'bg-[#FFF9E6] border-amber-200/30 text-[#8F6B00] hover:bg-amber-100/60'
                   }`}
                 >
                   ⏳ ต้องคืนวันนี้
@@ -1042,7 +1000,7 @@ export default function BorrowReturnView({ config, refreshTrigger, onRefresh, qu
                   className={`text-[10.5px] px-3.5 py-1.5 rounded-full font-semibold font-sans transition-all duration-200 cursor-pointer border ${
                     returnFilterStartDate === new Date().toISOString().split('T')[0] && returnFilterEndDate && returnFilterEndDate > new Date().toISOString().split('T')[0]
                       ? 'bg-apple-primary border-apple-primary text-white shadow-xs'
-                      : 'bg-blue-50/60 border-blue-105/50 text-blue-700 hover:bg-blue-100/60'
+                      : 'bg-blue-50/60 border-blue-100/50 text-blue-700 hover:bg-blue-100/60'
                   }`}
                 >
                   📅 ภายใน 7 วันนี้
@@ -1076,7 +1034,7 @@ export default function BorrowReturnView({ config, refreshTrigger, onRefresh, qu
             <div className="bg-white rounded-2xl p-16 text-center border border-[#E8E8ED] shadow-apple-card">
               <CheckCircle className="h-10 w-10 text-apple-success mx-auto mb-3 animate-pulse" />
               <h4 className="text-sm font-bold font-sans text-slate-800 tracking-wide">ไม่มีอุปกรณ์ที่กำลังเบิกยืมอยู่</h4>
-              <p className="text-xs text-slate-450 font-sans mt-1">อุปกรณ์ทุกชิ้นถูกส่งคืนถูกต้องเรียบร้อยครบถ้วนทั้งหมดแล้วค่ะ!</p>
+              <p className="text-xs text-slate-500 font-sans mt-1">อุปกรณ์ทุกชิ้นถูกส่งคืนถูกต้องเรียบร้อยครบถ้วนทั้งหมดแล้วค่ะ!</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5" id="return-items-grid">
@@ -1120,7 +1078,7 @@ export default function BorrowReturnView({ config, refreshTrigger, onRefresh, qu
                     <div className="p-4.5 flex-1 space-y-3 flex flex-col justify-between">
                       <div className="space-y-2">
                         <div className="flex justify-between items-start gap-2">
-                          <span className="font-mono bg-[#F5F5F7] text-slate-650 font-bold px-2 py-0.5 rounded-md text-[9px] border border-[#E8E8ED]">
+                          <span className="font-mono bg-[#F5F5F7] text-slate-600 font-bold px-2 py-0.5 rounded-md text-[9px] border border-[#E8E8ED]">
                             {tx.equipment_code}
                           </span>
                           {/* Compact borrow quantity indicator */}
@@ -1139,7 +1097,7 @@ export default function BorrowReturnView({ config, refreshTrigger, onRefresh, qu
 
                       {tx.evidence_image_url && (
                         <div className="bg-blue-50/30 border border-blue-100/50 p-2 rounded-xl flex items-center justify-between gap-2">
-                          <span className="text-[9px] font-bold text-slate-650 font-sans flex items-center gap-1.5 min-w-0">
+                          <span className="text-[9px] font-bold text-slate-600 font-sans flex items-center gap-1.5 min-w-0">
                             <Camera className="w-3.5 h-3.5 text-blue-600 shrink-0" />
                             <span className="truncate">ภาพหลักฐานเสนอเบิก</span>
                           </span>
@@ -1153,7 +1111,7 @@ export default function BorrowReturnView({ config, refreshTrigger, onRefresh, qu
                         </div>
                       )}
 
-                      <div className="text-[10px] font-sans text-slate-450 flex flex-col space-y-1 pt-2.5 border-t border-[#E8E8ED]">
+                      <div className="text-[10px] font-sans text-slate-500 flex flex-col space-y-1 pt-2.5 border-t border-[#E8E8ED]">
                         <p>ยืมเมื่อ: <span className="font-mono font-semibold text-slate-600">{new Date(tx.borrow_date).toLocaleDateString('th-TH')}</span></p>
                         <p className={isOverdue ? 'text-rose-500 font-bold' : ''}>
                           กำหนดคืน: <span className="font-mono">{new Date(tx.due_date).toLocaleDateString('th-TH')}</span>
@@ -1196,7 +1154,7 @@ export default function BorrowReturnView({ config, refreshTrigger, onRefresh, qu
               </h3>
               <button 
                 onClick={() => setIsReturnModalOpen(false)}
-                className="p-1.5 text-slate-400 hover:text-slate-650 hover:bg-[#F5F5F7] rounded-full transition-all cursor-pointer"
+                className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-[#F5F5F7] rounded-full transition-all cursor-pointer"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -1231,7 +1189,7 @@ export default function BorrowReturnView({ config, refreshTrigger, onRefresh, qu
                     ผู้เบิก: <span className="font-semibold text-blue-900">{selectedTxForReturn.borrower_name}</span> · {selectedTxForReturn.borrower_department}
                   </p>
                   <p className="text-[10.5px] text-slate-500 mt-0.5">
-                    จำนวนที่ยืมค้างไว้: <span className="font-bold text-slate-850">{selectedTxForReturn.borrow_qty ?? 1} ชิ้น</span>
+                    จำนวนที่ยืมค้างไว้: <span className="font-bold text-slate-800">{selectedTxForReturn.borrow_qty ?? 1} ชิ้น</span>
                   </p>
                 </div>
               </div>
@@ -1272,9 +1230,9 @@ export default function BorrowReturnView({ config, refreshTrigger, onRefresh, qu
                 <label className="block text-[11px] font-sans text-slate-500 font-bold uppercase tracking-wider mb-1.5">อัปเดตสถานะของอุปกรณ์ต่อจากนี้ *</label>
                 <div className="grid grid-cols-3 gap-2">
                   {[
-                    { val: 'available', name: 'ปกติพร้อมแจกยืม', color: 'border-[#E8E8ED] hover:bg-[#EAF9EE]/50 text-slate-650 hover:text-emerald-700', active: 'bg-[#34C759] border-[#34C759] text-white' },
-                    { val: 'maintenance', name: 'ต้องส่งซ่อม', color: 'border-[#E8E8ED] hover:bg-amber-50/50 text-slate-650 hover:text-amber-700', active: 'bg-amber-500 border-amber-500 text-white' },
-                    { val: 'broken', name: 'ชำรุดเสียหาย', color: 'border-[#E8E8ED] hover:bg-rose-50/50 text-slate-655 hover:text-rose-700', active: 'bg-rose-500 border-rose-500 text-white' },
+                    { val: 'available', name: 'ปกติพร้อมแจกยืม', color: 'border-[#E8E8ED] hover:bg-[#EAF9EE]/50 text-slate-600 hover:text-emerald-700', active: 'bg-[#34C759] border-[#34C759] text-white' },
+                    { val: 'maintenance', name: 'ต้องส่งซ่อม', color: 'border-[#E8E8ED] hover:bg-amber-50/50 text-slate-600 hover:text-amber-700', active: 'bg-amber-500 border-amber-500 text-white' },
+                    { val: 'broken', name: 'ชำรุดเสียหาย', color: 'border-[#E8E8ED] hover:bg-rose-50/50 text-slate-600 hover:text-rose-700', active: 'bg-rose-500 border-rose-500 text-white' },
                   ].map(spec => (
                     <button
                       key={spec.val}
@@ -1298,7 +1256,7 @@ export default function BorrowReturnView({ config, refreshTrigger, onRefresh, qu
                 <button
                   type="button"
                   onClick={() => setIsReturnModalOpen(false)}
-                  className="px-4 py-2 border border-[#E8E8ED] rounded-xl text-xs font-sans font-semibold hover:bg-[#F5F5F7] text-slate-650 transition-all cursor-pointer active:scale-98"
+                  className="px-4 py-2 border border-[#E8E8ED] rounded-xl text-xs font-sans font-semibold hover:bg-[#F5F5F7] text-slate-600 transition-all cursor-pointer active:scale-98"
                 >
                   ปิดหน้าต่าง
                 </button>
@@ -1338,7 +1296,7 @@ export default function BorrowReturnView({ config, refreshTrigger, onRefresh, qu
               />
             </div>
             <div className="mt-4 text-xs font-semibold text-[#86868B] font-sans flex items-center gap-2 pb-2">
-              <Camera className="w-4 h-4 text-blue-650" />
+              <Camera className="w-4 h-4 text-blue-600" />
               <span>ภาพหลักฐานใบเบิกคลังอุปกรณ์ (Cyfence Inventory Evidence Image)</span>
             </div>
           </div>

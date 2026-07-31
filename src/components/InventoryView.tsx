@@ -25,6 +25,7 @@ import {
   List
 } from 'lucide-react';
 import { Equipment, SupabaseConfig } from '../types';
+import { compressImage } from '../lib/image';
 import { getEquipments, addEquipment, updateEquipment, deleteEquipment } from '../services/db';
 
 const CATEGORIES = [
@@ -47,56 +48,6 @@ const STOCK_IMAGES = [
   { name: 'Screens/Monitors', url: 'https://images.unsplash.com/photo-1527443224154-c4a3942d3acf?w=500&auto=format&fit=crop&q=80' }
 ];
 
-const compressAndConvertToBase64 = (file: File): Promise<string> => {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = (event) => {
-      const img = new Image();
-      img.src = event.target?.result as string;
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        const MAX_WIDTH = 500;
-        const MAX_HEIGHT = 500;
-        let width = img.width;
-        let height = img.height;
-
-        if (width > height) {
-          if (width > MAX_WIDTH) {
-            height *= MAX_WIDTH / width;
-            width = MAX_WIDTH;
-          }
-        } else {
-          if (height > MAX_HEIGHT) {
-            width *= MAX_HEIGHT / height;
-            height = MAX_HEIGHT;
-          }
-        }
-
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        if (!ctx) {
-          resolve(event.target?.result as string);
-          return;
-        }
-        // Fill white background to handle PNG transparency
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(0, 0, width, height);
-        ctx.drawImage(img, 0, 0, width, height);
-        // Compressed JPEG
-        const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
-        resolve(dataUrl);
-      };
-      img.onerror = (err) => {
-        reject(err);
-      };
-    };
-    reader.onerror = (err) => {
-      reject(err);
-    };
-  });
-};
 
 interface InventoryViewProps {
   config: SupabaseConfig;
@@ -256,7 +207,7 @@ export default function InventoryView({ config, refreshTrigger, onRefresh }: Inv
     }
 
     try {
-      const base64Data = await compressAndConvertToBase64(file);
+      const base64Data = await compressImage(file, { maxSize: 500, quality: 0.7 });
       setImageUrl(base64Data);
     } catch (err) {
       console.error(err);
@@ -670,7 +621,7 @@ export default function InventoryView({ config, refreshTrigger, onRefresh }: Inv
                     </div>
                   </td>
                   {/* Code */}
-                  <td className="px-4 py-2.5 whitespace-nowrap text-xs font-mono font-bold text-slate-650">
+                  <td className="px-4 py-2.5 whitespace-nowrap text-xs font-mono font-bold text-slate-600">
                     <span className="bg-[#F5F5F7] px-2 py-0.5 rounded-md border border-[#E8E8ED] select-all">
                       {item.code}
                     </span>
@@ -680,7 +631,7 @@ export default function InventoryView({ config, refreshTrigger, onRefresh }: Inv
                     {item.name}
                   </td>
                   {/* Category */}
-                  <td className="px-4 py-2.5 whitespace-nowrap text-[10px] text-slate-550 font-bold">
+                  <td className="px-4 py-2.5 whitespace-nowrap text-[10px] text-slate-500 font-bold">
                     {item.category}
                   </td>
                   {/* Location */}

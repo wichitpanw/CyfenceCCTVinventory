@@ -276,7 +276,7 @@ export default function HistoryView({ config, refreshTrigger }: HistoryViewProps
         <div className="bg-white rounded-2xl p-16 text-center border border-[#E8E8ED] shadow-apple-card" id="history-empty">
           <History className="h-10 w-10 text-slate-300 mx-auto mb-3" />
           <h4 className="text-sm font-bold font-sans text-slate-800">ไม่พบรายการประวัติการเบิก-คืนอุปกรณ์</h4>
-          <p className="text-xs text-slate-450 font-sans mt-1">หากมีข้อสงสัยหรือพบปัญหา ติดต่อเจ้าหน้าที่ดูแลคลังอุปกรณ์เพื่อขอความช่วยเหลือ</p>
+          <p className="text-xs text-slate-500 font-sans mt-1">หากมีข้อสงสัยหรือพบปัญหา ติดต่อเจ้าหน้าที่ดูแลคลังอุปกรณ์เพื่อขอความช่วยเหลือ</p>
         </div>
       ) : (
         /* Responsive Desktop Table & Mobile Cards */
@@ -327,14 +327,14 @@ export default function HistoryView({ config, refreshTrigger }: HistoryViewProps
                         {/* Items Summary info */}
                         <td className="px-2.5 xl:px-4 py-3 whitespace-nowrap">
                           <div className="flex items-center space-x-2.5">
-                            <div className="p-2 bg-[#F5F5F7] rounded-xl text-slate-650 shrink-0 border border-[#E8E8ED]">
+                            <div className="p-2 bg-[#F5F5F7] rounded-xl text-slate-600 shrink-0 border border-[#E8E8ED]">
                               <Package className="w-4 h-4" />
                             </div>
                             <div className="min-w-0">
                               <div className="text-xs font-bold text-slate-800 leading-normal font-sans whitespace-nowrap">
                                 เบิกไป {totalItemsCount} รายการ
                               </div>
-                              <div className="text-[10px] text-slate-450 mt-0.5 font-sans leading-relaxed whitespace-nowrap">
+                              <div className="text-[10px] text-slate-500 mt-0.5 font-sans leading-relaxed whitespace-nowrap">
                                 รวม <span className="font-bold text-slate-700 font-mono">{totalQty}</span> ชิ้น
                               </div>
                             </div>
@@ -347,7 +347,7 @@ export default function HistoryView({ config, refreshTrigger }: HistoryViewProps
                             <User className="h-4 w-4 text-slate-400 shrink-0 mt-0.5" />
                             <div className="min-w-0 flex-1">
                               <div className="text-xs font-bold text-slate-800 leading-tight font-sans whitespace-nowrap" title={group.borrower_name}>{group.borrower_name}</div>
-                              <div className="text-[10.5px] text-slate-450 mt-1 flex items-center gap-1.5 leading-none font-sans whitespace-nowrap">
+                              <div className="text-[10.5px] text-slate-500 mt-1 flex items-center gap-1.5 leading-none font-sans whitespace-nowrap">
                                 <Briefcase className="h-3.5 w-3.5 shrink-0" />
                                 <span className="whitespace-nowrap" title={group.borrower_department}>{group.borrower_department}</span>
                               </div>
@@ -360,7 +360,7 @@ export default function HistoryView({ config, refreshTrigger }: HistoryViewProps
                           <div className="space-y-1 text-[10.5px] leading-normal font-sans text-slate-500">
                             <p className="flex items-center gap-1.5">
                               <Calendar className="h-3.5 w-3.5 text-slate-400 shrink-0" />
-                              <span>ยืม: <span className="font-mono font-bold text-slate-650">{new Date(group.borrow_date).toLocaleDateString('th-TH')}</span></span>
+                              <span>ยืม: <span className="font-mono font-bold text-slate-600">{new Date(group.borrow_date).toLocaleDateString('th-TH')}</span></span>
                             </p>
                             <p className={`flex items-center gap-1.5 ${group.status === 'overdue' ? 'text-rose-500 font-bold' : ''}`}>
                               <Clock className="h-3.5 w-3.5 text-slate-400 shrink-0" />
@@ -410,7 +410,7 @@ export default function HistoryView({ config, refreshTrigger }: HistoryViewProps
                               className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold font-sans transition-all cursor-pointer border active:scale-95 ${
                                 isExpanded 
                                   ? 'bg-blue-50 text-apple-primary border-blue-100/80 shadow-xs' 
-                                  : 'bg-[#F5F5F7] text-slate-655 border-[#E8E8ED] hover:bg-slate-100 hover:text-slate-800'
+                                  : 'bg-[#F5F5F7] text-slate-600 border-[#E8E8ED] hover:bg-slate-100 hover:text-slate-800'
                               }`}
                             >
                               <Eye className="w-3 w-3" />
@@ -442,7 +442,7 @@ export default function HistoryView({ config, refreshTrigger }: HistoryViewProps
                                   <FileText className="w-4 h-4 text-apple-primary" />
                                   <span className="text-xs font-bold text-slate-800 font-sans">พัสดุในใบเบิกชุดนี้ ({totalItemsCount} รายการ)</span>
                                 </div>
-                                <span className="text-[10px] text-slate-450 font-sans">
+                                <span className="text-[10px] text-slate-500 font-sans">
                                   ทำรายการเมื่อ {new Date(group.created_at || group.borrow_date).toLocaleString('th-TH')}
                                 </span>
                               </div>
@@ -499,7 +499,7 @@ export default function HistoryView({ config, refreshTrigger }: HistoryViewProps
                                                 คืนเมื่อ: <span className="font-mono text-slate-600">{new Date(item.return_date).toLocaleDateString('th-TH')}</span>
                                               </p>
                                               {item.condition_on_return && (
-                                                <p className="text-[10px] italic text-slate-450">
+                                                <p className="text-[10px] italic text-slate-500">
                                                   สภาพ: "{item.condition_on_return}"
                                                 </p>
                                               )}
@@ -549,7 +549,7 @@ export default function HistoryView({ config, refreshTrigger }: HistoryViewProps
                     <h4 className="text-xs font-bold font-sans text-slate-900 leading-snug">
                       ใบเสร็จเบิกพัสดุ {totalItemsCount} รายการ (รวม {totalQty} ชิ้น)
                     </h4>
-                    <p className="text-[11px] text-slate-550 font-sans leading-normal">โดย: {group.borrower_name} ({group.borrower_department})</p>
+                    <p className="text-[11px] text-slate-500 font-sans leading-normal">โดย: {group.borrower_name} ({group.borrower_department})</p>
                   </div>
 
                   <div className="bg-[#F5F5F7]/60 p-3 rounded-xl border border-[#E8E8ED] grid grid-cols-2 gap-2 text-[10px] text-slate-500 font-sans">
@@ -585,7 +585,7 @@ export default function HistoryView({ config, refreshTrigger }: HistoryViewProps
                     <button
                       type="button"
                       onClick={() => toggleGroup(group.id)}
-                      className="flex-1 flex items-center justify-between px-3.5 py-2 bg-[#F5F5F7]/60 hover:bg-slate-100 border border-[#E8E8ED] rounded-xl text-xs font-bold text-slate-650 font-sans transition-all cursor-pointer"
+                      className="flex-1 flex items-center justify-between px-3.5 py-2 bg-[#F5F5F7]/60 hover:bg-slate-100 border border-[#E8E8ED] rounded-xl text-xs font-bold text-slate-600 font-sans transition-all cursor-pointer"
                     >
                       <span className="flex items-center gap-2">
                         <Package className="w-4 h-4 text-apple-primary shrink-0" />
@@ -668,7 +668,7 @@ export default function HistoryView({ config, refreshTrigger }: HistoryViewProps
                 />
             </div>
             <div className="mt-4 text-xs font-semibold text-[#86868B] font-sans flex items-center gap-2 pb-2">
-              <Camera className="w-4 h-4 text-blue-650" />
+              <Camera className="w-4 h-4 text-blue-600" />
               <span>ภาพหลักฐานใบเบิกคลังอุปกรณ์ (Cyfence Inventory Evidence Image)</span>
             </div>
           </div>
@@ -724,7 +724,7 @@ export default function HistoryView({ config, refreshTrigger }: HistoryViewProps
               <div className="flex gap-2.5 p-3.5 bg-red-50 border border-red-200 rounded-2xl">
                 <AlertCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
                 <div className="space-y-1">
-                  <p className="text-xs font-bold text-red-850">
+                  <p className="text-xs font-bold text-red-800">
                     ⚠️ ข้อควรระวังในการลบ
                   </p>
                   <p className="text-[10.5px] text-red-700 leading-relaxed font-semibold">
@@ -740,7 +740,7 @@ export default function HistoryView({ config, refreshTrigger }: HistoryViewProps
                 type="button"
                 onClick={() => setDeleteConfirmModal({ isOpen: false, group: null })}
                 disabled={deleting}
-                className="py-3 px-4 border border-[#E8E8ED] hover:bg-[#F5F5F7] text-slate-655 hover:text-black font-bold text-xs rounded-xl transition-all cursor-pointer text-center select-none disabled:opacity-50"
+                className="py-3 px-4 border border-[#E8E8ED] hover:bg-[#F5F5F7] text-slate-600 hover:text-black font-bold text-xs rounded-xl transition-all cursor-pointer text-center select-none disabled:opacity-50"
               >
                 ยกเลิก
               </button>
